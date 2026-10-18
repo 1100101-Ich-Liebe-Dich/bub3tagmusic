@@ -5,7 +5,7 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.1.0 – Phase 1 (Grundgerüst)**. Die Funktionen der Phasen 2–4 sind
+Stand: **Version 0.1.1 – Phase 1 (Grundgerüst)**. Die Funktionen der Phasen 2–4 sind
 in den Menüs „Werkzeuge“, „Online“ und „Extras“ schon als Platzhalter zu sehen.
 
 ---

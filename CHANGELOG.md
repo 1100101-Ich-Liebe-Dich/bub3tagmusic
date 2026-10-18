@@ -2,10 +2,10 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
-## [Unveröffentlicht]
+## [0.1.1] – 2026-10-18
 
 ### Neu
-- GitHub-Repository eingerichtet: automatische Tests bei jedem Hochladen (Python 3.10 und 3.13),
+- GitHub-Repository eingerichtet: automatische Tests bei jedem Hochladen (Python 3.10, 3.11 und 3.13),
   Vorlagen für Fehlermeldungen und Wünsche, Fahrplan als Aufgaben mit Meilensteinen Phase 2–4.
 - `tests/run_all.sh` führt alle Tests mit einem Befehl aus; die Test-Sammlung erzeugt sich selbst
   (mit Tags, Covern und cover.jpg).

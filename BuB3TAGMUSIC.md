@@ -3,7 +3,7 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.1.0 – **Phase 1 fertig** (18.10.2026).
+> **Aktueller Stand:** Version 0.1.1 – **Phase 1 fertig** (18.10.2026).
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
