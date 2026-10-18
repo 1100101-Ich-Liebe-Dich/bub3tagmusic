@@ -1,7 +1,7 @@
 name: Testdaten aufzeichnen
 
 # Zeichnet echte Antworten von MusicBrainz, Cover Art Archive, iTunes, Deezer,
-# Discogs und TheAudioDB auf und legt sie nach tests/fixtures/online.
+# Discogs, TheAudioDB und AcoustID auf und legt sie nach tests/fixtures/online.
 # Auslösen: Datei tests/fixtures/online/RECORD ändern (oder per Hand in GitHub).
 on:
   push:
@@ -26,6 +26,8 @@ jobs:
         run: pip install -q mutagen Pillow certifi
 
       - name: Aufzeichnen
+        env:
+          ACOUSTID_KEY: ${{ secrets.ACOUSTID_KEY }}
         run: python tests/record_online.py
 
       - name: Ins Repository legen

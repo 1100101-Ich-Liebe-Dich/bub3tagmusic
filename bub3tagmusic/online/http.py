@@ -29,6 +29,7 @@ HOST_NAMES = {
     "api.deezer.com": "Deezer",
     "api.discogs.com": "Discogs",
     "www.theaudiodb.com": "TheAudioDB",
+    "api.acoustid.org": "AcoustID",
 }
 
 MAX_BYTES = 40 * 1024 * 1024
@@ -125,7 +126,11 @@ def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, 
             if len(body) > MAX_BYTES:
                 raise OnlineError(f"Antwort von {name} ist zu groß")
         except urllib.error.HTTPError as exc:
-            status, body = exc.code, b""
+            try:
+                body = exc.read(64 * 1024)
+            except Exception:
+                body = b""
+            status = exc.code
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             reason = getattr(exc, "reason", exc)
             if attempt < 2 and "timed out" in str(reason):
@@ -139,6 +144,14 @@ def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, 
             raise NotFound(f"{name}: nichts gefunden")
         if status == 401:
             raise OnlineError(f"{name} lehnt die Anfrage ab – Zugangsdaten (Token) prüfen")
+        if status == 400 and body[:1] == b"{":
+            try:
+                err = json.loads(body.decode("utf-8")).get("error")
+                msg = err.get("message") if isinstance(err, dict) else str(err or "")
+            except (ValueError, UnicodeDecodeError, AttributeError):
+                msg = ""
+            if msg:
+                raise OnlineError(f"{name} lehnt die Anfrage ab: {msg}")
         if status >= 400:
             raise OnlineError(f"{name} antwortet mit Fehler {status} – später nochmal versuchen")
         if use_cache:

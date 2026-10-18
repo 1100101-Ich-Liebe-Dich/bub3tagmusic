@@ -19,11 +19,17 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 from online_fixtures import ALBUMS, ARTISTS, DISCOGS_RELEASES, FIXTURES  # noqa: E402
 
-from bub3tagmusic.online import artistimages, coversearch, discogs, http, musicbrainz  # noqa: E402
+from bub3tagmusic.online import acoustid, artistimages, coversearch, discogs, http, musicbrainz  # noqa: E402
 from bub3tagmusic.online.base import OnlineError  # noqa: E402
 
 index: dict[str, str] = {}
 notes: list[str] = []
+
+
+# AcoustID braucht einen Key: GitHub-Secret ACOUSTID_KEY, sonst der Beispiel-Key aus der Doku.
+# In den Aufnahmen steht immer „TESTKEY“ – ein echter Key landet so nie im Repository.
+ACOUSTID_KEY = os.environ.get("ACOUSTID_KEY") or "zYspohqt0AM"
+TEST_KEY = "TESTKEY"
 
 
 def recorder(url, headers):
@@ -32,14 +38,63 @@ def recorder(url, headers):
         with urllib.request.urlopen(req, timeout=30, context=http._context()) as resp:
             status, body = resp.status, resp.read()
     except urllib.error.HTTPError as exc:
-        return exc.code, b""
+        body = exc.read() if "acoustid" in url else b""
+        if body:
+            note(f"AcoustID {exc.code}: {body[:200].decode('utf-8', 'replace')}")
+            with open(os.path.join(FIXTURES, "acoustid_error.json"), "wb") as fh:
+                fh.write(body)
+        return exc.code, body
     if status == 200:
+        stored = url.replace(f"client={ACOUSTID_KEY}", f"client={TEST_KEY}")
         ext = ".json" if body[:1] in (b"{", b"[") else ".bin"
-        name = hashlib.sha1(url.encode()).hexdigest()[:16] + ext
+        name = hashlib.sha1(stored.encode()).hexdigest()[:16] + ext
         with open(os.path.join(FIXTURES, name), "wb") as fh:
             fh.write(body)
-        index[url] = name
+        index[stored] = name
     return status, body
+
+
+def record_acoustid():
+    """Hells Bells (AC/DC): MusicBrainz-Aufnahme → AcoustID-Track → Lookup mit allen Metadaten.
+    Dazu ein Lookup mit einem echten Fingerabdruck (Testklang → erwartet: keine Treffer)."""
+    info = {}
+    try:
+        data = http.get_json(musicbrainz.API + "recording",
+                             {"query": 'recording:"Hells Bells" AND artist:"AC/DC"', "fmt": "json", "limit": 5},
+                             limiter=musicbrainz.LIMITER)
+        mbids = [r["id"] for r in data.get("recordings", [])]
+        note(f"MB Aufnahmen Hells Bells: {len(mbids)}")
+        for mbid in mbids:
+            lst = http.get_json("https://api.acoustid.org/v2/track/list_by_mbid",
+                                {"client": ACOUSTID_KEY, "mbid": mbid}, limiter=acoustid.LIMITER)
+            tracks = lst.get("tracks") or []
+            if tracks:
+                info = {"mbid": mbid, "trackid": tracks[0]["id"]}
+                break
+        note(f"AcoustID Track: {info or 'keiner gefunden'}")
+        if info:
+            res = acoustid.lookup_track(info["trackid"], ACOUSTID_KEY, "Back in Black")
+            info["matches"] = len(res)
+            if res:
+                m = res[0]
+                note(f"AcoustID Lookup: {len(res)} Aufnahme(n); erste: {m.title} / {m.artist} / {m.album} / "
+                     f"{m.year} / Track {m.track}/{m.track_total} / {m.kind} / weitere {m.others}")
+    except OnlineError as exc:
+        note(f"AcoustID Fehler: {exc}")
+    try:
+        fx = json.load(open(os.path.join(HERE, "fixtures", "fingerprint.json")))
+        res = acoustid.lookup(fx["compressed"], fx["duration"], ACOUSTID_KEY)
+        note(f"AcoustID Fingerabdruck-Lookup (Testklang): {len(res)} Treffer")
+        info["fingerprint_lookup"] = "ok"
+    except OnlineError as exc:
+        note(f"AcoustID Fingerabdruck-Lookup Fehler: {exc}")
+    try:
+        acoustid.lookup_track(info.get("trackid") or "9ff43b6a-4f16-427c-93c2-92307ca505e0", "falscher-key")
+    except OnlineError as exc:
+        note(f"AcoustID falscher Key → {exc}")
+        info["bad_key_message"] = str(exc)
+    with open(os.path.join(FIXTURES, "acoustid.json"), "w", encoding="utf-8") as fh:
+        json.dump(info, fh, indent=1, ensure_ascii=False)
 
 
 def note(text: str):
@@ -97,6 +152,8 @@ def main():
                  f"{a.disc_total} Disc(s), Positionen {[t.position for t in a.tracks][:8]}")
         except OnlineError as exc:
             note(f"Discogs {rid}: {exc}")
+
+    record_acoustid()
 
     with open(os.path.join(FIXTURES, "index.json"), "w", encoding="utf-8") as fh:
         json.dump(index, fh, indent=1, ensure_ascii=False, sort_keys=True)
