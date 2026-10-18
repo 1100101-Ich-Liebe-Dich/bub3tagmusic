@@ -156,6 +156,56 @@ def main():
     eq(plan_renames([(os.path.join(d, "x.mp3"), {"title": "x"})], "%title%")[0].status, SAME, "gleicher Name")
     eq(format_from_tags("%track% - %title%", {"track": "3/12", "title": "a"}, pad_track=0), "3 - a", "ohne Auffüllen")
 
+    # --- Begleitdateien ----------------------------------------------------------------
+    from bub3tagmusic.core.rename import MIXED, find_companions, plan_folder_renames
+    cd = os.path.join(tmp, "comp")
+    os.makedirs(cd)
+    for n in ("01 - Alt.mp3", "01 - Alt.lrc", "01 - Alt.en.srt", "01 - Alt.flac", "01 - Altersheim.lrc",
+              "02 - Zwei.mp3", "03 - Drei.ogg", "03 - Neu.lrc"):
+        open(os.path.join(cd, n), "w").write(n)
+    eq([os.path.basename(c) for c in find_companions(os.path.join(cd, "01 - Alt.mp3"), os.listdir(cd))],
+       ["01 - Alt.en.srt", "01 - Alt.lrc"], "Begleitdateien: gleicher Name, keine Audio-Datei, nicht Altersheim")
+    plans = plan_renames([(os.path.join(cd, "01 - Alt.mp3"), {"track": "1", "title": "Neu"}),
+                          (os.path.join(cd, "01 - Alt.flac"), {"track": "1", "title": "Neu"})],
+                         "%track% - %title%")
+    eq([os.path.basename(n) for _, n in plans[0].companions], ["01 - Neu.en.srt", "01 - Neu.lrc"],
+       "Begleitdateien bekommen den neuen Namen")
+    eq(plans[1].companions, [], "Begleitdatei gehört nur einer Musikdatei")
+    plans = plan_renames([(os.path.join(cd, "03 - Drei.ogg"), {"track": "3", "title": "Neu"})], "%track% - %title%")
+    eq(plans[0].status, OK, "ohne eigene Begleitdatei kein Konflikt")
+    open(os.path.join(cd, "02 - Zwei.lrc"), "w").write("x")
+    plans = plan_renames([(os.path.join(cd, "02 - Zwei.mp3"), {"track": "3", "title": "Neu"})], "%track% - %title%")
+    eq((plans[0].status, "Begleitdatei" in plans[0].note), (CONFLICT, True), "Begleitdatei-Ziel gibt es schon")
+    plans = plan_renames([(os.path.join(cd, "01 - Alt.mp3"), {"track": "9", "title": "X"})], "%track% - %title%")
+    res = execute_renames(plans[0].all_pairs)
+    eq(sorted(os.listdir(cd))[:4], ["01 - Alt.flac", "01 - Altersheim.lrc", "02 - Zwei.lrc", "02 - Zwei.mp3"],
+       "Umbenennen mit Begleitdateien (Rest bleibt)")
+    eq(os.path.exists(os.path.join(cd, "09 - X.lrc")) and os.path.exists(os.path.join(cd, "09 - X.en.srt")),
+       True, "Begleitdateien umbenannt")
+    eq(all(not r["error"] for r in res), True, "ohne Fehler")
+    plans = plan_renames([(os.path.join(cd, "09 - X.mp3"), {"track": "9", "title": "Y"})], "%track% - %title%",
+                         companions=False)
+    eq(plans[0].companions, [], "Begleitdateien abschaltbar")
+
+    # --- Ordner umbenennen ---------------------------------------------------------------
+    base = os.path.join(tmp, "Band")
+    for d in ("Album A", "Album B", "1999 - Fertig"):
+        os.makedirs(os.path.join(base, d))
+    folders = [
+        (os.path.join(base, "Album A"), {"year": "1987", "album": "Kurs Nord"}, set()),
+        (os.path.join(base, "Album B"), {"year": "", "album": "Ohne Jahr"}, set()),
+        (os.path.join(base, "1999 - Fertig"), {"year": "1999", "album": "Fertig"}, set()),
+        (os.path.join(base, "Album C"), {"year": "2001", "album": "x"}, {"album"}),
+    ]
+    plans = plan_folder_renames(folders, "%year% - %album%")
+    eq([p.status for p in plans], [OK, MISSING, SAME, MIXED], "Ordner-Plan: ok / Jahr fehlt / gleich / verschieden")
+    eq(os.path.basename(plans[0].new), "1987 - Kurs Nord", "neuer Ordnername")
+    plans = plan_folder_renames([(os.path.join(base, "Album A"), {"year": "1999", "album": "Fertig"}, set())],
+                                "%year% - %album%")
+    eq(plans[0].status, CONFLICT, "Ordner gibt es schon")
+    res = execute_renames([(os.path.join(base, "Album A"), os.path.join(base, "1987 - Kurs Nord"))])
+    eq(os.path.isdir(os.path.join(base, "1987 - Kurs Nord")) and not res[0]["error"], True, "Ordner umbenannt")
+
     shutil.rmtree(tmp)
     print()
     print("ALLES OK" if not FAILS else f"{len(FAILS)} Fehler")

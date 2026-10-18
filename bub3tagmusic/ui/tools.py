@@ -23,7 +23,7 @@ from ..core import tools
 from ..core.fields import FIELD_BY_KEY, FIELD_KEYS
 from ..core.model import FileItem
 from ..core.patterns import KNOWN, unknown_placeholders
-from ..core.rename import CONFLICT, INVALID, MISSING, OK, SAME, STATUS_TEXT, plan_renames
+from ..core.rename import CONFLICT, INVALID, MISSING, MIXED, OK, SAME, STATUS_TEXT, plan_renames
 from . import icons, theme
 from .widgets import FieldPicker, PatternBox, chip, hint, section
 
@@ -49,6 +49,7 @@ class Preview:
     summary: str = ""
     apply_count: int = 0
     message: str = ""                            # z. B. Fehler im Suchausdruck
+    first_column: str = "Datei"
 
 
 class PreviewModel(QAbstractTableModel):
@@ -81,7 +82,7 @@ class PreviewModel(QAbstractTableModel):
             return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         if role != Qt.ItemDataRole.DisplayRole:
             return None
-        cols = ["Datei", *self.preview.columns, "Hinweis"]
+        cols = [self.preview.first_column, *self.preview.columns, "Hinweis"]
         return cols[section] if section < len(cols) else None
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
@@ -451,7 +452,7 @@ class FilenameFromTagsDialog(ToolDialog):
                                   list(FIELD_KEYS))
         self.pattern.changed.connect(self.later)
         f.addWidget(self.pattern)
-        f.addWidget(hint("Die Endung (.mp3, .flac …) bleibt. Ordner werden nicht umbenannt."))
+        f.addWidget(hint("Die Endung (.mp3, .flac …) bleibt. Ordner benennt das Werkzeug „Ordner umbenennen“ um."))
         f.addSpacing(8)
         f.addWidget(section("Optionen"))
         row = QHBoxLayout()
@@ -466,6 +467,8 @@ class FilenameFromTagsDialog(ToolDialog):
         f.addLayout(row)
         self.add_check("USB-/Windows-taugliche Namen", "windows_safe", True,
                        "Ersetzt : ? * \" < > | durch _ – wichtig für USB-Sticks und Autoradios.")
+        self.add_check("Begleitdateien mitnehmen", "companions", True,
+                       "Gleichnamige Dateien im Ordner (01 - Lied.lrc, .txt, .srt …) bekommen den neuen Namen mit.")
         unsaved = sum(1 for it in self.items if it.is_modified())
         if unsaved:
             f.addSpacing(6)
@@ -479,7 +482,8 @@ class FilenameFromTagsDialog(ToolDialog):
             return Preview(message="Muster eingeben, z. B. %track% - %title%")
         msg = _suggest(unknown_placeholders(pattern)) if unknown_placeholders(pattern) else ""
         plans = plan_renames([(it.path, it.tags) for it in self.items], pattern,
-                             pad_track=self.pad.value(), windows_safe=self.opts.get("windows_safe", True))
+                             pad_track=self.pad.value(), windows_safe=self.opts.get("windows_safe", True),
+                             companions=self.opts.get("companions", True))
         kind = {OK: CHANGED, SAME: UNCHANGED, MISSING: WARN, CONFLICT: ERROR, INVALID: ERROR}
         rows, counts = [], {}
         for p in plans:
@@ -487,18 +491,118 @@ class FilenameFromTagsDialog(ToolDialog):
             new_name = os.path.basename(p.new)
             old_name = os.path.basename(p.old)
             cells = [(new_name if p.status in (OK, SAME, CONFLICT) else "", old_name if p.status == OK else None)]
-            rows.append(PreviewRow(old_name, cells, p.note or STATUS_TEXT[p.status], kind[p.status], p.old))
-        self._pairs = [(p.old, p.new) for p in plans if p.will_rename]
+            status = p.note or STATUS_TEXT[p.status]
+            if p.status == OK and p.companions:
+                n = len(p.companions)
+                status += f" + {n} Begleitdatei{'en' if n != 1 else ''}"
+            tip = p.old + "".join(f"\n+ {os.path.basename(c)} → {os.path.basename(cn)}" for c, cn in p.companions)
+            rows.append(PreviewRow(old_name, cells, status, kind[p.status], tip))
+        self._pairs = [pair for p in plans for pair in p.all_pairs]
+        self._file_count = sum(1 for p in plans if p.will_rename)
         extra = [f"{counts[MISSING]} mit fehlenden Tags" if counts.get(MISSING) else "",
                  f"{counts[CONFLICT]} mit doppeltem Namen" if counts.get(CONFLICT) else "",
                  f"{counts[INVALID]} ungültig" if counts.get(INVALID) else ""]
-        summary = f"{len(self._pairs):,} von {len(self.items):,} Dateien werden umbenannt".replace(",", ".")
+        comp = len(self._pairs) - self._file_count
+        extra.append((f"{comp} Begleitdateien wandern mit" if comp != 1 else "1 Begleitdatei wandert mit") if comp else "")
+        summary = f"{self._file_count:,} von {len(self.items):,} Dateien werden umbenannt".replace(",", ".")
         summary = "  ·  ".join([summary] + [e for e in extra if e])
-        return Preview(["Neuer Name"], rows, summary, len(self._pairs), msg)
+        return Preview(["Neuer Name"], rows, summary, self._file_count, msg)
+
+    def apply_changes(self):
+        n = self._file_count
+        self.win.run_rename(self._pairs, f"{n} Datei{'en' if n != 1 else ''} umbenannt")
+
+    def store_options(self):
+        self.opts["history"] = PatternBox.remember(self.opts.get("history", []), self.pattern.text())
+        super().store_options()
+
+
+# ======================================================================
+# Ordner umbenennen
+# ======================================================================
+FOLDER_PRESETS = (
+    "%year% - %album%",
+    "%album% (%year%)",
+    "%album%",
+    "%albumartist% - %album%",
+    "%year% - %albumartist% - %album%",
+)
+
+
+class FolderRenameDialog(ToolDialog):
+    feature_id = "folder_rename"
+    apply_verb = "Ordner umbenennen"
+    renames = True
+
+    def build_options(self):
+        f = self.form
+        f.addWidget(section("Muster für den Ordnernamen"))
+        self.pattern = PatternBox(FOLDER_PRESETS, self.opts.get("history", []), self.opts.get("pattern", ""),
+                                  ["year", "album", "albumartist", "artist", "genre", "disc"])
+        self.pattern.changed.connect(self.later)
+        f.addWidget(self.pattern)
+        f.addWidget(hint("Benennt die Ordner um, in denen die gewählten Dateien liegen – mit allem, was "
+                         "darin liegt (Musik, cover.jpg, Begleitdateien). Der Name kommt aus den Tags, die alle "
+                         "Dateien im Ordner gemeinsam haben."))
+        f.addSpacing(8)
+        f.addWidget(section("Optionen"))
+        self.add_check("USB-/Windows-taugliche Namen", "windows_safe", True,
+                       "Ersetzt : ? * \" < > | durch _ – wichtig für USB-Sticks und Autoradios.")
+        f.addWidget(hint("Der Fertig-Status im Ordnerbaum wandert mit. Strg+Z benennt zurück.", "muted"))
+
+    def _folders(self) -> list[tuple[str, dict, set]]:
+        groups: dict[str, list[FileItem]] = {}
+        for it in self.items:
+            groups.setdefault(it.dir, []).append(it)
+        out = []
+        for folder, its in groups.items():
+            common, mixed = {}, set()
+            for key in FIELD_KEYS:
+                values = {it.tags.get(key, "").strip() for it in its}
+                if len(values) == 1:
+                    common[key] = values.pop()
+                else:
+                    mixed.add(key)
+            # Album-Interpret fehlt oft: dann gilt ein einheitlicher Interpret
+            if not common.get("albumartist") and common.get("artist"):
+                common["albumartist"] = common["artist"]
+                mixed.discard("albumartist")
+            out.append((folder, common, mixed))
+        return out
+
+    def compute(self) -> Preview:
+        from ..core.rename import plan_folder_renames
+        pattern = self.pattern.text()
+        self.opts["pattern"] = pattern
+        if not pattern:
+            return Preview(message="Muster eingeben, z. B. %year% - %album%")
+        msg = _suggest(unknown_placeholders(pattern)) if unknown_placeholders(pattern) else ""
+        plans = plan_folder_renames(self._folders(), pattern, windows_safe=self.opts.get("windows_safe", True))
+        # Ordner, die in einem anderen umzubenennenden Ordner liegen, erst im zweiten Durchgang
+        renaming = [p.old + "/" for p in plans if p.will_rename]
+        for p in plans:
+            if p.will_rename and any(p.old.startswith(r) for r in renaming):
+                p.status, p.note = INVALID, "liegt in einem Ordner, der auch umbenannt wird – danach nochmal"
+        kind = {OK: CHANGED, SAME: UNCHANGED, MISSING: WARN, CONFLICT: ERROR, INVALID: ERROR, MIXED: WARN}
+        rows = []
+        for p in plans:
+            old_name, new_name = os.path.basename(p.old), os.path.basename(p.new)
+            cells = [(new_name if p.status in (OK, SAME, CONFLICT) else "", old_name if p.status == OK else None)]
+            rows.append(PreviewRow(old_name, cells, p.note or STATUS_TEXT[p.status], kind[p.status], p.old))
+        self._pairs = [(p.old, p.new) for p in plans if p.will_rename]
+        n = len(self._pairs)
+        problems = sum(1 for p in plans if p.status in (MISSING, MIXED, CONFLICT, INVALID))
+        verb = "wird" if n == 1 else "werden"
+        summary = f"{n} von {len(plans)} Ordner{'n' if len(plans) != 1 else ''} {verb} umbenannt" + \
+            (f"  ·  {problems} mit Hinweis" if problems else "")
+        return Preview(["Neuer Ordnername"], rows, summary, n, msg, first_column="Ordner")
+
+    def apply_label(self, n: int) -> str:
+        return f"{n} Ordner umbenennen" if n else "Ordner umbenennen"
 
     def apply_changes(self):
         n = len(self._pairs)
-        self.win.run_rename(self._pairs, f"{n} Datei{'en' if n != 1 else ''} umbenannt")
+        self.win.run_rename(self._pairs, f"{n} Ordner umbenannt")
 
     def store_options(self):
         self.opts["history"] = PatternBox.remember(self.opts.get("history", []), self.pattern.text())
@@ -714,4 +818,5 @@ TOOL_DIALOGS = {
     "case": CaseDialog,
     "replace": ReplaceDialog,
     "cleanup": CleanupDialog,
+    "folder_rename": FolderRenameDialog,
 }

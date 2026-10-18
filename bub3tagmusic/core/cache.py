@@ -105,6 +105,32 @@ class Cache:
                       (new, row[0], row[1], json.dumps(data, ensure_ascii=False)))
         c.commit()
 
+    def rename_folder(self, old: str, new: str) -> None:
+        """Ordner umbenannt: alle Dateien darunter und den Fertig-Status mitnehmen."""
+        old, new = old.rstrip("/"), new.rstrip("/")
+        c = self._conn()
+        like = old.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "/%"
+        rows = c.execute("SELECT path, mtime, size, data FROM files WHERE path LIKE ? ESCAPE '\\'",
+                         (like,)).fetchall()
+        for path, mtime, size, data in rows:
+            target = new + path[len(old):]
+            try:
+                d = json.loads(data)
+                d["path"] = target
+                data = json.dumps(d, ensure_ascii=False)
+            except ValueError:
+                pass
+            c.execute("DELETE FROM files WHERE path=?", (path,))
+            c.execute("INSERT OR REPLACE INTO files(path, mtime, size, data) VALUES (?,?,?,?)",
+                      (target, mtime, size, data))
+        frows = c.execute("SELECT path, status, updated FROM folders WHERE path=? OR path LIKE ? ESCAPE '\\'",
+                          (old, like)).fetchall()
+        for path, status, updated in frows:
+            c.execute("DELETE FROM folders WHERE path=?", (path,))
+            c.execute("INSERT OR REPLACE INTO folders(path, status, updated) VALUES (?,?,?)",
+                      (new + path[len(old):], status, updated))
+        c.commit()
+
     def forget(self, paths: list[str]) -> None:
         c = self._conn()
         c.executemany("DELETE FROM files WHERE path=?", [(p,) for p in paths])

@@ -114,11 +114,16 @@ class RenameWorker(QThread):
         self.pairs, self.cache = pairs, cache
 
     def run(self):
+        import os
         results = execute_renames(self.pairs)
         ok = [(r["old"], r["new"]) for r in results if not r["error"]]
-        if ok:
-            try:
-                self.cache.rename_paths(ok)
-            except Exception:
-                pass
+        try:
+            files = [(o, n) for o, n in ok if not os.path.isdir(n)]
+            if files:
+                self.cache.rename_paths(files)
+            for o, n in ok:
+                if os.path.isdir(n):
+                    self.cache.rename_folder(o, n)
+        except Exception:
+            pass
         self.done.emit(results)

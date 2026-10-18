@@ -157,6 +157,7 @@ class Session(QObject):
         return ok, errors
 
     def finish_rename(self, results: list[dict], label: str, record_undo: bool = True) -> tuple[int, list]:
+        import os
         by_path = {it.path: it for it in self.items}
         done, errors, changed = [], [], []
         for r in results:
@@ -168,6 +169,13 @@ class Session(QObject):
             if it is not None:
                 it.set_path(r["new"])
                 changed.append(it)
+            elif os.path.isdir(r["new"]):
+                # Ordner umbenannt: alle Dateien darin bekommen den neuen Pfad
+                prefix = r["old"].rstrip("/") + "/"
+                for item in self.items:
+                    if item.path.startswith(prefix):
+                        item.set_path(r["new"].rstrip("/") + "/" + item.path[len(prefix):])
+                        changed.append(item)
         if record_undo and done:
             self.undo.push_rename(RenameStep(label, done))
         if changed:

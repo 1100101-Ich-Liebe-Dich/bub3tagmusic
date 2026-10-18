@@ -165,6 +165,9 @@ def main():
     # --- #2 Umbenennen (+ Rückgängig) -------------------------------------------------------
     win.table.selectAll()
     pump(app)
+    first_stem = os.path.splitext(os.path.basename(win.session.items[0].path))[0]
+    with open(os.path.join(album, first_stem + ".lrc"), "w") as fh:
+        fh.write("[00:01]Liedtext")
     before = sorted(os.listdir(album))
     d = dialog("filename_from_tags")
     d.pattern.combo.setEditText("%track% - %artist% - %title%")
@@ -176,6 +179,7 @@ def main():
     after = sorted(f for f in os.listdir(album) if not f.endswith(".jpg"))
     want = f"01 - {win.session.items[0].tags['artist']} - Lied Nr. 1"
     check(any(f.startswith(want) for f in after), f"#2 neuer Name: {after[0]}")
+    check(want + ".lrc" in after, "#2 Begleitdatei (.lrc) ist mitgewandert")
     check(all(os.path.exists(it.path) for it in win.session.items), "#2 Liste kennt die neuen Pfade")
     step = win.session.undo.peek()
     check(step.__class__.__name__ == "RenameStep", "#2 Umbenennen liegt im Rückgängig-Verlauf")
@@ -186,8 +190,34 @@ def main():
     # Nach dem Zurückbenennen: Cache korrekt? Ordner neu laden und Tags prüfen
     win._load([album], force=True)
     check(wait(app, lambda: len(win.session.items) == n), "neu geladen")
-    check(win.session.items[0].tags["title"] == "Lied Nr. 1" and win.session.items[0].path.endswith(before[0]),
+    check(win.session.items[0].tags["title"] == "Lied Nr. 1" and win.session.items[0].path.endswith(first_stem + os.path.splitext(win.session.items[0].path)[1]),
           "Cache + Pfade nach Umbenennen stimmen")
+
+    # --- Ordner umbenennen (+ Fertig-Status, Rückgängig) ----------------------------------
+    win.tree.mark([album], 1)
+    win.table.selectAll()
+    pump(app)
+    d = dialog("folder_rename")
+    d.pattern.combo.setEditText("%year% - %album%")
+    pump(app, 0.5)
+    check(d.model.preview.apply_count == 1, f"Ordner: Vorschau {d.model.preview.summary}")
+    new_name = d.model.rows[0].cells[0][0] if d.model.rows else ""
+    shot(d, "t8_folder_rename.png")
+    d._apply()
+    check(wait(app, lambda: win._save_worker is None), "Ordner umbenannt")
+    new_dir = os.path.join(os.path.dirname(album), new_name)
+    check(os.path.isdir(new_dir) and not os.path.exists(album), f"Ordner heißt jetzt: {new_name}")
+    check(all(it.path.startswith(new_dir + "/") and os.path.exists(it.path) for it in win.session.items),
+          "Dateien in der Liste zeigen auf den neuen Ordner")
+    check(wait(app, lambda: win.tree.root_node is not None and new_dir in win.tree._album_set),
+          "Ordnerbaum kennt den neuen Ordner")
+    check(win.tree.is_done(new_dir), "Fertig-Status ist mitgewandert")
+    step = win.session.undo.peek()
+    win.session.undo.pop()
+    win.run_rename([(new, old) for old, new in reversed(step.pairs)], step.label, record_undo=False)
+    check(wait(app, lambda: win._save_worker is None and os.path.isdir(album)), "Ordner zurückbenannt")
+    check(wait(app, lambda: album in win.tree._album_set) and win.tree.is_done(album),
+          "Baum + Fertig-Status nach Zurückbenennen")
 
     # Rechtsklick-Menü baut sich ohne Fehler
     win.table.selectAll()

@@ -43,6 +43,9 @@ FEATURES: tuple[Feature, ...] = (
     Feature("replace", "Suchen & Ersetzen …", 2, "tools", "magnifying-glass",
             "Text in ausgewählten Feldern ersetzen, auf Wunsch mit regulären Ausdrücken.",
             "Alt+5", ready=True),
+    Feature("folder_rename", "Ordner umbenennen …", 2, "tools", "folders",
+            "Benennt Album-Ordner nach ihren Tags um, z. B. %year% - %album%. Alles im Ordner bleibt "
+            "beisammen; der Fertig-Status wandert mit.", "Alt+6", ready=True),
     Feature("cleanup", "Aufräumen …", 2, "tools", "lightning",
             "Doppelte Leerzeichen, Leerzeichen am Rand und störende Sonderzeichen entfernen.", ready=True),
 

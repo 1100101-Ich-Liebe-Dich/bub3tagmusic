@@ -555,6 +555,10 @@ class MainWindow(QMainWindow):
             self.panel.setEnabled(True)
             ok, errors = self.session.finish_rename(results, label, record_undo=record_undo)
             self.panel.refresh()
+            moved = [(r["old"].rstrip("/"), r["new"].rstrip("/")) for r in results
+                     if not r["error"] and os.path.isdir(r["new"])]
+            if moved:
+                self._folders_renamed(moved)
             if errors:
                 self.toast.show_message(f"{ok} umbenannt, {len(errors)} mit Fehler")
                 ErrorListDialog("Nicht alles umbenannt", errors, self).exec()
@@ -564,6 +568,22 @@ class MainWindow(QMainWindow):
         w.done.connect(finished)
         w.finished.connect(w.deleteLater)
         w.start()
+
+    def _folders_renamed(self, moved: list[tuple[str, str]]):
+        """Nach Ordner-Umbenennen: geladene Ordner, Sammlung und Baum auf die neuen Pfade setzen."""
+        def remap(path: str) -> str:
+            for old, new in moved:
+                if path == old:
+                    return new
+                if path.startswith(old + "/"):
+                    return new + path[len(old):]
+            return path
+
+        self._loaded_dirs = [remap(p) for p in self._loaded_dirs]
+        root = remap(self.tree.root_path) if self.tree.root_path else ""
+        if root:
+            self.settings.last_root = root
+            self.tree.set_root(root, list(self._loaded_dirs))
 
     def _table_menu(self, pos):
         items = self.table.selected_items()

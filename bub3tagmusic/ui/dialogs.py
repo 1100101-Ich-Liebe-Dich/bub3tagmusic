@@ -207,6 +207,7 @@ SHORTCUTS = (
         ("Alt+3", "Tracks nummerieren"),
         ("Alt+4", "Groß-/Kleinschreibung"),
         ("Alt+5", "Suchen & Ersetzen"),
+        ("Alt+6", "Ordner umbenennen"),
     )),
     ("Ansicht", (
         ("Strg+O", "Sammlung öffnen"),
