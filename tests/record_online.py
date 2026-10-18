@@ -57,11 +57,19 @@ def recorder(url, headers):
 def record_acoustid():
     """Hells Bells (AC/DC): MusicBrainz-Aufnahme → AcoustID-Track → Lookup mit allen Metadaten.
     Dazu ein Lookup mit einem echten Fingerabdruck (Testklang → erwartet: keine Treffer)."""
+    import time
     info = {}
     try:
-        data = http.get_json(musicbrainz.API + "recording",
-                             {"query": 'recording:"Hells Bells" AND artist:"AC/DC"', "fmt": "json", "limit": 5},
-                             limiter=musicbrainz.LIMITER)
+        data = {}
+        for attempt in range(4):                 # MusicBrainz ist nach vielen Anfragen kurz zugeknöpft
+            time.sleep(5 * (attempt + 1))
+            try:
+                data = http.get_json(musicbrainz.API + "recording",
+                                     {"query": 'recording:"Hells Bells" AND artist:"AC/DC"', "fmt": "json",
+                                      "limit": 5}, limiter=musicbrainz.LIMITER, use_cache=False)
+                break
+            except OnlineError as exc:
+                note(f"MB Aufnahmen-Suche Versuch {attempt + 1}: {exc}")
         mbids = [r["id"] for r in data.get("recordings", [])]
         note(f"MB Aufnahmen Hells Bells: {len(mbids)}")
         for mbid in mbids:
