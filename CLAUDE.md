@@ -116,7 +116,10 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10, 3.11 und 3.13).
 - Logs der Actions sind von der Arbeitsumgebung aus nicht abrufbar → Fehler lokal mit
   `uv python install 3.10` + eigener venv nachstellen.
-- Tags (`git push --tags`, Releases) sind über den Zugang hier nicht erlaubt.
+- Tags (`git push --tags`, Releases) sind über den Zugang hier nicht erlaubt – ebenso Repo-Einstellungen
+  (Beschreibung, Topics, Social Preview). Dafür steht alles fertig in `docs/RELEASE-1.0.md` für den Auftraggeber.
+- Bilder der GitHub-Seite (README, Banner, Theme-Collage, Vorschaubild) erzeugt `docs/make_images.py`
+  (offscreen, Demo-Sammlung, ~20 s). Nach sichtbaren Oberflächen-Änderungen neu erzeugen und mit hochladen.
 
 ## Stolperfallen (schon einmal reingefallen)
 
