@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+*.bub3tmp
+build/
+dist/
+*.egg-info/

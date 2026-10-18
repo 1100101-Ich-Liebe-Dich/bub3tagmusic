@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bub3tagmusic"
+version = "0.1.0"
+description = "Moderner, schneller Musik-Tagger für Linux – präsentiert von www.BAUENUNDBOOTEN.de"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PySide6-Essentials>=6.6", "mutagen>=1.47", "Pillow>=10.0", "qtawesome>=1.3"]
+
+[project.gui-scripts]
+bub3tagmusic = "bub3tagmusic.app:run"
+
+[tool.setuptools.packages.find]
+include = ["bub3tagmusic*"]
+
+[tool.setuptools.package-data]
+bub3tagmusic = ["resources/*", "resources/fonts/*"]
