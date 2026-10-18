@@ -358,6 +358,8 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 9. Offene Punkte
 
+- [ ] #26 Songtext-Feld (1.1)
+- [ ] #27 Label (Plattenfirma) und Original-Jahr (1.1)
 - [ ] #24 Windows-Version (nach 1.0) – Pfade plattformneutral, `.exe` per GitHub Actions
 - [ ] #25 macOS-Version (nach 1.0) – `.app`/`.dmg`, Signatur-Frage (Apple-Konto)
 - [ ] #18 Phase 1 an einer Kopie der echten Sammlung testen (Rückmeldung: was fehlt, was stört?)
@@ -377,3 +379,5 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 1. Letzter Praxistest mit 1.0.0 (an einer **Kopie**) – AcoustID-Key (#23) und Discogs-Token (#21) dabei ausprobieren
 2. Veröffentlichen: Anleitung und fertiger Text in `docs/RELEASE-1.0.md`
 3. Danach: Rückmeldungen sammeln (Issues), Feinschliff nach Wunsch
+4. **1.1** (nach ein paar Tagen Praxis): gefundene Fehler + #26 Songtext + #27 Label/Original-Jahr.
+   Bewusst nicht gewünscht: MusicBrainz-IDs, Sortier-Namen, Tags entfernen, Playlists, Update-Hinweis.
