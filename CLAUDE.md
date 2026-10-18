@@ -27,7 +27,7 @@ nach jeder Sitzung aktuell halten.
 
 ## Technik
 
-- Python ≥ 3.10, **PySide6-Essentials** (nicht das volle PySide6 – spart ~250 MB), mutagen, Pillow, qtawesome.
+- Python ≥ 3.10, **PySide6-Essentials** (nicht das volle PySide6 – spart ~250 MB; unter Python < 3.12 Version 6.8–6.10), mutagen, Pillow, qtawesome.
 - Start: `python3 -m bub3tagmusic [ORDNER]`; Installation beim Nutzer: `install.sh` → `.venv` + Startmenü.
 - Einstellungen `~/.config/bub3tagmusic/settings.json`, Cache `~/.cache/bub3tagmusic/cache.sqlite`.
 
@@ -62,9 +62,18 @@ tests/run_all.sh --perf   # zusätzlich Leistung mit 1.000 Alben / 50.000 Listen
 - Bei Oberflächen-Änderungen die Screenshots ansehen (`SHOTS=ordner tests/run_all.sh`).
 - `BuB3TAGMUSIC.md` + `CHANGELOG.md` aktualisieren, Issues schließen (`Closes #n` im Commit).
 - Commit-Nachrichten auf Deutsch, mit den Attribution-Zeilen aus den Sitzungs-Hinweisen.
-- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10 und 3.13).
+- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10, 3.11 und 3.13).
+- Logs der Actions sind von der Arbeitsumgebung aus nicht abrufbar → Fehler lokal mit
+  `uv python install 3.10` + eigener venv nachstellen.
+- Tags (`git push --tags`, Releases) sind über den Zugang hier nicht erlaubt.
 
 ## Stolperfallen (schon einmal reingefallen)
+
+- **PySide6 6.11/6.12 + Python < 3.12 = Absturz** („Fatal Python error: none_dealloc“, Exit 134).
+  `QModelIndex.data()` mit leerem Ergebnis und `QFont.setHintingPreference()` geben `None` zu oft frei;
+  ab Python 3.12 ist `None` unsterblich, daher fällt es dort nie auf. Lösung: `requirements.txt` installiert
+  auf Python < 3.12 nur PySide6 6.8–6.10; `app._check_qt_version()` warnt sonst. Bei jedem PySide6-Update
+  unter Python 3.10 testen (CI macht das). Prüfen geht mit `sys.getrefcount(None)` vor/nach vielen Aufrufen.
 
 - **Stylesheet schlägt `setFont()`**: `* { font-family … }` im QSS überschreibt Schriften aus dem Code.
   Besondere Schriften/Größen per `objectName` im QSS setzen (z. B. `QLabel#Wordmark`).

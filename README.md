@@ -127,7 +127,7 @@ tests/run_all.sh --perf    # zusätzlich Leistung mit 1.000 Alben / 50.000 Liste
 python3 tests/make_testfiles.py ZIEL --collection 100   # Test-Sammlung zum Ausprobieren erzeugen
 ```
 
-Auf GitHub laufen die Tests bei jedem Hochladen automatisch (Python 3.10 und 3.13), inklusive Screenshots.
+Auf GitHub laufen die Tests bei jedem Hochladen automatisch (Python 3.10, 3.11 und 3.13), inklusive Screenshots.
 Arbeitsnotizen und Regeln fürs Weiterentwickeln: `CLAUDE.md`. Änderungen: `CHANGELOG.md`.
 
 Lizenzen der mitgelieferten Schriften: `bub3tagmusic/resources/fonts/OFL-*.txt` (SIL Open Font License).

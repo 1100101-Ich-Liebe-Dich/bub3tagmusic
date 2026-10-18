@@ -1,4 +1,7 @@
-PySide6-Essentials>=6.6
+# PySide6 6.11/6.12 geben unter Python < 3.12 "None" zu oft frei → Absturz
+# ("Fatal Python error: none_dealloc"). Auf älteren Pythons daher 6.8–6.10.
+PySide6-Essentials>=6.8,<6.11; python_version < "3.12"
+PySide6-Essentials>=6.8; python_version >= "3.12"
 mutagen>=1.47
 Pillow>=10.0
 qtawesome>=1.3

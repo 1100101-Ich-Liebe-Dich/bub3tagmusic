@@ -96,7 +96,6 @@ def ui_font(size_px: int = 13, weight: QFont.Weight = QFont.Weight.Normal) -> QF
     f = QFont(UI_FONT)
     f.setPixelSize(size_px)
     f.setWeight(weight)
-    f.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
     return f
 
 

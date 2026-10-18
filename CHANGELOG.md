@@ -11,6 +11,12 @@ Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOT
   (mit Tags, Covern und cover.jpg).
 - `CLAUDE.md` mit Arbeitsnotizen, Regeln und Stolperfallen.
 
+### Behoben
+- Absturz nach einiger Zeit unter Python 3.10/3.11 („Fatal Python error: none_dealloc“). Ursache ist ein
+  Fehler in PySide6 6.11/6.12. Auf Python < 3.12 wird jetzt automatisch PySide6 6.10 installiert;
+  beim Start gibt es eine Warnung, falls doch eine betroffene Version vorhanden ist.
+  **Wer schon installiert hat: `./install.sh` einfach noch einmal ausführen.**
+
 ## [0.1.0] – 2026-10-18 – Phase 1: Grundgerüst
 
 ### Neu

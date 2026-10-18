@@ -24,8 +24,19 @@ def prepare_app(app) -> None:
     app.setFont(theme.ui_font(13))
 
 
+def _check_qt_version() -> None:
+    """PySide6 6.11+ stürzt unter Python < 3.12 nach einer Weile ab (Qt-Fehler, nicht unserer)."""
+    import PySide6
+    major, minor = (int(x) for x in PySide6.__version__.split(".")[:2])
+    if sys.version_info < (3, 12) and (major, minor) >= (6, 11):
+        print(f"WARNUNG: PySide6 {PySide6.__version__} ist mit Python "
+              f"{sys.version_info.major}.{sys.version_info.minor} instabil. Bitte ./install.sh erneut "
+              f"ausführen (installiert dann PySide6 6.10).", file=sys.stderr)
+
+
 def run(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
+    _check_qt_version()
 
     from PySide6.QtCore import Qt
     from PySide6.QtGui import QGuiApplication, QIcon
