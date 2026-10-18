@@ -122,10 +122,12 @@ bub3tagmusic/
 ### Tests
 
 ```bash
-python3 tests/test_core.py                                          # alle Formate lesen/schreiben (braucht ffmpeg)
-QT_QPA_PLATFORM=offscreen python3 tests/ui_smoke.py SAMMLUNG OUT    # Oberfläche durchklicken + Screenshots
-QT_QPA_PLATFORM=offscreen python3 tests/perf.py SAMMLUNG            # Leistung
-python3 tests/make_testfiles.py ZIEL --collection 100               # Test-Sammlung erzeugen
+tests/run_all.sh           # alles: Kern (alle Formate) + Oberfläche durchklicken (braucht ffmpeg)
+tests/run_all.sh --perf    # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
+python3 tests/make_testfiles.py ZIEL --collection 100   # Test-Sammlung zum Ausprobieren erzeugen
 ```
+
+Auf GitHub laufen die Tests bei jedem Hochladen automatisch (Python 3.10 und 3.13), inklusive Screenshots.
+Arbeitsnotizen und Regeln fürs Weiterentwickeln: `CLAUDE.md`. Änderungen: `CHANGELOG.md`.
 
 Lizenzen der mitgelieferten Schriften: `bub3tagmusic/resources/fonts/OFL-*.txt` (SIL Open Font License).

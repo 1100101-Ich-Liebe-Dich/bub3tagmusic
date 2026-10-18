@@ -1,0 +1,24 @@
+name: Wunsch / Idee
+description: Neue Funktion oder Verbesserung
+title: "Wunsch: "
+labels: ["wunsch"]
+body:
+  - type: textarea
+    id: idee
+    attributes:
+      label: Was soll BuB3TAGMUSIC können?
+    validations:
+      required: true
+  - type: textarea
+    id: warum
+    attributes:
+      label: Wofür brauche ich das?
+      description: Ein Beispiel aus der eigenen Sammlung hilft am meisten.
+  - type: dropdown
+    id: wichtig
+    attributes:
+      label: Wie wichtig?
+      options:
+        - Unbedingt
+        - Wäre schön
+        - Irgendwann mal

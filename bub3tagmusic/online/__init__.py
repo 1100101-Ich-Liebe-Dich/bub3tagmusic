@@ -10,4 +10,6 @@ Regeln:
   * Nichts wird ohne Vorschau und Bestätigung in Dateien übernommen.
 """
 
-from .base import AlbumMatch, CoverCandidate, OnlineError, TrackMatch  # noqa: F401
+from .base import AlbumMatch, CoverCandidate, OnlineError, TrackMatch
+
+__all__ = ["AlbumMatch", "CoverCandidate", "OnlineError", "TrackMatch"]

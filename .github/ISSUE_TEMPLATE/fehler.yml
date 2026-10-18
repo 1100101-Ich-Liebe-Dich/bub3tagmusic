@@ -1,0 +1,40 @@
+name: Fehler melden
+description: Etwas funktioniert nicht oder sieht falsch aus
+title: "Fehler: "
+labels: ["fehler"]
+body:
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Kurz beschreiben, was falsch läuft. Screenshot gerne einfach reinziehen.
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Wie kommt man dahin?
+      placeholder: |
+        1. Ordner „…“ geöffnet
+        2. Alle Dateien ausgewählt
+        3. Cover reingezogen …
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hätte passieren sollen?
+  - type: input
+    id: format
+    attributes:
+      label: Dateiformat(e)
+      placeholder: z. B. MP3, FLAC
+  - type: input
+    id: system
+    attributes:
+      label: System
+      placeholder: z. B. Linux Mint 22, alter Laptop mit 4 GB RAM
+  - type: textarea
+    id: ausgabe
+    attributes:
+      label: Fehlermeldung aus dem Terminal (falls vorhanden)
+      description: Programm mit ./start.sh im Terminal starten, dann erscheinen Meldungen dort.
+      render: text

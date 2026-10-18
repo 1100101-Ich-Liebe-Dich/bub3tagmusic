@@ -5,6 +5,9 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 > **Aktueller Stand:** Version 0.1.0 – **Phase 1 fertig** (18.10.2026).
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
+>
+> Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
+> Die Nummern `#n` im Fahrplan sind die zugehörigen GitHub-Aufgaben (mit Abnahmekriterien).
 
 ---
 
@@ -152,36 +155,36 @@ Musik/
 
 ### Phase 2: Dateiname ↔ Tags & Werkzeuge
 
-- [ ] Tags aus Dateinamen/Ordnernamen, z. B. `%artist%/%album%/%track% - %title%` *(Kernfunktion schon fertig und getestet: `core/patterns.py`)*
-- [ ] Dateinamen aus Tags erzeugen (mit Vorschau vor dem Umbenennen)
-- [ ] Tracknummern automatisch vergeben (pro Ordner)
-- [ ] Groß-/Kleinschreibung korrigieren
-- [ ] Suchen & Ersetzen, auch mit Regex
-- [ ] Leerzeichen säubern, Sonderzeichen ersetzen
+- [ ] #1 Tags aus Dateinamen/Ordnernamen, z. B. `%artist%/%album%/%track% - %title%` *(Kernfunktion schon fertig und getestet: `core/patterns.py`)*
+- [ ] #2 Dateinamen aus Tags erzeugen (mit Vorschau vor dem Umbenennen)
+- [ ] #3 Tracknummern automatisch vergeben (pro Ordner)
+- [ ] #4 Groß-/Kleinschreibung korrigieren
+- [ ] #5 Suchen & Ersetzen, auch mit Regex
+- [ ] #6 Leerzeichen säubern, Sonderzeichen ersetzen
 
 ### Phase 3: Online
 
-- [ ] **Album-Suche** über MusicBrainz
+- [ ] #7 **Album-Suche** über MusicBrainz
   - **Eine Anfrage pro Album** mit Albumname + Künstler, nicht pro Track
   - Danach Trefferliste mit Vorschau: Titel, Tracks, Jahr, Label, Cover
   - Übernahme erst nach Bestätigung, Tracks werden über Nummer/Länge zugeordnet
-- [ ] **Discogs** als zweite Quelle (Token nötig, Account wird angelegt)
-- [ ] **Cover-Suche** über Cover Art Archive, iTunes, Deezer
+- [ ] #8 **Discogs** als zweite Quelle (Token nötig, Account wird angelegt)
+- [ ] #9 **Cover-Suche** über Cover Art Archive, iTunes, Deezer
   - Treffer als Bildergitter mit Auflösung
   - Speichern als `cover.jpg` im Album-Ordner und/oder einbetten
-- [ ] **Künstlerbild-Suche** über Deezer (ohne Key), optional TheAudioDB / fanart.tv → `folder.jpg`
+- [ ] #10 **Künstlerbild-Suche** über Deezer (ohne Key), optional TheAudioDB / fanart.tv → `folder.jpg`
 - [x] Wartezeit-Regel vorbereitet (`online/base.py`: RateLimiter, 1 Anfrage/Sekunde)
 - [x] Datentypen für Treffer vorbereitet (AlbumMatch, TrackMatch, CoverCandidate)
 
 ### Phase 4: Für Fortgeschrittene
 
-- [ ] Aktionsketten speichern und mit einem Klick ausführen
-- [ ] Erkennung unbekannter Dateien per Fingerabdruck (AcoustID, kostenloser Key)
-- [ ] ReplayGain berechnen (über das externe Programm rsgain)
-- [ ] Duplikate finden
-- [ ] Export als CSV / HTML
-- [ ] Erweiterte Filter („alle ohne Cover“, „alle ohne Jahr“ …) – einfacher Textfilter gibt es schon
-- [ ] AppImage bauen
+- [ ] #11 Aktionsketten speichern und mit einem Klick ausführen
+- [ ] #12 Erkennung unbekannter Dateien per Fingerabdruck (AcoustID, kostenloser Key)
+- [ ] #13 ReplayGain berechnen (über das externe Programm rsgain)
+- [ ] #14 Duplikate finden
+- [ ] #15 Export als CSV / HTML
+- [ ] #16 Erweiterte Filter („alle ohne Cover“, „alle ohne Jahr“ …) – einfacher Textfilter gibt es schon
+- [ ] #17 AppImage bauen
 
 ---
 
@@ -264,12 +267,12 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 9. Offene Punkte
 
-- [ ] Phase 1 an einer Kopie der echten Sammlung testen (Rückmeldung: was fehlt, was stört?)
-- [ ] Welche Linux-Distribution wird genutzt? (für Feinschliff von `install.sh`)
-- [ ] Design bestätigen: Bojen-Orange, Stencil-Logo, Rettungsring-Icon
-- [ ] Discogs-Account + Token anlegen (übernimmt BAUENUNDBOOTEN zum Testen)
-- [ ] AcoustID-Key (später, Phase 4)
-- [ ] APE- und DSF-Dateien zum Testen (falls in der Sammlung vorhanden)
+- [ ] #18 Phase 1 an einer Kopie der echten Sammlung testen (Rückmeldung: was fehlt, was stört?)
+- [ ] #19 Welche Linux-Distribution wird genutzt? (für Feinschliff von `install.sh`)
+- [ ] #20 Design bestätigen: Bojen-Orange, Stencil-Logo, Rettungsring-Icon
+- [ ] #21 Discogs-Account + Token anlegen (übernimmt BAUENUNDBOOTEN zum Testen)
+- [ ] #23 AcoustID-Key (später, Phase 4)
+- [ ] #22 APE- und DSF-Dateien zum Testen (falls in der Sammlung vorhanden)
 
 ---
 
