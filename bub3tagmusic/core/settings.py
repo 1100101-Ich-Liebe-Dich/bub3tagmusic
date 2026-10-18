@@ -46,6 +46,7 @@ class Settings:
     theme: str = "dark"                  # dark | light
     recursive: bool = False              # Unterordner mitladen
     select_all_on_load: bool = True      # nach dem Laden alle Dateien auswählen
+    show_filter_bar: bool = True         # Schnellfilter-Leiste über der Liste (Phase 4)
     last_root: str = ""
     last_selection: list[str] = field(default_factory=list)
     hidden_columns: list[str] = field(default_factory=lambda: [

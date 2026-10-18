@@ -24,4 +24,4 @@ bub3tagmusic = "bub3tagmusic.app:run"
 include = ["bub3tagmusic*"]
 
 [tool.setuptools.package-data]
-bub3tagmusic = ["resources/*", "resources/fonts/*"]
+bub3tagmusic = ["resources/*", "resources/fonts/*", "resources/export/*"]

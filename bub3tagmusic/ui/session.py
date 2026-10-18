@@ -37,6 +37,17 @@ class Session(QObject):
     def clear(self) -> None:
         self.set_records([])
 
+    def remove_paths(self, paths) -> int:
+        """Dateien aus der Liste nehmen (z. B. nach „In den Papierkorb“)."""
+        gone = set(paths)
+        keep = [it for it in self.items if it.path not in gone]
+        n = len(self.items) - len(keep)
+        if n:
+            self.items = keep
+            self.itemsReplaced.emit()
+            self.stateChanged.emit()
+        return n
+
     # --- Abfragen ----------------------------------------------------------
     def modified_items(self) -> list[FileItem]:
         return [it for it in self.items if it.is_modified()]

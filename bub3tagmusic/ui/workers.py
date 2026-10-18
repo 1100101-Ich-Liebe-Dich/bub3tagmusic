@@ -7,6 +7,8 @@ angeklickt wurde) werden verworfen.
 
 from __future__ import annotations
 
+import os
+
 from PySide6.QtCore import QThread, Signal
 
 from ..core.cache import Cache
@@ -37,16 +39,20 @@ class LoadWorker(QThread):
     progress = Signal(int, int, int)      # erledigt, gesamt, token
     done = Signal(list, int)              # records, token
 
-    def __init__(self, dirs: list[str], recursive: bool, cache: Cache, token: int, parent=None):
+    def __init__(self, dirs: list[str], recursive: bool, cache: Cache, token: int, parent=None, keep=None,
+                 files: list[str] | None = None):
         super().__init__(parent)
         self.dirs, self.recursive, self.cache, self.token = dirs, recursive, cache, token
+        self.files = files            # feste Dateiliste statt Ordner (z. B. Duplikate in der Liste zeigen)
+        self.keep = keep              # optional: nur passende Datensätze behalten (Suche in der Sammlung)
         self._cancel = False
 
     def cancel(self):
         self._cancel = True
 
     def run(self):
-        paths = list_audio(self.dirs, self.recursive)
+        paths = [p for p in self.files if os.path.exists(p)] if self.files is not None else \
+            list_audio(self.dirs, self.recursive)
         if self._cancel:
             return
         recs = load_records(
@@ -54,6 +60,8 @@ class LoadWorker(QThread):
             progress=lambda d, t: self.progress.emit(d, t, self.token),
             should_cancel=lambda: self._cancel,
         )
+        if self.keep is not None:
+            recs = [r for r in recs if self.keep(r)]
         if not self._cancel:
             self.done.emit(recs, self.token)
 
@@ -188,3 +196,39 @@ class ImageLoader(QThread):
                     break
                 if data:
                     self.loaded.emit(idx, data)
+
+
+class Task(QThread):
+    """Längere Arbeit mit Fortschritt und Abbrechen (Fingerabdrücke, ReplayGain, Erkennen …).
+
+    fn(*args, progress=..., cancelled=...) – progress(erledigt, gesamt, text="").
+    """
+
+    progress = Signal(int, int, str)
+    done = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, fn, *args):
+        super().__init__()
+        self.fn, self.args = fn, args
+        self._cancel = False
+        Job._running.add(self)
+        self.finished.connect(lambda: Job._running.discard(self))
+
+    def cancel(self):
+        self._cancel = True
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self._cancel
+
+    def run(self):
+        try:
+            result = self.fn(*self.args,
+                             progress=lambda d, t, text="": self.progress.emit(int(d), int(t), str(text)),
+                             cancelled=lambda: self._cancel)
+        except Exception as exc:
+            from ..online.base import OnlineError
+            self.failed.emit(str(exc) if isinstance(exc, OnlineError) else f"Unerwarteter Fehler: {exc}")
+            return
+        self.done.emit(result)

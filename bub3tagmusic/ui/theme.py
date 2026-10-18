@@ -189,6 +189,7 @@ QLabel#CoverState {{ font-weight: 600; }}
 #Sidebar, #EditPanel, #EditPanelInner {{ background: {t['panel']}; }}
 #SidebarHeader {{ background: {t['panel']}; border-bottom: 1px solid {t['line_soft']}; }}
 #TableArea {{ background: {t['sunken']}; }}
+#FilterBar {{ background: {t['sunken']}; border-bottom: 1px solid {t['line_soft']}; }}
 #EditFooter {{ background: {t['panel']}; border-top: 1px solid {t['line']}; }}
 
 QSplitter::handle {{ background: {t['line']}; }}

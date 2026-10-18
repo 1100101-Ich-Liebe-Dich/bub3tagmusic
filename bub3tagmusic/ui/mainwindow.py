@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, Q
                                QVBoxLayout, QWidget)
 
 from .. import APP_NAME, PRESENTER, PRESENTER_URL, features
+from ..core import filters
 from ..core.cache import FOLDER_DONE, FOLDER_OPEN, Cache
 from ..core.settings import Settings, cache_dir
 from ..core.undo import EditStep, RenameStep, SaveStep
@@ -18,16 +19,21 @@ from . import icons, theme
 from .dialogs import (AboutDialog, ComingSoonDialog, ErrorListDialog, SettingsDialog, ShortcutsDialog, Toast,
                       open_url)
 from .editpanel import EditPanel
+from .filterbar import FilterBar
 from .filetable import FileTable
 from .foldertree import FolderTree
 from .session import Session
+from .extras import EXTRA_DIALOGS
 from .online import ONLINE_DIALOGS
 from .tools import TOOL_DIALOGS
 from .workers import LoadWorker, RenameWorker, SaveWorker
 
 # Fertige Funktionen späterer Phasen hier eintragen: feature-id → Methodenname.
 # Werkzeuge mit Vorschau-Dialog stehen stattdessen in ui/tools.py → TOOL_DIALOGS.
-FEATURE_HANDLERS: dict[str, str] = {}
+FEATURE_HANDLERS: dict[str, str] = {
+    "filters": "toggle_filter_bar",
+    "export": "export_list",
+}
 
 
 class MainWindow(QMainWindow):
@@ -41,6 +47,9 @@ class MainWindow(QMainWindow):
         self._load_worker: LoadWorker | None = None
         self._save_worker: SaveWorker | None = None
         self._loaded_dirs: list[str] = []
+        self._search: tuple[set, str] | None = None     # Liste = Suchergebnis aus der ganzen Sammlung
+        self._result_files: list[str] | None = None     # Liste = feste Dateiliste (z. B. Duplikate)
+        self._result_label = ""
         self._after_load_select_all = settings.select_all_on_load
 
         self.setWindowTitle(APP_NAME)
@@ -61,6 +70,10 @@ class MainWindow(QMainWindow):
         self.table_area = QWidget(objectName="TableArea")
         tl = QVBoxLayout(self.table_area)
         tl.setContentsMargins(0, 0, 0, 0)
+        tl.setSpacing(0)
+        self.filterbar = FilterBar()
+        self.filterbar.setVisible(settings.show_filter_bar)
+        tl.addWidget(self.filterbar)
         tl.addWidget(self.table)
 
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -91,6 +104,13 @@ class MainWindow(QMainWindow):
         self.panel.message.connect(self.toast.show_message)
         self.panel.featureRequested.connect(self.run_feature)
         self.panel.saveNextRequested.connect(self.save_and_next)
+        self.filterbar.changed.connect(self._quick_filters_changed)
+        self.filterbar.collectionRequested.connect(self.search_collection)
+        self.table.model_.modelReset.connect(self._update_status)
+        self._count_timer = QTimer(self, singleShot=True, interval=350)
+        self._count_timer.timeout.connect(self._update_filter_counts)
+        self.session.itemsReplaced.connect(self._count_timer.start)
+        self.session.itemsChanged.connect(lambda _i: self._count_timer.start())
 
         self._sel_timer = QTimer(self, singleShot=True, interval=40)
         self._sel_timer.timeout.connect(self._on_table_selection)
@@ -159,7 +179,7 @@ class MainWindow(QMainWindow):
         self._icon_targets.append((self._filter_icon, "magnifying-glass", "faint"))
         self._filter_timer = QTimer(self, singleShot=True, interval=180)
         self._filter_timer.timeout.connect(lambda: self.table.model_.set_filter(self.filter.text()))
-        self.filter.textChanged.connect(lambda _t: self._filter_timer.start())
+        self.filter.textChanged.connect(lambda _t: (self._filter_timer.start(), self._update_search_button()))
         h.addWidget(self.filter, 1)
         h.addSpacing(10)
 
@@ -301,6 +321,12 @@ class MainWindow(QMainWindow):
             self._update_empty_text()
 
     def reload(self):
+        if self._result_files is not None:
+            self._load([], files=self._result_files, label=self._result_label)
+            return
+        if self._search is not None:
+            self.search_collection(self._search)
+            return
         if self._loaded_dirs:
             self._load(self._loaded_dirs, force=True)
         self.tree.reload()
@@ -318,22 +344,40 @@ class MainWindow(QMainWindow):
         self.toast.show_message("Unterordner werden mitgeladen" if on else "Nur der gewählte Ordner")
 
     def _on_folders_selected(self, paths: list[str]):
-        if not paths or paths == self._loaded_dirs:
+        if not paths or (paths == self._loaded_dirs and not self.is_result_list):
             return
         if not self._confirm_unsaved():
             self.tree.select_paths(self._loaded_dirs, emit=False)
             return
         self._load(paths)
 
-    def _load(self, paths: list[str], force: bool = False):
+    @property
+    def is_result_list(self) -> bool:
+        """Liste zeigt ein Suchergebnis statt gewählter Ordner (kein „nächster Ordner“)."""
+        return self._search is not None or self._result_files is not None
+
+    def show_files(self, paths: list[str], label: str):
+        """Bestimmte Dateien in die Liste holen (z. B. aus der Duplikat-Suche)."""
+        if not self._confirm_unsaved():
+            return False
+        self.tree.select_paths([], emit=False)
+        self._load([], files=list(paths), label=label)
+        return True
+
+    def _load(self, paths: list[str], force: bool = False, keep=None, search: tuple | None = None,
+              files: list[str] | None = None, label: str = ""):
         self.panel.set_items([])
         self._load_token += 1
         if self._load_worker is not None:
             self._load_worker.cancel()
-        self._loaded_dirs = list(paths)
+        self._search = search
+        self._result_files = files
+        self._result_label = label if files is not None else ""
+        self._loaded_dirs = [] if (search or files is not None) else list(paths)
         self.session.clear()
-        self.table.set_empty_text("Wird geladen …", "")
-        w = LoadWorker(paths, self.settings.recursive, self.cache, self._load_token, self)
+        self.table.set_empty_text("Durchsuche die Sammlung …" if search else "Wird geladen …", "")
+        w = LoadWorker(paths, True if search else self.settings.recursive, self.cache, self._load_token, self,
+                       keep=keep, files=files)
         w.progress.connect(self._load_progress)
         w.done.connect(self._loaded)
         w.finished.connect(w.deleteLater)
@@ -341,13 +385,17 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(250, lambda t=self._load_token: self._show_progress(t))
         w.start()
         names = ", ".join(os.path.basename(p) for p in paths[:3]) + (" …" if len(paths) > 3 else "")
+        if search:
+            names = "Sammlung: " + filters.describe(*search)
+        elif files is not None:
+            names = label
         self.setWindowTitle(f"{names} – {APP_NAME}")
 
     def _show_progress(self, token):
         if token == self._load_token and self._load_worker is not None:
             self.progress.setRange(0, 0)
             self.progress.show()
-            self.lbl_progress.setText("Lese Tags …")
+            self.lbl_progress.setText("Durchsuche …" if self._search else "Lese Tags …")
             self.lbl_progress.show()
 
     def _load_progress(self, done: int, total: int, token: int):
@@ -355,7 +403,8 @@ class MainWindow(QMainWindow):
             return
         self.progress.setRange(0, max(1, total))
         self.progress.setValue(done)
-        self.lbl_progress.setText(f"Lese Tags … {done:,} / {total:,}".replace(",", "."))
+        verb = "Durchsuche" if self._search else "Lese Tags"
+        self.lbl_progress.setText(f"{verb} … {done:,} / {total:,}".replace(",", "."))
 
     def _loaded(self, recs: list, token: int):
         if token != self._load_token:
@@ -365,7 +414,15 @@ class MainWindow(QMainWindow):
         self.lbl_progress.hide()
         self.session.set_records(recs)
         self._update_empty_text()
-        if recs and self._after_load_select_all:
+        if self._search is not None:
+            self.toast.show_message(f"{len(recs):,} Treffer in der Sammlung".replace(",", ".") if recs
+                                    else "Keine passende Datei in der Sammlung")
+            if recs:
+                self.table.selectRow(0)
+        elif self._result_files is not None:
+            if recs:
+                self.table.selectRow(0)
+        elif recs and self._after_load_select_all:
             self.table.selectAll()
         elif recs:
             self.table.selectRow(0)
@@ -374,7 +431,13 @@ class MainWindow(QMainWindow):
             self.toast.show_message(f"{len(errors)} Datei(en) konnten nicht gelesen werden (roter Punkt)")
 
     def _update_empty_text(self):
-        if not self.tree.root_path:
+        self._update_search_button()
+        if self._result_files is not None:
+            self.table.set_empty_text("Keine Dateien", "Die Dateien gibt es nicht mehr – links einen Ordner wählen")
+        elif self._search is not None:
+            self.table.set_empty_text("Nichts gefunden",
+                                      "In der ganzen Sammlung passt keine Datei zu: " + filters.describe(*self._search))
+        elif not self.tree.root_path:
             self.table.set_empty_text("Öffne deine Musik-Sammlung",
                                       "Oben auf „Sammlung öffnen“ klicken, Strg+O drücken oder einen Ordner ins Fenster ziehen")
         elif not self._loaded_dirs:
@@ -403,7 +466,19 @@ class MainWindow(QMainWindow):
         n = len(self.session.items)
         sel = len(self.panel.items)
         mod = self.session.modified_count()
-        self.lbl_count.setText(f"{n:,} Dateien".replace(",", ".") if n else "Keine Dateien geladen")
+        shown = self.table.model_.rowCount()
+        if not n:
+            count = "Keine Dateien geladen"
+        elif self.table.model_.is_filtered:
+            count = f"{shown:,} von {n:,} Dateien (gefiltert)"
+        else:
+            count = f"{n:,} Dateien"
+        if self._search is not None and n:
+            count = "Sammlung: " + count
+        elif self._result_files is not None and n:
+            count = f"{self._result_label}: {count}"
+        self.lbl_count.setText(count.replace(",", "."))
+        self.lbl_count.adjustSize()
         self.lbl_sel.setText(f"{sel:,} ausgewählt".replace(",", ".") if sel else "")
         self.lbl_mod.setStyleSheet(f"color: {theme.tok('modified')}; font-weight: 600;")
         self.lbl_mod.setText(f"{mod:,} ungespeichert".replace(",", ".") if mod else "")
@@ -480,6 +555,9 @@ class MainWindow(QMainWindow):
         w.start()
 
     def save_and_next(self):
+        if self.is_result_list:            # Suchergebnis: kein „nächster Ordner“
+            self.save()
+            return
         self.save(then=self._mark_and_advance, quiet=True)
 
     def _mark_and_advance(self):
@@ -548,6 +626,16 @@ class MainWindow(QMainWindow):
             self.toast.show_message("Erst links einen Ordner öffnen")
             return
         ONLINE_DIALOGS[feature_id](self, items, scope).exec()
+
+    def open_extra(self, feature_id: str):
+        if self._save_worker is not None:
+            return
+        self.panel.commit()
+        items, scope = self.tool_items()
+        if not items and not (feature_id == "duplicates" and self.tree.root_path):
+            self.toast.show_message("Erst links einen Ordner öffnen")
+            return
+        EXTRA_DIALOGS[feature_id](self, items, scope).exec()
 
     def run_rename(self, pairs, label: str, record_undo: bool = True):
         if not pairs or self._save_worker is not None:
@@ -695,6 +783,66 @@ class MainWindow(QMainWindow):
             loop.exec()
 
     # ==================================================================
+    # Schnellfilter (Phase 4)
+    # ==================================================================
+    def _quick_filters_changed(self):
+        self.table.model_.set_quick_filters(self.filterbar.active())
+        self._update_search_button()
+        self._update_status()
+
+    def _update_filter_counts(self):
+        if self.filterbar.isVisible():
+            self.filterbar.set_counts(filters.count_items(self.session.items) if self.session.items else {})
+
+    def _update_search_button(self):
+        keys = {k for k in self.filterbar.active() if filters.FILTER_BY_KEY[k].collection}
+        ok = bool(self.tree.root_path) and bool(keys or self.filter.text().strip())
+        self.filterbar.set_search_enabled(ok)
+
+    def toggle_filter_bar(self):
+        on = not self.filterbar.isVisible()
+        self.filterbar.setVisible(on)
+        self.settings.show_filter_bar = on
+        if on:
+            self._update_filter_counts()
+        else:
+            self.filterbar.clear()
+        self.toast.show_message("Schnellfilter eingeblendet" if on else "Schnellfilter ausgeblendet")
+
+    def export_list(self):
+        if not self.session.items:
+            self.toast.show_message("Erst links einen Ordner öffnen")
+            return
+        from .export import ExportDialog
+        ExportDialog(self).exec()
+
+    def search_collection(self, search: tuple | None = None):
+        """Gewählte Schnellfilter + Suchtext in der ganzen Sammlung (Zwischenspeicher + neue Dateien)."""
+        root = self.tree.root_path
+        if not root:
+            self.toast.show_message("Erst eine Sammlung öffnen")
+            return
+        if search is None:
+            if self.filterbar.chips["modified"].isChecked():
+                self.filterbar.chips["modified"].setChecked(False)   # gibt es in der Sammlung nicht
+            keys = {k for k in self.filterbar.active() if filters.FILTER_BY_KEY[k].collection}
+            search = (keys, self.filter.text().strip())
+        keys, text = search
+        if not keys and not text:
+            self.toast.show_message("Erst einen Schnellfilter wählen oder einen Suchtext eingeben")
+            return
+        if not self._confirm_unsaved():
+            return
+        words = filters.text_words(text)
+
+        def keep(rec, keys=frozenset(keys), words=words):
+            return (filters.record_passes(rec, keys)
+                    and filters.text_passes(words, os.path.basename(rec["path"]), rec.get("tags") or {}))
+
+        self.tree.select_paths([], emit=False)
+        self._load([root], keep=keep, search=(set(keys), text))
+
+    # ==================================================================
     # Spätere Phasen
     # ==================================================================
     def run_feature(self, feature_id: str):
@@ -703,6 +851,9 @@ class MainWindow(QMainWindow):
             return
         if feature_id in ONLINE_DIALOGS:
             self.open_online(feature_id)
+            return
+        if feature_id in EXTRA_DIALOGS:
+            self.open_extra(feature_id)
             return
         handler = FEATURE_HANDLERS.get(feature_id)
         if handler:
@@ -736,6 +887,7 @@ class MainWindow(QMainWindow):
             f'präsentiert von <a href="{PRESENTER_URL}" style="text-decoration:none; '
             f'color:{theme.tok("muted")}; font-weight:600">{PRESENTER}</a>')
         self.panel.refresh_icons()
+        self.filterbar.refresh_icons()
         self.tree.view.viewport().update()
         self.table.viewport().update()
         self._update_status()

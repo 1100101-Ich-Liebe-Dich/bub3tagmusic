@@ -3,6 +3,8 @@
 * files:   gelesene Tags je Datei + Änderungsdatum/Größe. Stimmen beide
            noch, wird die Datei beim nächsten Öffnen nicht neu gelesen.
 * folders: Bearbeitungs-Status der Ordner (fertig / offen).
+* fingerprints: Audio-Fingerabdrücke (Phase 4: AcoustID, Duplikate) – die
+           Berechnung dauert, deshalb wird jeder Abdruck gemerkt.
 * Weitere Tabellen für spätere Phasen (z. B. Online-Antworten) werden
   über user_version migriert.
 """
@@ -15,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 FOLDER_OPEN = 0
 FOLDER_DONE = 1
@@ -56,7 +58,19 @@ class Cache:
                 );
                 """
             )
-        # Hier kommen spätere Migrationen hin (if version < 2: ...)
+        if version < 2:
+            c.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS fingerprints (
+                    path     TEXT PRIMARY KEY,
+                    mtime    INTEGER NOT NULL,
+                    size     INTEGER NOT NULL,
+                    duration REAL NOT NULL,
+                    fp       BLOB NOT NULL
+                );
+                """
+            )
+        # Hier kommen spätere Migrationen hin (if version < 3: ...)
         c.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
         c.commit()
 
@@ -92,6 +106,8 @@ class Cache:
         """Nach dem Umbenennen: Einträge auf den neuen Pfad umziehen."""
         c = self._conn()
         for old, new in pairs:
+            c.execute("DELETE FROM fingerprints WHERE path=?", (new,))
+            c.execute("UPDATE fingerprints SET path=? WHERE path=?", (new, old))
             row = c.execute("SELECT mtime, size, data FROM files WHERE path=?", (old,)).fetchone()
             c.execute("DELETE FROM files WHERE path=?", (old,))
             if row is None:
@@ -123,6 +139,8 @@ class Cache:
             c.execute("DELETE FROM files WHERE path=?", (path,))
             c.execute("INSERT OR REPLACE INTO files(path, mtime, size, data) VALUES (?,?,?,?)",
                       (target, mtime, size, data))
+        c.execute("UPDATE OR REPLACE fingerprints SET path=? || substr(path, ?) WHERE path LIKE ? ESCAPE '\\'",
+                  (new, len(old) + 1, like))
         frows = c.execute("SELECT path, status, updated FROM folders WHERE path=? OR path LIKE ? ESCAPE '\\'",
                           (old, like)).fetchall()
         for path, status, updated in frows:
@@ -134,6 +152,26 @@ class Cache:
     def forget(self, paths: list[str]) -> None:
         c = self._conn()
         c.executemany("DELETE FROM files WHERE path=?", [(p,) for p in paths])
+        c.commit()
+
+    # --- Fingerabdrücke (Phase 4) ------------------------------------------
+    def get_fingerprints(self, stats: dict[str, tuple[int, int]]) -> dict[str, tuple[float, bytes]]:
+        out: dict[str, tuple[float, bytes]] = {}
+        paths = list(stats)
+        c = self._conn()
+        for i in range(0, len(paths), 500):
+            chunk = paths[i:i + 500]
+            q = "SELECT path, mtime, size, duration, fp FROM fingerprints WHERE path IN (%s)" % ",".join("?" * len(chunk))
+            for path, mtime, size, duration, fp in c.execute(q, chunk):
+                if stats.get(path) == (mtime, size):
+                    out[path] = (duration, bytes(fp))
+        return out
+
+    def put_fingerprints(self, rows: list[tuple[str, int, int, float, bytes]]) -> None:
+        if not rows:
+            return
+        c = self._conn()
+        c.executemany("INSERT OR REPLACE INTO fingerprints(path, mtime, size, duration, fp) VALUES (?,?,?,?,?)", rows)
         c.commit()
 
     # --- Ordner-Status ---------------------------------------------------
@@ -160,5 +198,6 @@ class Cache:
     def clear_files(self) -> None:
         c = self._conn()
         c.execute("DELETE FROM files")
+        c.execute("DELETE FROM fingerprints")
         c.commit()
         c.execute("VACUUM")

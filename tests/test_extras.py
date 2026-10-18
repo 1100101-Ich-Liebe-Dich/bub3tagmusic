@@ -1,0 +1,183 @@
+"""Tests für die Extras der Phase 4 (ohne Oberfläche).
+
+Aufruf: python3 tests/test_extras.py
+Programme wie fpcalc und rsgain werden nur benutzt, wenn sie installiert sind.
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+import os
+import shutil
+import sys
+import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from bub3tagmusic.core import duplicates as dup  # noqa: E402
+from bub3tagmusic.core import export, filters  # noqa: E402
+from bub3tagmusic.core.covers import CoverData  # noqa: E402
+from bub3tagmusic.core.fields import FIELD_KEYS  # noqa: E402
+from bub3tagmusic.core.fingerprint import compress, from_blob, similarity, to_blob  # noqa: E402
+from bub3tagmusic.core.model import FileItem  # noqa: E402
+from bub3tagmusic.core.tags import COVER_REMOVE  # noqa: E402
+from bub3tagmusic.core.tools_external import distro_family, install_hint  # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+FAILS = []
+
+
+def eq(got, want, msg):
+    if got != want:
+        FAILS.append(msg)
+        print(f"   FEHLER: {msg}\n      bekommen: {got!r}\n      erwartet: {want!r}")
+    else:
+        print(f"   ok  {msg}")
+
+
+def rec(path, cover=None, error="", length=200.0, bitrate=320, fmt="MP3", size=8_000_000, **tags):
+    t = dict.fromkeys(FIELD_KEYS, "")
+    t.update(tags)
+    return {"path": path, "tags": t, "cover": cover, "error": error, "length": length, "bitrate": bitrate,
+            "format": fmt, "size": size, "mtime": 1}
+
+
+def test_filters():
+    print("Schnellfilter")
+    big = {"w": 1000, "h": 1000, "hash": "a", "mime": "image/jpeg", "bytes": 1}
+    small = {"w": 300, "h": 300, "hash": "b", "mime": "image/jpeg", "bytes": 1}
+    full = dict(title="T", artist="A", album="B", track="1", year="1999")
+    a = FileItem(rec("/m/a.mp3", big, **full))
+    b = FileItem(rec("/m/b.mp3", small, **dict(full, year="")))
+    c = FileItem(rec("/m/c.mp3", None, **dict(full, title="", year="")))
+    d = FileItem(rec("/m/d.mp3", None, error="kaputt"))
+    items = [a, b, c, d]
+    sel = lambda keys: [it.name for it in items if filters.item_passes(it, keys)]  # noqa: E731
+    eq(sel({"no_cover"}), ["c.mp3"], "ohne Cover (Lesefehler zählt nicht)")
+    eq(sel({"small_cover"}), ["b.mp3"], "Cover < 500 px")
+    eq(sel({"no_year"}), ["b.mp3", "c.mp3"], "ohne Jahr (Lesefehler zählt nicht)")
+    eq(sel({"missing"}), ["c.mp3"], "fehlende Tags")
+    eq(sel({"error"}), ["d.mp3"], "Lesefehler")
+    eq(sel({"no_cover", "missing"}), ["c.mp3"], "Filter kombiniert (UND)")
+    eq(sel(set()), ["a.mp3", "b.mp3", "c.mp3", "d.mp3"], "ohne Filter alles")
+    # ungespeicherte Änderungen zählen
+    c.cover_action = CoverData(b"\xff\xd8\xff", "image/jpeg")
+    a.cover_action = COVER_REMOVE
+    b.tags["year"] = "2001"
+    eq(sel({"no_cover"}), ["a.mp3"], "neues/entferntes Cover zählt schon vor dem Speichern")
+    eq(sel({"no_year"}), ["c.mp3"], "geändertes Jahr zählt schon vor dem Speichern")
+    eq(sel({"modified"}), ["a.mp3", "b.mp3", "c.mp3"], "ungespeichert")
+    counts = filters.count_items(items)
+    eq(counts, {k: len(sel({k})) for k in filters.QUICK_FILTERS_ORDER}, "Zählen in einem Durchgang = einzeln")
+    eq(filters.record_passes(rec("/x.mp3", None, **full), {"no_cover"}), True, "Datensatz aus dem Zwischenspeicher")
+    eq(filters.text_passes(filters.text_words("ä b"), "Lied.mp3", {"title": "Bär", "artist": "B"}), True,
+       "Textsuche: alle Wörter, Groß/klein egal")
+    eq(filters.describe({"no_year", "no_cover"}, "abba"), "Ohne Cover + Ohne Jahr + „abba“", "Beschreibung")
+
+
+def test_export(tmp):
+    print("Export")
+    headers = ["Dateiname", "Titel", "Jahr"]
+    rows = [["01 - Bär.mp3", 'Sag "Hallo"; tschüss', "1999"], ["02.mp3", "<b>fett</b>", ""]]
+    p = os.path.join(tmp, "liste.csv")
+    export.write_csv(p, headers, rows, ";")
+    raw = open(p, "rb").read()
+    eq(raw[:3], b"\xef\xbb\xbf", "CSV mit BOM (Excel erkennt UTF-8)")
+    back = list(csv.reader(open(p, encoding="utf-8-sig"), delimiter=";"))
+    eq(back, [headers] + rows, "CSV liest sich verlustfrei zurück (Anführungszeichen, Semikolon, Umlaute)")
+    h = os.path.join(tmp, "liste.html")
+    export.write_html(h, headers, rows, title="Kurs Nord", subtitle="gefiltert: Ohne Cover", numeric={2},
+                      dark={"bg": "#000", "text": "#fff"}, light={"bg": "#fff", "text": "#000"})
+    page = open(h, encoding="utf-8").read()
+    eq("&lt;b&gt;fett&lt;/b&gt;" in page and "<b>fett" not in page, True, "HTML: Inhalte sicher maskiert")
+    eq("www.BAUENUNDBOOTEN.de" in page and "BuB3TAGMUSIC" in page, True, "HTML: Logo + präsentiert von")
+    eq("2 Dateien" in page and "Kurs Nord" in page, True, "HTML: Titel und Anzahl")
+    eq("font/ttf;base64," in page, True, "HTML: Logo-Schrift eingebettet")
+    eq(page.count("<tr>"), 3, "HTML: Kopf + 2 Zeilen")
+    eq('<td class=num>1999</td>' in page, True, "HTML: Zahlen rechtsbündig")
+    eq(export.default_name("AC/DC: Live?", "csv"), "BuB3TAGMUSIC - AC_DC_ Live_.csv", "sicherer Dateiname")
+
+
+def test_fingerprint():
+    print("Fingerabdruck")
+    fx = json.load(open(os.path.join(HERE, "fixtures", "fingerprint.json")))
+    eq(compress(fx["raw"]), fx["compressed"], "kompakte Form genau wie fpcalc")
+    eq(from_blob(to_blob(fx["raw"])), fx["raw"], "Speichern im Zwischenspeicher verlustfrei")
+    eq(round(similarity(fx["raw"], fx["raw"]), 3), 1.0, "gleich = 1,0")
+    shifted = fx["raw"][3:]
+    eq(similarity(fx["raw"], shifted) > 0.99, True, "verschoben (3 Teile) wird erkannt")
+    other = [x ^ 0x5A5A5A5A for x in fx["raw"]]
+    eq(similarity(fx["raw"], other) < 0.7, True, "fremd < 0,7")
+
+
+def test_duplicates():
+    print("Duplikate")
+    E = dup.Entry
+    entries = [
+        E("/m/a/01 - Schrei nach Liebe.mp3", "Die Ärzte", "Schrei nach Liebe", length=245, bitrate=192, format="MP3"),
+        E("/m/b/05 - Schrei nach Liebe.flac", "die arzte", "Schrei nach Liebe!", length=246, bitrate=900,
+          format="FLAC"),
+        E("/m/c/09 - Schrei nach Liebe (Live).mp3", "Die Ärzte", "Schrei nach Liebe (Live)", length=310,
+          bitrate=320),
+        E("/m/d/01 - Westerland.mp3", "Die Ärzte", "Westerland", length=220, bitrate=320),
+        E("/m/e/x.mp3", "", "", length=220, bitrate=128),
+        E("/m/f/Schrei.mp3", "Die Ärzte", "Schrei nach Liebe", length=400, bitrate=320),
+    ]
+    groups, skipped = dup.by_tags(entries, tolerance=2)
+    eq([[entries[i].path for i in g.members] for g in groups],
+       [["/m/b/05 - Schrei nach Liebe.flac", "/m/a/01 - Schrei nach Liebe.mp3"]],
+       "nach Tags: Umlaute/Satzzeichen egal, andere Länge = andere Fassung, FLAC = beste Qualität zuerst")
+    eq(entries[groups[0].best].format, "FLAC", "beste Qualität: verlustfrei")
+    eq(skipped, 1, "ohne Interpret/Titel übersprungen")
+    groups, _ = dup.by_tags(entries, tolerance=0, ignore_brackets=True)
+    eq(len(groups[0].members), 4, "Klammern ignorieren + Länge egal (0) → alle vier Fassungen")
+    eq(dup.normalize("AC/DC & Friends – Highway (feat. X)", True), "ac dc and friends highway", "Normalisieren")
+
+    # Klang: künstliche Fingerabdrücke
+    import random
+    rnd = random.Random(7)
+    song = [rnd.getrandbits(32) for _ in range(400)]
+    noisy = [x ^ (1 << rnd.randrange(32)) if rnd.random() < 0.3 else x for x in song]   # andere Kodierung
+    other = [rnd.getrandbits(32) for _ in range(400)]
+    from array import array
+    se = [E("/s/1.flac", "A", "Lied", length=200, format="FLAC", bitrate=900, fp=array("I", song[:300])),
+          E("/s/2.mp3", "", "", length=201, format="MP3", bitrate=128, fp=array("I", noisy[2:302])),
+          E("/s/3.mp3", "A", "Anderes", length=200.5, fp=array("I", other[:300])),
+          E("/s/4.mp3", "A", "Lied", length=260, fp=array("I", song[:300]))]
+    g = dup.by_sound(se, tolerance=2)
+    eq([[se[i].path for i in x.members] for x in g], [["/s/1.flac", "/s/2.mp3"]],
+       "nach Klang: auch ohne Tags; fremder Klang und andere Länge nicht")
+    merged = dup.merge(dup.by_tags(se, 2)[0], g, se)
+    eq(len(merged), 1, "Tags + Klang zusammengeführt")
+
+
+def test_tools_external(tmp):
+    print("Hilfsprogramme")
+    osr = os.path.join(tmp, "os-release")
+    for text, want in (('ID=linuxmint\nID_LIKE="ubuntu debian"\n', "debian"), ("ID=fedora\n", "fedora"),
+                       ('ID="opensuse-tumbleweed"\nID_LIKE="opensuse suse"\n', "suse"), ("ID=manjaro\nID_LIKE=arch\n", "arch"),
+                       ("ID=nixos\n", "")):
+        open(osr, "w").write(text)
+        eq(distro_family(osr), want, f"Distribution erkannt: {want or 'unbekannt'}")
+    eq("libchromaprint-tools" in install_hint("fpcalc", "debian"), True, "Hinweis fpcalc für Mint/Ubuntu")
+    eq("dnf install rsgain" in install_hint("rsgain", ""), True, "unbekannte Distribution: alle Befehle")
+
+
+def main():
+    tmp = tempfile.mkdtemp()
+    try:
+        test_filters()
+        test_export(tmp)
+        test_fingerprint()
+        test_duplicates()
+        test_tools_external(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    print()
+    print("ALLES OK" if not FAILS else f"{len(FAILS)} Fehler")
+    return 1 if FAILS else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

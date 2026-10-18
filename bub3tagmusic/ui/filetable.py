@@ -14,6 +14,7 @@ from PySide6.QtGui import QAction, QFont, QPainter
 from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QMenu, QStyle, QStyledItemDelegate,
                                QTableView)
 
+from ..core import filters
 from ..core.fields import FIELD_BY_KEY, number_sort_key
 from ..core.model import FileItem
 from ..core.scanner import natural_key
@@ -70,6 +71,8 @@ class FileTableModel(QAbstractTableModel):
         self._rows: list[int] = []          # sichtbare Zeilen → Index in session.items
         self._pos: dict[int, int] = {}      # id(item) → Zeile
         self._filter = ""
+        self._words: list[str] = []
+        self._quick: set[str] = set()       # Schnellfilter (Phase 4)
         self._sort: tuple[int, Qt.SortOrder] | None = None
         session.itemsReplaced.connect(self._reset)
         session.itemsChanged.connect(self._items_changed)
@@ -237,18 +240,29 @@ class FileTableModel(QAbstractTableModel):
 
     def set_filter(self, text: str):
         self._filter = text.strip().casefold()
+        self._words = filters.text_words(text)
         self._reset()
 
+    def set_quick_filters(self, keys) -> None:
+        self._quick = set(keys)
+        self._reset()
+
+    @property
+    def is_filtered(self) -> bool:
+        return bool(self._words or self._quick)
+
     def _matches(self, it: FileItem) -> bool:
-        if not self._filter:
-            return True
-        hay = " ".join((it.name, *it.tags.values())).casefold()
-        return all(word in hay for word in self._filter.split())
+        if self._quick and not filters.item_passes(it, self._quick):
+            return False
+        return filters.text_passes(self._words, it.name, it.tags)
 
     def _reset(self):
         self.beginResetModel()
         items = self.session.items
-        self._rows = [i for i, it in enumerate(items) if self._matches(it)]
+        if self.is_filtered:
+            self._rows = [i for i, it in enumerate(items) if self._matches(it)]
+        else:
+            self._rows = list(range(len(items)))
         if self._sort is not None:
             self._apply_sort()
         self._rebuild_pos()

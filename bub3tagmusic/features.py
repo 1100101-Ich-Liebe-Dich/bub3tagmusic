@@ -72,11 +72,14 @@ FEATURES: tuple[Feature, ...] = (
     Feature("replaygain", "ReplayGain berechnen", 4, "extras", "sliders-horizontal",
             "Gleicht die Lautstärke an – pro Track und pro Album (über rsgain)."),
     Feature("duplicates", "Duplikate finden", 4, "extras", "copy",
-            "Findet doppelte Titel in der Sammlung, nach Tags oder Fingerabdruck."),
+            "Findet doppelte Titel in der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach "
+            "Klang (Fingerabdruck). Nichts wird automatisch gelöscht.", ready=True),
     Feature("export", "Liste exportieren …", 4, "extras", "download-simple",
-            "Exportiert die aktuelle Liste als CSV oder HTML."),
+            "Exportiert die aktuelle Liste als CSV (Tabellenkalkulation) oder HTML-Seite – "
+            "mit den sichtbaren Spalten in ihrer Reihenfolge.", "Ctrl+Shift+E", ready=True),
     Feature("filters", "Erweiterte Filter", 4, "extras", "funnel",
-            "Schnellfilter wie 'ohne Cover', 'ohne Jahr', 'Cover kleiner als 500 px'."),
+            "Schnellfilter über der Liste ein-/ausblenden: ohne Cover, Cover < 500 px, ohne Jahr, "
+            "fehlende Tags, ungespeichert, Lesefehler – kombinierbar, auch für die ganze Sammlung.", ready=True),
 )
 
 GROUP_TITLES = {"tools": "Werkzeuge", "online": "Online", "extras": "Extras"}

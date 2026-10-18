@@ -59,6 +59,9 @@ class FlowLayout(QLayout):
     def _layout(self, rect: QRect, test: bool) -> int:
         x, y, line_h = rect.x(), rect.y(), 0
         for it in self._items:
+            w = it.widget()
+            if w is not None and w.isHidden():
+                continue
             hint = it.sizeHint()
             if x + hint.width() > rect.right() + 1 and line_h > 0:
                 x = rect.x()

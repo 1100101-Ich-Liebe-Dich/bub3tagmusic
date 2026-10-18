@@ -16,29 +16,36 @@ export XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME="$WORK/cache"
 export QT_QPA_PLATFORM=offscreen
 SHOTS="${SHOTS:-$WORK/shots}"
 
-echo "== 1/5 Kern: alle Formate, Werkzeuge, Online (aufgezeichnete Antworten) =="
+echo "== 1/6 Kern: alle Formate, Werkzeuge, Online (aufgezeichnete Antworten), Extras =="
 "$PY" tests/test_core.py
 "$PY" tests/test_tools.py
 "$PY" tests/test_online.py | tail -3
+"$PY" tests/test_extras.py | grep -v "^   ok"
+[ "${PIPESTATUS[0]}" -eq 0 ]
 
 echo
-echo "== 2/5 Test-Sammlung erzeugen =="
+echo "== 2/6 Test-Sammlung erzeugen =="
 "$PY" tests/make_testfiles.py "$WORK/data" --collection 60
 
 echo
-echo "== 3/5 Oberfläche durchklicken =="
+echo "== 3/6 Oberfläche durchklicken =="
 "$PY" tests/ui_smoke.py "$WORK/data/Musik" "$SHOTS" 2>&1 | grep -v propagateSizeHints
 [ "${PIPESTATUS[0]}" -eq 0 ]
 
 echo
-echo "== 4/5 Werkzeuge bedienen (frische Sammlung) =="
+echo "== 4/6 Werkzeuge bedienen (frische Sammlung) =="
 "$PY" tests/make_testfiles.py "$WORK/tools" --collection 12 >/dev/null
 "$PY" tests/ui_tools.py "$WORK/tools/Musik" "$SHOTS" 2>&1 | grep -v propagateSizeHints
 [ "${PIPESTATUS[0]}" -eq 0 ]
 
 echo
-echo "== 5/5 Online-Dialoge (aufgezeichnete Antworten) =="
+echo "== 5/6 Online-Dialoge (aufgezeichnete Antworten) =="
 "$PY" tests/ui_online.py "$WORK/online" "$SHOTS" 2>&1 | grep -v propagateSizeHints
+[ "${PIPESTATUS[0]}" -eq 0 ]
+
+echo
+echo "== 6/6 Extras: Filter, Export, Duplikate, Aktionen, ReplayGain, Erkennen =="
+"$PY" tests/ui_extras.py "$WORK/extras" "$SHOTS" 2>&1 | grep -v propagateSizeHints
 [ "${PIPESTATUS[0]}" -eq 0 ]
 
 if [ "${1:-}" = "--perf" ]; then
