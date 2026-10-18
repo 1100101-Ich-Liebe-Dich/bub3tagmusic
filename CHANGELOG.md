@@ -2,6 +2,25 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.0.0] – 2026-10-19 – Erste stabile Version
+
+BuB3TAGMUSIC 1.0 – alle vier geplanten Phasen sind fertig, getestet und dokumentiert.
+
+### Auf einen Blick
+- Sammlung Ordner für Ordner bearbeiten: Baum mit Fertig-Status, Mehrfach-Bearbeitung, „Speichern & nächster Ordner“
+- Cover und Künstlerbild: einbetten, `cover.jpg`, `folder.jpg`, Drag & Drop, online suchen
+- Werkzeuge mit Live-Vorschau (Tags ↔ Dateinamen, nummerieren, Schreibweise, Ersetzen, Aufräumen, Ordner umbenennen)
+- Aktionen: mehrere Schritte als ein Rückgängig-Schritt
+- Online: MusicBrainz, Discogs, Cover Art Archive, iTunes, Deezer, TheAudioDB, AcoustID
+- Schnellfilter, Duplikate, ReplayGain (Nur messen als Standard), Export als CSV/HTML
+- Fünf Farb-Themes, Standard „Bauen & Booten“
+- Eine Datei, keine Installation: `make` baut das AppImage – inklusive fpcalc und rsgain
+
+### Neu seit 0.9.0
+- GitHub-Seite neu: Banner, Bildergalerie aller Funktionen, Schnellstart, Fragen & Antworten
+- Bilder für die Seite lassen sich jederzeit neu erzeugen: `python3 docs/make_images.py`
+- Fehlervorlage fragt nach der Version und dem Selbsttest
+
 ## [0.9.0] – 2026-10-18 – Release-Kandidat vor 1.0
 
 ### Neu

@@ -1,238 +1,327 @@
-# BuB3TAGMUSIC
+<p align="center">
+  <img src="docs/banner.png" alt="BuB3TAGMUSIC – Moderner, schneller Musik-Tagger für Linux – präsentiert von www.BAUENUNDBOOTEN.de" width="100%">
+</p>
 
-**Moderner, schneller Musik-Tagger für Linux**
-präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-1.0-E5A00D?style=flat-square&labelColor=1C1F1C" alt="Version 1.0">
+  <img src="https://img.shields.io/badge/Linux-64%20Bit-7A8B76?style=flat-square&labelColor=1C1F1C&logo=linux&logoColor=E4ECE0" alt="Linux 64 Bit">
+  <img src="https://img.shields.io/badge/Installation-keine%20(AppImage)-7FA872?style=flat-square&labelColor=1C1F1C" alt="Keine Installation">
+  <img src="https://img.shields.io/badge/Qt%206-PySide6-7A8B76?style=flat-square&labelColor=1C1F1C&logo=qt&logoColor=E4ECE0" alt="Qt 6">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-7A8B76?style=flat-square&labelColor=1C1F1C&logo=python&logoColor=E4ECE0" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/offline-werbefrei-7A8B76?style=flat-square&labelColor=1C1F1C" alt="Offline und werbefrei">
+</p>
 
-![BuB3TAGMUSIC](docs/screenshot-dark.png)
+<p align="center">
+  <b>Tags, Cover und Dateinamen deiner Musiksammlung aufräumen – Ordner für Ordner, schnell und mit Vorschau.</b><br>
+  Für riesige Sammlungen, für alte Rechner und für alle, die es genau nehmen.
+</p>
 
-Stand: **Version 0.9.0 – Release-Kandidat vor 1.0**. Alle geplanten Phasen sind umgesetzt.
+<p align="center">
+  <a href="#schnellstart">Schnellstart</a> ·
+  <a href="#funktionen">Funktionen</a> ·
+  <a href="#sicherheit">Sicherheit</a> ·
+  <a href="#tastenkuerzel">Tastenkürzel</a> ·
+  <a href="ANLEITUNG.md">Bau-Anleitung</a> ·
+  <a href="CHANGELOG.md">Änderungen</a>
+</p>
 
----
-
-## Bauen & starten – ohne Installation
-
-BuB3TAGMUSIC wird mit `make` zu **einer einzigen Datei** (AppImage) gebaut, die ohne Installation läuft.
-**Schritt-für-Schritt-Anleitung: [ANLEITUNG.md](ANLEITUNG.md)** – in Kurzform:
-
-```bash
-sudo apt install make wget      # einmalig (Fedora: dnf, Arch: pacman)
-make                            # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
-make install                    # optional: ins Startmenü (make uninstall entfernt es wieder)
-```
-
-Zum Bauen reichen `make` und `curl` oder `wget` – Python, Qt & Co. lädt das Bauskript selbst
-(nach `build/tools`). Läuft auf jedem 64-Bit-Linux ab etwa 2018: Ubuntu 20.04+, Linux Mint 20+,
-Debian 10+, Fedora 29+, openSUSE Leap 15.3+, Arch/Manjaro.
-
-Fertige AppImages baut GitHub außerdem bei jedem Hochladen (*Actions → Tests → BuB3TAGMUSIC-AppImage*).
-
-### Für Entwickler: aus dem Quellcode
-
-```bash
-./install.sh        # einmalig: eigene Python-Umgebung (.venv) + Startmenü-Eintrag
-./start.sh ~/Musik  # bzw. make run
-```
-
-Einstellungen: `~/.config/bub3tagmusic/`, Zwischenspeicher: `~/.cache/bub3tagmusic/`.
-
-> **Erste Tests bitte an einer Kopie** eines Teils der Sammlung.
+<p align="center">
+  <img src="docs/screenshot-dark.png" alt="BuB3TAGMUSIC – Hauptfenster" width="100%">
+</p>
 
 ---
 
-## So arbeitest du damit
+## ⚓ Auf einen Blick
 
-1. **Sammlung öffnen** (Strg+O) – oder den Musik-Ordner ins Fenster ziehen.
-   Links erscheint der Baum: Künstler → Alben, mit Fortschritt („12 von 340 Alben fertig“).
-2. **Album anklicken.** Alle Dateien werden geladen und gleich ausgewählt.
-3. **Rechts bearbeiten.** Gleiche Werte stehen im Feld, unterschiedliche zeigen `‹verschieden›`.
-   Was du einträgst, gilt für alle ausgewählten Dateien. Nicht angefasste Felder bleiben, wie sie sind.
-   Geänderte Werte werden gelb markiert, bis gespeichert ist.
-4. **Cover:** Bild aufs Cover-Feld ziehen, „Bild laden …“, „Aus Ordner“ (übernimmt `cover.jpg`/`folder.jpg`)
-   oder unter „Weitere“: einfügen, als `cover.jpg` speichern, Künstlerbild (`folder.jpg`) festlegen, entfernen.
-5. **Strg+→ – Speichern & nächster Ordner:** speichert, hakt das Album ab ✓ und springt zum nächsten offenen Album.
+| Stärke | Was das heißt |
+|---|---|
+| 📂 **Ordner für Ordner** | Links deine Sammlung als Baum (Künstler → Alben) mit Fortschritt. Album anklicken, bearbeiten, **Strg+→** speichert, hakt ab und springt zum nächsten offenen Album. |
+| ✏️ **Viele Dateien auf einmal** | Alle Dateien eines Albums – oder mit „Unterordner“ einen ganzen Künstler – gleichzeitig bearbeiten. Unterschiedliche Werte zeigen `‹verschieden›` und bleiben, wie sie sind. |
+| 🖼️ **Cover & Künstlerbild** | Einbetten, `cover.jpg` im Album-Ordner, `folder.jpg` im Künstler-Ordner – per Drag & Drop, aus dem Ordner oder online gesucht. |
+| 🌐 **Online** | MusicBrainz & Discogs (eine Anfrage pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
+| 🛠️ **Werkzeuge** | Tags ↔ Dateinamen, nummerieren, Schreibweise, Suchen & Ersetzen, aufräumen, Ordner umbenennen – und alles zusammen als **Aktion**. |
+| ⚡ **Schnell, auch auf alter Hardware** | 12.000 Dateien in unter 2 Sekunden eingelesen, danach aus dem Zwischenspeicher in Sekundenbruchteilen. 50.000 Einträge in der Liste sind kein Problem. |
+| 📦 **Keine Installation** | `make` baut eine einzige ausführbare Datei (AppImage) – mit allem drin, sogar den Hilfsprogrammen. |
+| 🎨 **Modern & klar** | Fünf Farb-Themes, deutsche Oberfläche, alles auf den ersten Blick verständlich. |
 
-**Mehrere Ordner auf einmal:** Strg+Klick im Baum, oder den Schalter **Unterordner** (Strg+R) einschalten
-und einen Künstler- oder den Sammlungsordner anklicken.
+---
 
-**Rückgängig (Strg+Z)** nimmt Bearbeitungen zurück – und auch schon Gespeichertes:
-Vor jedem Speichern merkt sich das Programm die alten Werte (die letzten 20 Speichervorgänge).
+<a name="schnellstart"></a>
 
-### Werkzeuge (Menü „Werkzeuge“, Alt+1 … Alt+6 oder Rechtsklick in der Liste)
+## 🚀 Schnellstart
 
-Alle Werkzeuge arbeiten auf der Auswahl (oder auf allen Dateien der Liste, wenn nichts ausgewählt ist)
-und zeigen **vorher eine Live-Vorschau**: geänderte Werte gelb, Probleme rot.
+```bash
+sudo apt install make wget git      # einmalig (Fedora: dnf · Arch: pacman · openSUSE: zypper)
+make                                # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
+./dist/BuB3TAGMUSIC-*-x86_64.AppImage ~/Musik
+```
 
-![Werkzeug](docs/screenshot-werkzeug.png)
+Optional: `make install` trägt BuB3TAGMUSIC ins Startmenü ein (`make uninstall` entfernt es wieder) –
+oder im Programm ⚙ → *Ins Startmenü eintragen*.
+
+**Läuft auf jedem 64-Bit-Linux ab etwa 2018:** Ubuntu 20.04+, Linux Mint 20+, Debian 10+, Fedora 29+,
+openSUSE Leap 15.3+, Arch/Manjaro – unter X11 und Wayland. Python, Qt und alles Weitere bringt die Datei selbst mit.
+
+👉 Ausführlich, mit Hilfe bei Problemen: **[ANLEITUNG.md](ANLEITUNG.md)**
+
+> [!TIP]
+> Die ersten Schritte am besten an einer **Kopie** eines Teils der Sammlung ausprobieren.
+
+---
+
+<a name="funktionen"></a>
+
+## ✨ Funktionen
+
+### So arbeitest du damit
+
+1. **Sammlung öffnen** (Strg+O) – oder den Musik-Ordner einfach ins Fenster ziehen.
+2. **Album anklicken.** Alle Dateien werden geladen und sind gleich ausgewählt.
+3. **Rechts bearbeiten.** Was du einträgst, gilt für alle ausgewählten Dateien. Geändertes leuchtet gelb, bis es gespeichert ist.
+4. **Strg+→** – speichern, Album als fertig abhaken ✓, weiter zum nächsten offenen Album.
+
+So arbeitest du dich durch zehntausende Dateien, ohne den Überblick zu verlieren: Der Baum zeigt, welche Alben fertig sind
+und wie viel von der Sammlung schon geschafft ist.
+
+### 🛠️ Werkzeuge – immer mit Live-Vorschau
+
+<img src="docs/screenshot-werkzeug.png" alt="Werkzeug: Tags aus Dateiname" width="100%">
 
 | Werkzeug | Was es macht |
 |---|---|
-| **Tags aus Dateiname** (Alt+1) | Füllt Felder aus Datei- und Ordnernamen, z. B. `%artist%/%year% - %album%/%track% - %title%`. „/“ trennt Ordnerebenen, `%dummy%` überspringt Teile. Tippfehler im Muster werden erkannt. |
-| **Dateinamen aus Tags** (Alt+2) | Benennt Dateien um, z. B. `%track% - %title%` → `03 - Am Kai.mp3`. Prüft vorher fehlende Tags und doppelte Namen, überschreibt nie etwas, auch Tauschen klappt. Wahlweise USB-/Windows-tauglich. |
-| **Tracks nummerieren** (Alt+3) | In Listen-Reihenfolge, pro Ordner neu, mit Gesamtzahl (3/12), führender Null oder Disc-Nummer aus Ordnernamen (CD1, Disc 2 …). |
-| **Groß-/Kleinschreibung** (Alt+4) | `DER TITEL` → `Der Titel`. Kleine Wörter (und, der, the …) und feste Schreibweisen (AC/DC …) einstellbar; gemischte Schreibweisen wie „iPhone“ bleiben geschützt. |
-| **Suchen & Ersetzen** (Alt+5) | In gewählten Feldern, wahlweise Groß/klein, ganze Wörter oder reguläre Ausdrücke (`$1` / `\1`). |
-| **Aufräumen** | Doppelte Leerzeichen, Unterstriche, leere Klammern, unsichtbare Zeichen, „ft.“ → „feat.“, führende Nullen. |
-| **Ordner umbenennen** (Alt+6) | Album-Ordner nach ihren Tags, z. B. `%year% - %album%`. Alles im Ordner bleibt beisammen, der Fertig-Status wandert mit. |
+| **Tags aus Dateiname** (Alt+1) | Füllt Felder aus Datei- **und Ordnernamen**: `%artist%/%year% - %album%/%track% - %title%`. Tippfehler im Muster werden erkannt. |
+| **Dateinamen aus Tags** (Alt+2) | `%track% - %title%` → `03 - Am Kai.flac`. Prüft vorher fehlende Tags und doppelte Namen, überschreibt nie etwas; Begleitdateien (`.lrc`, `.txt` …) wandern mit. |
+| **Tracks nummerieren** (Alt+3) | Pro Ordner, mit Gesamtzahl (3/12), führender Null, Disc-Nummer aus „CD1“, „Disc 2“ … |
+| **Groß-/Kleinschreibung** (Alt+4) | `DER TITEL` → `Der Titel`; kleine Wörter und feste Schreibweisen (AC/DC …) einstellbar, „iPhone“ bleibt „iPhone“. |
+| **Suchen & Ersetzen** (Alt+5) | In gewählten Feldern, auf Wunsch mit regulären Ausdrücken (`$1`). |
+| **Ordner umbenennen** (Alt+6) | Album-Ordner nach ihren Tags, z. B. `%year% - %album%` – alles im Ordner bleibt beisammen. |
+| **Aufräumen** | Doppelte Leerzeichen, Unterstriche, leere Klammern, unsichtbare Zeichen, „ft.“ → „feat.“ … |
 
-Beim Umbenennen von Dateien wandern gleichnamige Begleitdateien (`01 - Lied.lrc`, `.txt`, `.srt` …) mit.
+Übernehmen markiert gelb, **Strg+S** speichert, **Strg+Z** nimmt das ganze Werkzeug in einem Schritt zurück.
 
-Übernehmen wirkt wie jede Bearbeitung: gelb markiert, **Strg+S** speichert, **Strg+Z** nimmt das ganze
-Werkzeug in einem Schritt zurück. Umbenennen passiert sofort – Strg+Z benennt zurück.
+### ⚡ Aktionen – mehrere Schritte auf einmal
 
-### Online (Menü „Online“ oder Rechtsklick in der Liste)
+<img src="docs/screenshot-aktionen.png" alt="Aktionen" width="100%">
 
-![Album suchen](docs/screenshot-online.png)
+Lieblings-Abläufe als **Aktion** speichern (Alt+7): z. B. *aufräumen → Schreibweise → Albuminterpret = `%artist%` →
+umbenennen*. Erst Vorschau, dann ausführen – **Strg+Z nimmt alles in einem Schritt zurück, auch das Umbenennen.**
+Beispiel-Aktionen sind schon dabei.
 
-| Funktion | Was sie macht |
-|---|---|
-| **Album suchen** (Strg+L) | Sucht das Album bei **MusicBrainz** oder **Discogs** – eine Anfrage pro Album, Interpret und Album sind aus Tags oder Ordnernamen vorbelegt. Zeigt die Trackliste zugeordnet zu deinen Dateien (nach Tracknummer, Reihenfolge oder Länge) und übernimmt nur die Felder, die du auswählst – auf Wunsch samt Cover. |
-| **Cover suchen** (Strg+K) | Bildergitter aus Cover Art Archive, iTunes (bis 3000 px) und Deezer. Einbetten und/oder als `cover.jpg` in den Album-Ordner. Doppelklick übernimmt. |
-| **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB, gespeichert als `folder.jpg` im Künstler-Ordner. |
+### 🌐 Online
 
-Alles außer Discogs funktioniert ohne Anmeldung. Für Discogs einen kostenlosen Token unter
-*Einstellungen → Online* eintragen (discogs.com → Settings → Developers).
-
-### Schnellfilter (über der Liste)
-
-Chips **Ohne Cover · Cover < 500 px · Ohne Jahr · Fehlende Tags · Ungespeichert · Lesefehler** – mehrere
-gleichzeitig möglich, mit Anzahl. **Ganze Sammlung** sucht dieselben Filter (und den Suchtext) in der ganzen
-Sammlung und holt die Treffer in die Liste – z. B. „alle ohne Cover“ und dann gleich *Cover suchen*.
-Ein-/ausblenden über *Extras → Erweiterte Filter*.
-
-### Extras (Menü „Extras“)
-
-![Aktionen](docs/screenshot-aktionen.png)
+<img src="docs/screenshot-online.png" alt="Album online suchen" width="100%">
 
 | Funktion | Was sie macht |
 |---|---|
-| **Aktionen** (Alt+7) | Mehrere Schritte als Aktion speichern und auf einmal ausführen: Aufräumen, Schreibweise, Ersetzen, Feld setzen (z. B. Albuminterpret = `%artist%`), Tags aus Dateiname, Nummerieren, Umbenennen. Mit Vorschau; Strg+Z nimmt alles in einem Schritt zurück. Beispiel: „Album fertig machen“. |
-| **Unbekannte Dateien erkennen** (Strg+Shift+L) | Erkennt Dateien ohne Tags am Klang (Fingerabdruck + AcoustID) und schlägt Titel, Interpret, Album, Jahr, Track vor. Braucht einen kostenlosen AcoustID-Key (*Einstellungen → Online*). |
-| **ReplayGain** | Misst die Lautheit (Track + Album, Album = Ordner). Standard ist **„Nur messen“** – da wird nichts geschrieben. In die Dateien schreiben oder ReplayGain-Tags entfernen geht nur nach roter Warnung und ausdrücklicher Rückfrage (lässt sich nicht mit Strg+Z zurücknehmen). Die Musik selbst bleibt immer unverändert. Spalten „RG Track“/„RG Album“ per Rechtsklick auf den Spaltenkopf. |
-| **Duplikate finden** | In der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach Klang (auch ohne Tags). Beste Qualität ist markiert; gelöscht wird nur, was du anhakst (in den Papierkorb). |
-| **Liste exportieren** (Strg+Shift+E) | Sichtbare Spalten als CSV (für LibreOffice/Excel) oder als schöne HTML-Seite zum Weitergeben und Drucken. |
+| **Album suchen** (Strg+L) | **MusicBrainz** oder **Discogs** – genau *eine* Anfrage pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auf Wunsch samt Cover. |
+| **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px) und Deezer als Bildergitter. Einbetten und/oder `cover.jpg`. |
+| **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB → `folder.jpg` im Künstler-Ordner. |
+| **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
 
-Die Hilfsprogramme `fpcalc` (Fingerabdruck) und `rsgain` (ReplayGain) bringt das mit `make` gebaute
-AppImage mit. Wer aus dem Quellcode startet, installiert sie über die Paketverwaltung – das Programm
-zeigt bei Bedarf den passenden Befehl.
+Ohne Anmeldung nutzbar – nur Discogs und AcoustID brauchen einen kostenlosen Schlüssel (*Einstellungen → Online*).
 
-### Tastenkürzel
+### 🔎 Schnellfilter – auch über die ganze Sammlung
+
+<img src="docs/screenshot-filter.png" alt="Schnellfilter" width="100%">
+
+**Ohne Cover · Cover < 500 px · Ohne Jahr · Fehlende Tags · Ungespeichert · Lesefehler** – kombinierbar, mit Anzahl.
+Ein Klick auf **Ganze Sammlung** holt alle passenden Dateien aus der ganzen Sammlung in die Liste –
+z. B. „alle ohne Cover“ und gleich danach *Cover suchen*.
+
+### 🧹 Duplikate finden
+
+<img src="docs/screenshot-duplikate.png" alt="Duplikate finden" width="100%">
+
+Nach **Interpret + Titel** (Akzente und Satzzeichen egal, Länge ± einstellbar) oder nach **Klang** – dann auch, wenn die
+Tags falsch oder leer sind. Die Datei mit der besten Qualität ist markiert. **Gelöscht wird nie etwas von selbst:**
+nur was du anhakst, und das landet im Papierkorb. Eine Datei jeder Gruppe bleibt immer.
+
+### 🔊 ReplayGain
+
+<img src="docs/screenshot-replaygain.png" alt="ReplayGain" width="100%">
+
+Misst die Lautheit pro Track und Album (Album = Ordner). **Standard ist „Nur messen“ – da wird nichts geschrieben.**
+Wer die Werte in die Dateien schreiben oder entfernen will, muss das bewusst auswählen und bekommt eine rote Warnung
+und eine Rückfrage. Spalten *RG Track* / *RG Album* gibt es per Rechtsklick auf den Spaltenkopf.
+
+### 📤 Liste exportieren
+
+<img src="docs/screenshot-export.png" alt="HTML-Export" width="100%">
+
+Strg+Shift+E: die sichtbaren Spalten in ihrer Reihenfolge als **CSV** (LibreOffice, Excel) oder als eigenständige
+**HTML-Seite** – sortierbar, durchsuchbar, hell/dunkel, druckbar. Perfekt, um die Sammlung weiterzugeben.
+
+### 🎨 Fünf Farb-Themes
+
+<img src="docs/themes.png" alt="Farb-Themes" width="100%">
+
+Standard ist **„Bauen & Booten“** in den Farben von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de).
+Wechseln unter ⚙ → *Farben*; *Hell / Dunkel umschalten* springt zum passenden Gegenstück.
+
+---
+
+<a name="sicherheit"></a>
+
+## 🛟 Deine Musik ist sicher
+
+- **Nur Tags, nie die Musik:** Audiodaten werden nie verändert. Es werden nur Felder geschrieben, die du geändert hast –
+  alle anderen Tags, auch unbekannte, bleiben unangetastet.
+- **Erst Vorschau, dann übernehmen:** Jedes Werkzeug, jede Aktion und jede Online-Übernahme zeigt vorher genau,
+  was sich ändert.
+- **Rückgängig – auch nach dem Speichern:** Strg+Z nimmt Bearbeitungen zurück, und auch die letzten 20 Speichervorgänge
+  und Umbenennungen.
+- **Umbenennen überschreibt nie:** doppelte Namen und vorhandene Dateien werden vorher erkannt.
+- **Eine kaputte Datei stoppt nie den Rest** – Fehler werden gesammelt angezeigt.
+- **Gelöscht wird nichts automatisch.** Duplikate wandern nur auf deinen Wunsch in den Papierkorb.
+- **Offline und werbefrei.** Ins Internet geht es nur, wenn du eine Online-Funktion nutzt – MusicBrainz höchstens
+  einmal pro Sekunde, wie es sich gehört.
+
+---
+
+## 🎵 Formate
+
+**MP3** (ID3v2.3 / v2.4, ID3v1) · **FLAC** · **M4A** (AAC/ALAC) · **OGG Vorbis** · **Opus** · **WMA** · **WAV** ·
+**AIFF** · **APE** · **WavPack** · **DSF**
+
+MP3 wird standardmäßig als ID3v2.3 geschrieben (läuft auch auf Autoradios). Eingebettete Cover werden auf 600 px
+verkleinert (einstellbar), `cover.jpg` im Ordner bleibt in voller Größe.
+
+---
+
+<a name="tastenkuerzel"></a>
+
+## ⌨️ Tastenkürzel
+
+<details>
+<summary><b>Alle Tastenkürzel anzeigen</b> (im Programm: F1)</summary>
 
 | Kürzel | Funktion |
 |---|---|
 | Strg+→ / Strg+← | Speichern & nächster offener Ordner / vorheriger Ordner |
 | Strg+S | Speichern |
-| Strg+Z | Rückgängig |
+| Strg+Z | Rückgängig (auch schon Gespeichertes) |
 | Strg+D | Ordner als fertig / offen markieren |
 | Strg+R | Unterordner mitladen an/aus |
+| Strg+O | Sammlung öffnen |
 | Strg+A | Alle Dateien auswählen |
 | Strg+E | Zum Feld „Titel“ |
-| F2 | Zelle in der Liste bearbeiten |
 | Strg+F | Liste filtern |
+| F2 | Zelle in der Liste bearbeiten |
 | Strg+Shift+V | Bild aus der Zwischenablage als Cover |
-| Alt+1 … Alt+6 | Werkzeuge (Tags aus Dateiname, Umbenennen, Nummerieren, Schreibweise, Ersetzen, Ordner) |
+| Alt+1 … Alt+6 | Werkzeuge |
 | Alt+7 | Aktionen |
 | Strg+L / Strg+K / Strg+J | Album / Cover / Künstlerbild online suchen |
-| Strg+Shift+L | Unbekannte Dateien erkennen (AcoustID) |
+| Strg+Shift+L | Unbekannte Dateien erkennen |
 | Strg+Shift+E | Liste exportieren |
 | F5 | Neu einlesen |
 | Strg+, | Einstellungen |
 | F1 | Alle Tastenkürzel |
 
-Rechtsklick auf die Spaltenköpfe blendet Spalten ein/aus (Albuminterpret, Komponist, Kommentar, Ordner, ReplayGain …).
-
-**Farben:** ⚙ → *Farben* – „Bauen & Booten“ (Standard, Farben von www.BAUENUNDBOOTEN.de), „Bauen & Booten – hell“,
-„Ankerplatz – Graphit“, „Nachtwache“ und „Seekarte“. *Hell / Dunkel umschalten* wechselt zum passenden Gegenstück.
-Klick auf einen Spaltenkopf sortiert, ein dritter Klick stellt die Ordner-Reihenfolge wieder her.
+</details>
 
 ---
 
-## Formate
+## 📊 Leistung
 
-MP3 (ID3v2.3 / v2.4, ID3v1), FLAC, M4A/AAC/ALAC, OGG Vorbis, Opus, WMA, WAV, AIFF, APE, WavPack, DSF.
+Gemessen auf einem Testrechner mit 2 Kernen:
 
-- MP3 wird standardmäßig als **ID3v2.3** geschrieben (läuft auch auf Autoradios); v2.4 ist in den Einstellungen wählbar.
-- Es werden **nur geänderte Felder** geschrieben – alle anderen Tags bleiben unberührt. Audiodaten werden nie verändert.
-- Eingebettete Cover werden auf 600 px verkleinert (einstellbar), `cover.jpg` im Ordner bleibt in voller Größe.
+| Vorgang | Zeit |
+|---|---|
+| Ordnerbaum mit 1.000 Alben / 12.000 Dateien | 0,04 s |
+| 12.000 Dateien erstmals einlesen | 1,7 s |
+| dieselben 12.000 Dateien aus dem Zwischenspeicher | 0,15 s |
+| Liste mit 50.000 Einträgen füllen / sortieren / filtern | 0,2 s / 0,1 s / 0,15 s |
+| Genre für 50.000 Dateien setzen / rückgängig | 0,3 s / 0,25 s |
+
+Echte MP3s mit großen Covern auf einer alten Festplatte brauchen beim ersten Einlesen etwas länger – danach greift der Zwischenspeicher.
 
 ---
 
-## Für Entwickler
+## ❓ Häufige Fragen
+
+<details>
+<summary><b>Muss ich irgendetwas installieren?</b></summary>
+
+Nein. `make` baut eine einzige Datei, die alles mitbringt – Python, Qt, die Schriften und sogar die Hilfsprogramme
+`fpcalc` (Fingerabdruck) und `rsgain` (ReplayGain). Zum Bauen reichen `make` und `wget` oder `curl`.
+</details>
+
+<details>
+<summary><b>Wo speichert BuB3TAGMUSIC seine Einstellungen?</b></summary>
+
+Einstellungen und Aktionen: `~/.config/bub3tagmusic/` · Zwischenspeicher: `~/.cache/bub3tagmusic/`
+(⚙ → *Zwischenspeicher leeren* liest alles neu ein).
+</details>
+
+<details>
+<summary><b>Was ist mit cover.jpg und folder.jpg?</b></summary>
+
+`cover.jpg` im **Album**-Ordner ist das Albumcover, `folder.jpg` im **Künstler**-Ordner das Künstlerbild.
+Die Namen sind unter *Einstellungen → Cover* änderbar. Einzelne Alben und Tracks lassen sich trotzdem einzeln bearbeiten.
+</details>
+
+<details>
+<summary><b>Brauche ich Zugangsdaten für die Online-Funktionen?</b></summary>
+
+Für MusicBrainz, Cover-Suche und Künstlerbilder nicht. Discogs braucht einen kostenlosen Token
+(discogs.com → Settings → Developers), „Unbekannte Dateien erkennen“ einen kostenlosen AcoustID-Key
+(acoustid.org/new-application). Beides unter *Einstellungen → Online* eintragen.
+</details>
+
+<details>
+<summary><b>Etwas klappt nicht – was tun?</b></summary>
+
+Ein [Issue anlegen](../../issues/new/choose) – die Vorlage „Fehler melden“ fragt alles Nötige ab.
+Hilfreich ist die Ausgabe von `./BuB3TAGMUSIC-*.AppImage --selftest ~/Musik`.
+</details>
+
+---
+
+## 🧑‍💻 Für Entwickler
+
+<details>
+<summary><b>Aus dem Quellcode starten, Aufbau, Tests</b></summary>
+
+```bash
+./install.sh        # einmalig: eigene Python-Umgebung (.venv) + Startmenü-Eintrag
+./start.sh ~/Musik  # bzw. make run
+tests/run_all.sh    # alle Tests (braucht ffmpeg; fpcalc + rsgain für die Extras)
+```
 
 ```
 bub3tagmusic/
-├── app.py              Programmstart (auch --version, --selftest)
-├── features.py         Fahrplan: alle Funktionen der Phasen 2–4 (baut die Menüs)
-├── core/               ohne Qt – auch in Hintergrund-Prozessen nutzbar
-│   ├── fields.py       einheitliche Feldnamen (title, artist, …)
-│   ├── tags.py         Lesen/Schreiben aller Formate (mutagen)
-│   ├── covers.py       Bilder prüfen, verkleinern, als Datei speichern
-│   ├── scanner.py      Ordnerbaum, Dateilisten, paralleles Einlesen
-│   ├── cache.py        SQLite: Tags + Ordner-Status
-│   ├── model.py        eine geladene Datei mit Bearbeitungsstand
-│   ├── undo.py         Rückgängig-Verlauf (Bearbeiten + Speichern)
-│   ├── patterns.py     Muster %artist% - %title% (beide Richtungen, mit Ordnerebenen)
-│   ├── tools.py        Werkzeug-Logik: nummerieren, Schreibweise, ersetzen, aufräumen
-│   ├── rename.py       Umbenennen: Plan + Prüfung + sicheres Ausführen (zweistufig)
-│   ├── filters.py      Schnellfilter
-│   ├── export.py       CSV / HTML
-│   ├── actions.py      Aktionen (Schrittketten, actions.json)
-│   ├── duplicates.py   Duplikate nach Tags / Klang
-│   ├── fingerprint.py  fpcalc, kompakte Form für AcoustID, Vergleich
-│   ├── replaygain.py   rsgain aufrufen und auswerten
-│   ├── tools_external.py  Hilfsprogramme finden, Installationshinweis je Distribution
-│   └── settings.py     Einstellungen (JSON)
-├── online/             ohne Qt
-│   ├── base.py         AlbumMatch, CoverCandidate, RateLimiter, Ähnlichkeit
-│   ├── http.py         urllib, Wartezeiten, Zertifikate, Speicher, austauschbar für Tests
-│   ├── musicbrainz.py, discogs.py, coversearch.py, artistimages.py
-│   ├── matching.py     Dateien ↔ Album-Tracks zuordnen
-│   └── acoustid.py     Erkennen per Fingerabdruck (AcoustID)
-├── ui/
-│   ├── mainwindow.py   Hauptfenster, Speichern, Rückgängig, Navigation
-│   ├── session.py      alle Bearbeitungen laufen hier durch (→ Rückgängig)
-│   ├── workers.py      Hintergrund: Baum scannen, laden, speichern, Task (Fortschritt + Abbrechen)
-│   ├── foldertree.py   Ordnerbaum mit Fertig-Status
-│   ├── filetable.py    schnelle Tabelle (Sortieren/Filtern im Modell)
-│   ├── editpanel.py    Bearbeitungsfeld + Cover-Aktionen
-│   ├── coverwidget.py  Cover-Anzeige mit Drag & Drop
-│   ├── dialogs.py      Einstellungen, Tastenkürzel, Über, Fehlerliste, Toast
-│   ├── tools.py        Werkzeug-Dialoge mit Live-Vorschau (ToolDialog + 6 Werkzeuge)
-│   ├── widgets.py      Bausteine: Muster-Feld, Feld-Chips, Fließ-Layout
-│   ├── online.py       Album-, Cover- und Künstlerbild-Suche
-│   ├── filterbar.py    Schnellfilter-Leiste
-│   ├── export.py       Export-Dialog
-│   ├── actions.py      Aktionen-Fenster + Schritt-Editor
-│   ├── extras.py       Duplikate, ReplayGain (EXTRA_DIALOGS)
-│   ├── acoustid.py     Unbekannte Dateien erkennen
-│   ├── theme.py        Farb-Themes: „Bauen & Booten“ (Standard), hell, Graphit, Nachtwache, Seekarte
-│   └── icons.py        Phosphor-Icons
-└── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon, Logo-Schrift für HTML-Export
-packaging/
-├── build_appimage.sh   baut das AppImage (eigenes Python 3.12, Qt 6.9, fpcalc, rsgain, verschlankt)
-├── requirements-appimage.txt   feste Versionen fürs AppImage (läuft ab glibc 2.28)
-├── prune.py            wirft Ungenutztes raus (Qt-Bibliotheken per ldd ermittelt)
-├── AppRun              Starter im AppImage, reicht fehlende xcb-Bibliotheken nach
-└── libs/               diese xcb-Bibliotheken aus Ubuntu 20.04 (MIT/X11-Lizenz, siehe copyright/)
+├── app.py            Programmstart (--version, --selftest)
+├── features.py       alle Funktionen als Daten → baut die Menüs
+├── core/             ohne Qt: Tags (mutagen), Cache (SQLite), Muster, Werkzeuge, Umbenennen,
+│                     Filter, Export, Aktionen, Duplikate, Fingerabdruck, ReplayGain
+├── online/           ohne Qt: http (Limiter, Zertifikate), MusicBrainz, Discogs, Cover, Künstlerbilder, AcoustID
+└── ui/               Oberfläche: Hauptfenster, Session (Rückgängig), Hintergrund-Arbeiter, Dialoge, Themes
+packaging/            AppImage-Bau (eigenes Python 3.12, Qt 6.9, fpcalc, rsgain, verschlankt)
+tests/                Kern-, Oberflächen-, Online- (aufgezeichnet) und Leistungstests
+docs/                 Bilder für diese Seite (neu erzeugen: python3 docs/make_images.py)
 ```
 
-**Neue Funktion aus dem Fahrplan fertig?** In `features.py` `ready=True` setzen und
-– für ein Werkzeug mit Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen
-(Online: `ONLINE_DIALOGS`, eigene Fenster: `EXTRA_DIALOGS` in `ui/extras.py`),
-sonst die Methode in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel gibt es dann schon.
+Bei jedem Hochladen laufen alle Tests auf GitHub (Python 3.10, 3.11, 3.13) und das AppImage wird gebaut und auf einem
+echten X-Bildschirm gestartet. Die Online-Tests spielen echte, aufgezeichnete Antworten ab.
+Fahrplan und Entscheidungen: [BuB3TAGMUSIC.md](BuB3TAGMUSIC.md) · Arbeitsnotizen: [CLAUDE.md](CLAUDE.md)
+</details>
 
-### Tests
+---
 
-```bash
-tests/run_all.sh           # alles: Formate, Werkzeuge, Online (aufgezeichnet), Extras, Oberfläche
-                           # (braucht ffmpeg; fpcalc + rsgain für die Extras-Teile, sonst übersprungen)
-tests/run_all.sh --perf    # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
-python3 tests/make_testfiles.py ZIEL --collection 100   # Test-Sammlung zum Ausprobieren erzeugen
-```
+## 🙏 Dank
 
-Auf GitHub laufen die Tests bei jedem Hochladen automatisch (Python 3.10, 3.11 und 3.13), inklusive Screenshots.
-Die Online-Tests spielen echte, aufgezeichnete Antworten ab (`tests/fixtures/online/`). Neu aufzeichnen:
-`tests/fixtures/online/RECORD` ändern und hochladen – der Workflow „Testdaten aufzeichnen“ erledigt den Rest.
-Arbeitsnotizen und Regeln fürs Weiterentwickeln: `CLAUDE.md`. Änderungen: `CHANGELOG.md`.
+BuB3TAGMUSIC steht auf den Schultern von
+[Qt / PySide6](https://www.qt.io/qt-for-python) ·
+[mutagen](https://github.com/quodlibet/mutagen) ·
+[Pillow](https://python-pillow.org) ·
+[QtAwesome](https://github.com/spyder-ide/qtawesome) mit [Phosphor Icons](https://phosphoricons.com) ·
+[Chromaprint / AcoustID](https://acoustid.org) ·
+[rsgain](https://github.com/complexlogic/rsgain) ·
+Schriften [Inter](https://rsms.me/inter/) und [Big Shoulders](https://github.com/xotypeco/big_shoulders) (SIL OFL)
+– und den Daten von [MusicBrainz](https://musicbrainz.org), [Cover Art Archive](https://coverartarchive.org),
+[Discogs](https://www.discogs.com), iTunes, Deezer und [TheAudioDB](https://www.theaudiodb.com).
 
-Lizenzen der mitgelieferten Schriften: `bub3tagmusic/resources/fonts/OFL-*.txt` (SIL Open Font License).
-Im AppImage: `fpcalc` (Chromaprint, LGPL 2.1) und `rsgain` (BSD 2-Clause), siehe `usr/share/doc/bub3tagmusic/`.
+<p align="center">
+  <img src="bub3tagmusic/resources/bub3tagmusic.svg" width="56" alt=""><br>
+  <b>BuB3TAGMUSIC</b> – präsentiert von <a href="https://www.BAUENUNDBOOTEN.de"><b>www.BAUENUNDBOOTEN.de</b></a>
+</p>

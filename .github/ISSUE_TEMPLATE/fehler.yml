@@ -28,6 +28,12 @@ body:
       label: Dateiformat(e)
       placeholder: z. B. MP3, FLAC
   - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Steht unter ⚙ → Über BuB3TAGMUSIC (oder `--version`)
+      placeholder: z. B. 1.0.0
+  - type: input
     id: system
     attributes:
       label: System
@@ -36,5 +42,7 @@ body:
     id: ausgabe
     attributes:
       label: Fehlermeldung aus dem Terminal (falls vorhanden)
-      description: Programm mit ./start.sh im Terminal starten, dann erscheinen Meldungen dort.
+      description: >-
+        Das AppImage im Terminal starten (z. B. `./BuB3TAGMUSIC-1.0.0-x86_64.AppImage`), dann erscheinen
+        Meldungen dort. Sehr hilfreich ist auch die Ausgabe von `--selftest ~/Musik`.
       render: text

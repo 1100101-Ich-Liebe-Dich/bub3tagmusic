@@ -3,9 +3,9 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.9.0 – **Release-Kandidat vor 1.0**: alle Phasen fertig, neues Standard-Theme
-> in den Farben von www.BAUENUNDBOOTEN.de, ReplayGain standardmäßig „Nur messen“ (18.10.2026).
-> Jetzt kommt der große Praxistest, danach Version 1.0.
+> **Aktueller Stand:** Version **1.0.0** – erste stabile Version (19.10.2026): alle Phasen fertig, Standard-Theme
+> in den Farben von www.BAUENUNDBOOTEN.de, GitHub-Seite für die Veröffentlichung aufbereitet.
+> Veröffentlichen: siehe `docs/RELEASE-1.0.md`.
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -365,6 +365,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 10. Nächster Schritt
 
-1. 0.9.0 mit `make` bauen und an einer **Kopie** ausgiebig testen – letzter Test vor 1.0
-2. AcoustID-Key eintragen (#23) und „Unbekannte Dateien erkennen“ an ein paar Dateien ohne Tags ausprobieren
-3. Rückmeldungen aus dem Praxistest (#18) – danach Feinschliff nach Wunsch (alle Phasen sind umgesetzt)
+1. Letzter Praxistest mit 1.0.0 (an einer **Kopie**) – AcoustID-Key (#23) und Discogs-Token (#21) dabei ausprobieren
+2. Veröffentlichen: Anleitung und fertiger Text in `docs/RELEASE-1.0.md`
+3. Danach: Rückmeldungen sammeln (Issues), Feinschliff nach Wunsch

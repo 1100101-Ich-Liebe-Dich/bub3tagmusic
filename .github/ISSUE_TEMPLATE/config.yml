@@ -1,1 +1,8 @@
 blank_issues_enabled: true
+contact_links:
+  - name: www.BAUENUNDBOOTEN.de
+    url: https://www.BAUENUNDBOOTEN.de
+    about: BuB3TAGMUSIC wird präsentiert von BAUENUNDBOOTEN – hier gibt es mehr.
+  - name: Bau-Anleitung (make, AppImage)
+    url: https://github.com/1100101-Ich-Liebe-Dich/bub3tagmusic/blob/main/ANLEITUNG.md
+    about: Schritt für Schritt bauen – mit Hilfe bei Problemen.

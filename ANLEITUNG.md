@@ -48,7 +48,7 @@ Fertig ist es, wenn unten steht:
 
 ```
 == Fertig
-…/dist/BuB3TAGMUSIC-0.1.2-x86_64.AppImage (59M)
+…/dist/BuB3TAGMUSIC-1.0.0-x86_64.AppImage (64M)
 ```
 
 ## 4. Starten
