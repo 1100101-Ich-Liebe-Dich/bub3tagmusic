@@ -14,7 +14,7 @@ from .. import APP_NAME, PRESENTER, PRESENTER_URL, features
 from ..core import filters
 from ..core.cache import FOLDER_DONE, FOLDER_OPEN, Cache
 from ..core.settings import Settings, cache_dir
-from ..core.undo import EditStep, RenameStep, SaveStep
+from ..core.undo import ChainStep, EditStep, RenameStep, SaveStep
 from . import icons, theme
 from .dialogs import (AboutDialog, ComingSoonDialog, ErrorListDialog, SettingsDialog, ShortcutsDialog, Toast,
                       open_url)
@@ -637,7 +637,8 @@ class MainWindow(QMainWindow):
             return
         EXTRA_DIALOGS[feature_id](self, items, scope).exec()
 
-    def run_rename(self, pairs, label: str, record_undo: bool = True):
+    def run_rename(self, pairs, label: str, record_undo: bool = True, then=None, chain: bool = False):
+        """Umbenennen im Hintergrund. chain=True: mit der vorherigen Bearbeitung EIN Rückgängig-Schritt."""
         if not pairs or self._save_worker is not None:
             return
         w = RenameWorker(pairs, self.cache, self)
@@ -653,6 +654,11 @@ class MainWindow(QMainWindow):
             self.table.setEnabled(True)
             self.panel.setEnabled(True)
             ok, errors = self.session.finish_rename(results, label, record_undo=record_undo)
+            if chain and record_undo and ok:
+                self.session.undo.chain_last_two(label)
+                self.session.stateChanged.emit()
+            if then:
+                then()
             self.panel.refresh()
             moved = [(r["old"].rstrip("/"), r["new"].rstrip("/")) for r in results
                      if not r["error"] and os.path.isdir(r["new"])]
@@ -689,9 +695,9 @@ class MainWindow(QMainWindow):
         if not items:
             return
         m = QMenu(self)
-        for group in ("tools", "online"):
+        for group in ("tools", "online", "extras"):
             for f in features.by_group(group):
-                if f.ready:
+                if f.ready and f.id not in ("filters", "export", "duplicates"):
                     a = m.addAction(icons.icon(f.icon, "muted"),
                                     f"{f.title}\t{f.shortcut.replace('Ctrl', 'Strg')}" if f.shortcut else f.title)
                     a.triggered.connect(lambda _=False, fid=f.id: self.run_feature(fid))
@@ -744,6 +750,18 @@ class MainWindow(QMainWindow):
                 return
             self.session.undo.pop()
             self.run_rename([(new, old) for old, new in reversed(step.pairs)], step.label, record_undo=False)
+            return
+        if isinstance(step, ChainStep):
+            n = len(step.rename.pairs)
+            r = QMessageBox.question(
+                self, "Aktion rückgängig machen?",
+                f"„{step.label}“ rückgängig machen?\n\n{n} Datei(en) bekommen wieder ihren alten Namen, "
+                f"die Tag-Änderungen werden zurückgenommen.")
+            if r != QMessageBox.StandardButton.Yes:
+                return
+            self.session.undo.pop()
+            self.run_rename([(new, old) for old, new in reversed(step.rename.pairs)], step.label,
+                            record_undo=False, then=lambda: self.session.undo_edit(step.edit))
 
     # ==================================================================
     # Ungespeicherte Änderungen

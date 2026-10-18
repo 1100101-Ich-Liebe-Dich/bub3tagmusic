@@ -15,6 +15,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from bub3tagmusic.core import actions as A  # noqa: E402
 from bub3tagmusic.core import duplicates as dup  # noqa: E402
 from bub3tagmusic.core import export, filters  # noqa: E402
 from bub3tagmusic.core.covers import CoverData  # noqa: E402
@@ -164,6 +165,48 @@ def test_tools_external(tmp):
     eq("dnf install rsgain" in install_hint("rsgain", ""), True, "unbekannte Distribution: alle Befehle")
 
 
+def test_actions(tmp):
+    print("Aktionen")
+    path = os.path.join(tmp, "cfg", "actions.json")
+    acts = A.load_actions(path)
+    eq([a.name for a in acts][:2], ["Album fertig machen", "Nur aufräumen"], "ohne Datei: Beispiel-Aktionen")
+    A.save_actions(path, acts)
+    back = A.load_actions(path)
+    eq([a.to_json() for a in back], [a.to_json() for a in acts], "speichern + laden verlustfrei")
+    open(path, "w").write("{kaputt")
+    eq(len(A.load_actions(path)) > 0, True, "kaputte Datei: Beispiele statt Absturz")
+
+    rename, case = A.new_step("rename"), A.new_step("case")
+    eq(A.validate(A.Action("x", [rename, case])), "Umbenennen muss der letzte Schritt sein (es nutzt die fertigen Tags)",
+       "Umbenennen nur am Ende")
+    bad = A.new_step("replace")
+    bad["opts"].update(find="(", regex=True)
+    eq(A.validate(A.Action("x", [bad])).startswith("Schritt 1: Ungültiger Ausdruck"), True, "kaputter Ausdruck")
+    typo = A.new_step("set_field")
+    typo["opts"]["value"] = "%artis%"
+    eq(A.validate(A.Action("x", [typo])), "Schritt 1: unbekannter Platzhalter %artis%", "Tippfehler im Wert")
+    eq(A.validate(A.Action("x", [])).startswith("Die Aktion hat noch keine Schritte"), True, "leere Aktion")
+
+    steps = [A.new_step("cleanup"), A.new_step("case"), A.new_step("set_field"), A.new_step("replace"),
+             A.new_step("tags_from_filename"), A.new_step("autonumber")]
+    steps[3]["opts"].update(find="(live)", repl="", fields=["title"])
+    steps[4]["opts"].update(pattern="%track% - %title%", only_empty=True)
+    files = [("/m/A/01 - x.mp3", dict.fromkeys(FIELD_KEYS, "") | {"title": "  DER  LANGE WEG (LIVE) ",
+                                                                    "artist": "die ärzte"}),
+             ("/m/A/02 - Zweites Lied.mp3", dict.fromkeys(FIELD_KEYS, "") | {"artist": "X", "albumartist": "Y"}),
+             ("/m/A/kein muster.mp3", dict.fromkeys(FIELD_KEYS, "") | {"title": "t"})]
+    tags, notes = A.run_tag_steps(files, steps)
+    eq(tags[0]["title"], "Der Lange Weg", "aufräumen → Schreibweise → (Live) entfernt (Reihenfolge zählt)")
+    eq(tags[0]["albumartist"], "Die Ärzte", "Albuminterpret = %artist% (nach der Schreibweise)")
+    eq(tags[1]["albumartist"], "Y", "nur wenn leer")
+    eq(tags[1]["title"], "Zweites Lied", "Tags aus Dateiname (nur leere Felder)")
+    eq([t["track"] for t in tags], ["1/3", "2/3", "3/3"], "nummerieren zum Schluss")
+    eq(list(notes), [2], "Hinweis: Dateiname passt nicht zum Muster")
+    eq(A.describe(steps[3]), "Ersetzen: „(live)“ → „nichts“ · Titel", "Beschreibung eines Schritts")
+    eq(A.fill_value("%track% %artist%", {"track": "3/12", "artist": "AC/DC"}), "3 AC/DC",
+       "Platzhalter im Wert: Schrägstrich bleibt, Track ohne Gesamtzahl")
+
+
 def main():
     tmp = tempfile.mkdtemp()
     try:
@@ -172,6 +215,7 @@ def main():
         test_fingerprint()
         test_duplicates()
         test_tools_external(tmp)
+        test_actions(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print()

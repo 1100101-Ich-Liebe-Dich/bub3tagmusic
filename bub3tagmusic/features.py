@@ -66,7 +66,8 @@ FEATURES: tuple[Feature, ...] = (
     # --- Phase 4: Extras ---------------------------------------------------
     Feature("actions", "Aktionen …", 4, "extras", "lightning",
             "Mehrere Schritte als Aktion speichern (z. B. Aufräumen + Schreibweise + "
-            "Umbenennen) und mit einem Klick ausführen."),
+            "Umbenennen) und mit Vorschau ausführen – Strg+Z nimmt alles in einem Schritt zurück.",
+            "Alt+7", ready=True),
     Feature("acoustid", "Unbekannte Dateien erkennen", 4, "extras", "fingerprint",
             "Erkennt Titel ohne Tags per Audio-Fingerabdruck (AcoustID)."),
     Feature("replaygain", "ReplayGain berechnen", 4, "extras", "sliders-horizontal",

@@ -130,6 +130,7 @@ def main():
 
     test_filters(app, win, root, out)
     test_export(app, win, work, out)
+    test_actions(app, win, root, files, out)
     test_duplicates(app, win, root, files, out)
 
     win.session.revert()
@@ -229,6 +230,55 @@ def test_export(app, win, work, out):
     d.export(path)
     check(wait(app, lambda: os.path.exists(path) and d.result_path), "Auswahl exportiert")
     check(len(list(csv.reader(open(path, encoding="utf-8-sig"), delimiter=";"))) == 2, "nur 1 Zeile")
+
+
+def test_actions(app, win, root, files, out):
+    print("Aktionen")
+    from bub3tagmusic.core.undo import ChainStep
+    from bub3tagmusic.ui.extras import EXTRA_DIALOGS
+    win.table.selectAll()
+    pump(app)
+    items, scope = win.tool_items()
+    d = EXTRA_DIALOGS["actions"](win, items, scope)
+    d.show()
+    pump(app, 0.5)
+    names = [d.combo.itemText(i) for i in range(d.combo.count())]
+    check("Album fertig machen" in names, f"Beispiel-Aktionen da: {names}")
+    check(os.path.exists(d.path), "actions.json angelegt")
+    d.combo.setCurrentIndex(names.index("Album fertig machen"))
+    pump(app, 0.8)
+    p = d.model.preview
+    check("Neuer Name" in p.columns and "Titel" in p.columns, f"Vorschau-Spalten: {p.columns}")
+    check(p.apply_count == 2, f"2 Dateien betroffen: {p.summary}")
+    d.grab().save(os.path.join(out, "x5_aktionen.png"))
+    best_dir = os.path.dirname(files["best"])
+    d._apply()
+    check(wait(app, lambda: win._save_worker is None), "Aktion ausgeführt")
+    pump(app, 0.3)
+    check(os.path.exists(os.path.join(best_dir, "07 - Am Kai!.mp3")), "umbenannt mit neuen Tags (Am Kai!)")
+    it = next(i for i in win.session.items if i.name == "07 - Am Kai!.mp3")
+    check(it.tags["albumartist"] == "Kielwasser" and it.tags["title"] == "Am Kai!", f"Tags: {it.tags['title']}")
+    tief = next(i for i in win.session.items if i.name == "03 - Tiefgang.mp3")
+    check(tief.tags["title"] == "Tiefgang", "Schreibweise: TIEFGANG → Tiefgang")
+    check(isinstance(win.session.undo.peek(), ChainStep), "ein einziger Rückgängig-Schritt (Tags + Umbenennen)")
+    win.undo()
+    check(wait(app, lambda: win._save_worker is None and os.path.exists(files["best"])), "Strg+Z benennt zurück")
+    pump(app, 0.3)
+    check(win.session.modified_count() == 0, "… und nimmt die Tag-Änderungen zurück")
+    # eigene Aktion anlegen
+    d = EXTRA_DIALOGS["actions"](win, win.session.items, "alle")
+    d.new_action("Kommentar weg")
+    d.add_step("set_field", edit=False)
+    d.action.steps[0]["opts"].update(field="comment", value="Gerippt von BuB3", only_empty=False)
+    d._changed(0)
+    d.add_step("rename", edit=False)
+    d.add_step("cleanup", edit=False)
+    check([s["type"] for s in d.action.steps] == ["set_field", "cleanup", "rename"], "Umbenennen bleibt am Ende")
+    d.refresh()
+    check(d.model.preview.apply_count == 4, f"eigene Aktion: {d.model.preview.summary}")
+    from bub3tagmusic.core import actions as A
+    check(any(a.name == "Kommentar weg" for a in A.load_actions(d.path)), "eigene Aktion gespeichert")
+    d.reject()
 
 
 def test_duplicates(app, win, root, files, out):

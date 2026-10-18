@@ -8,6 +8,8 @@ Zwei Arten von Schritten liegen im selben Stapel:
              das alte Cover jeder Datei gemerkt. Rückgängig schreibt diese
              alten Werte zurück auf die Festplatte.
 * RenameStep – Dateien umbenannt. Rückgängig benennt zurück.
+* ChainStep  – Tags geändert UND umbenannt in einem Rutsch (Aktionen).
+               Rückgängig benennt zurück und nimmt die Tag-Änderung zurück.
 
 Beim Speichern fallen alle EditSteps weg (sie sind ja jetzt Teil des SaveSteps).
 """
@@ -46,7 +48,14 @@ class RenameStep:
     pairs: list[tuple[str, str]] = field(default_factory=list)   # (alt, neu)
 
 
-DISK_STEPS = (SaveStep, RenameStep)
+@dataclass
+class ChainStep:
+    label: str
+    edit: EditStep
+    rename: RenameStep
+
+
+DISK_STEPS = (SaveStep, RenameStep, ChainStep)
 
 
 class UndoStack:
@@ -73,9 +82,25 @@ class UndoStack:
             self._steps.append(step)
             self._trim()
 
+    def chain_last_two(self, label: str) -> bool:
+        """Letzte Bearbeitung + letztes Umbenennen zu EINEM Schritt verbinden (Aktionen)."""
+        if len(self._steps) >= 2 and isinstance(self._steps[-1], RenameStep) \
+                and isinstance(self._steps[-2], EditStep):
+            rename = self._steps.pop()
+            edit = self._steps.pop()
+            self._steps.append(ChainStep(label, edit, rename))
+            return True
+        return False
+
     def drop_edits(self) -> None:
-        """z. B. beim Ordnerwechsel ohne Speichern."""
-        self._steps = [s for s in self._steps if isinstance(s, DISK_STEPS)]
+        """z. B. beim Ordnerwechsel ohne Speichern. Von verketteten Schritten bleibt das Umbenennen."""
+        out = []
+        for s in self._steps:
+            if isinstance(s, ChainStep):
+                out.append(RenameStep(s.label, s.rename.pairs))
+            elif isinstance(s, DISK_STEPS):
+                out.append(s)
+        self._steps = out
 
     def pop(self):
         return self._steps.pop() if self._steps else None

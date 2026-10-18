@@ -461,6 +461,12 @@ class DuplicatesDialog(ExtraDialog):
                                                            "Schreibrechte prüfen") for p in errors], self).exec()
 
 
+def _actions_dialog(win, items, scope):
+    from .actions import ActionsDialog
+    return ActionsDialog(win, items, scope)
+
+
 EXTRA_DIALOGS = {
     "duplicates": DuplicatesDialog,
+    "actions": _actions_dialog,
 }
