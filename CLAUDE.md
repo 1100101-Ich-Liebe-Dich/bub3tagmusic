@@ -73,10 +73,17 @@ nach jeder Sitzung aktuell halten.
 
 ### Design
 
-- Themes in `ui/theme.py`: „Nachtwache“ (dunkel, Hafenblau) und „Seekarte“ (hell). Akzent Bojen-Orange.
-  Farben nur über `theme.tok("name")`, nie hart im Code.
+- Themes in `ui/theme.py`: Standard **„Bauen & Booten“ (`bub`)** = Farben der Website (Erdgrün-Dunkel, Bernstein
+  `#E5A00D`), dazu `bub_light`, `graphite`, `dark` (Nachtwache, bis 0.4 Standard) und `light` (Seekarte).
+  `THEME_INFO` = Name, hell/dunkel, Gegenstück. Neuer Token → in ALLEN Themes ergänzen. Website-Linien sind
+  halbtransparent – hier deckend auf den Grund gerechnet (QColor kennt kein rgba-Text).
+  Farben nur über `theme.tok("name")`, nie hart im Code. Logo-Farbe: Token `wordmark`.
+- Alte Einstellungen ohne `theme_version` mit `theme == "dark"` werden einmalig auf `bub` umgestellt.
 - Schriften mitgeliefert: Inter (Text), Big Shoulders Stencil ExtraBold (nur Logo). Icons: Phosphor (`ph.`).
 - Status: Grün = fertig, Gelb = ungespeichert, Rot = Fehler.
+- Alles, was Dateien ohne Strg+Z verändert (ReplayGain schreiben/entfernen), braucht rote Warnung im Fenster
+  (`#ToolMessage[kind="warning"]`), roten Knopf (`QPushButton[kind="danger"]`) und eine Rückfrage mit
+  „Abbrechen“ als Standard. Standard-Modus ist immer der harmlose („Nur messen“).
 - Texte: Satzanfang groß, klare Verben („Speichern“, nicht „Absenden“), Fehler sagen, was zu tun ist.
 - Muss bei **1366×768** noch bedienbar sein.
 

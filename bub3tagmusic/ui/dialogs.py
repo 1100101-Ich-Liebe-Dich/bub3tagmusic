@@ -144,8 +144,8 @@ class SettingsDialog(QDialog):
         f = QFormLayout(d)
         f.setContentsMargins(18, 18, 18, 18)
         self.theme_box = QComboBox()
-        self.theme_box.addItem("Dunkel – Nachtwache", "dark")
-        self.theme_box.addItem("Hell – Seekarte", "light")
+        for key in theme.THEME_INFO:
+            self.theme_box.addItem(theme.label(key), key)
         self.theme_box.setCurrentIndex(max(0, self.theme_box.findData(settings.theme)))
         f.addRow("Theme", self.theme_box)
         self.select_all = QCheckBox("Nach dem Öffnen eines Ordners alle Dateien auswählen")
@@ -271,7 +271,7 @@ class AboutDialog(QDialog):
         mark = QLabel(APP_NAME)
         mark.setObjectName("AboutMark")
         lay.addWidget(mark)
-        lay.addWidget(_muted(f"Version {APP_VERSION}  ·  Phase {APP_PHASE}"))
+        lay.addWidget(_muted(f"Version {APP_VERSION}" + (f"  ·  Phase {APP_PHASE}" if APP_PHASE < 5 else "")))
         lay.addSpacing(8)
         lay.addWidget(QLabel("Moderner, schneller Musik-Tagger für Linux."))
         link = QLabel(f'präsentiert von <a href="{PRESENTER_URL}" style="color:{theme.tok("accent")};'

@@ -43,7 +43,8 @@ class Settings:
     jpeg_quality: int = 90
 
     # --- Oberfläche ---------------------------------------------------
-    theme: str = "dark"                  # dark | light
+    theme: str = "bub"                   # bub | bub_light | graphite | dark | light (siehe ui/theme.py)
+    theme_version: int = 1               # 1 = seit 0.5: Standard ist „Bauen & Booten“
     recursive: bool = False              # Unterordner mitladen
     select_all_on_load: bool = True      # nach dem Laden alle Dateien auswählen
     show_filter_bar: bool = True         # Schnellfilter-Leiste über der Liste (Phase 4)
@@ -80,6 +81,11 @@ class Settings:
         for key, value in data.items():
             if key in known:
                 setattr(s, key, value)
+        if "theme_version" not in data:
+            # Bis 0.4 war „Nachtwache“ (dark) der Standard – wer nie gewechselt hat, bekommt das neue
+            if s.theme == "dark":
+                s.theme = "bub"
+            s.theme_version = 1
         return s
 
     def save(self) -> None:

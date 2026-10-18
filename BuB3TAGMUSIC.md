@@ -3,8 +3,9 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.4.0 – **Phase 4 fertig: Aktionen, Erkennen, ReplayGain, Duplikate, Export,
-> Schnellfilter** (18.10.2026). Damit sind alle geplanten Phasen umgesetzt – jetzt kommt der Praxistest.
+> **Aktueller Stand:** Version 0.9.0 – **Release-Kandidat vor 1.0**: alle Phasen fertig, neues Standard-Theme
+> in den Farben von www.BAUENUNDBOOTEN.de, ReplayGain standardmäßig „Nur messen“ (18.10.2026).
+> Jetzt kommt der große Praxistest, danach Version 1.0.
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -107,13 +108,15 @@ Musik/
 
 | Thema | Entscheidung |
 |---|---|
-| Dunkles Theme „Nachtwache“ | tiefes Hafenblau `#121B24`, Flächen `#172230` |
-| Helles Theme „Seekarte“ | Kartenpapier `#E8EDF1`, Flächen `#F5F8FA` |
-| Akzentfarbe | Bojen-Orange `#FF8A2A` (hell: `#E26C0B`) |
-| Status-Farben | fertig Grün `#3FCB8D`, ungespeichert Gelb `#F4C453`, Fehler Rot `#FF6B6B` |
+| **Standard-Theme „Bauen & Booten“** (ab 0.9) | Farben der Website: Seite `#1C1F1C`, Kopfzeile/Leisten `#171A17`, Karten/Knöpfe `#232622`, Hover `#2A2E28` |
+| Schrift | Betonung `#E4ECE0`, Fließtext `#B4C6AF`, Nebensächliches `#7F8B7B` |
+| Akzent | Bernstein `#E5A00D` (Überfahren `#F2B32B`), Linien Erdgrün `#7A8B76` (22 % bzw. 40 %, auf den Grund gerechnet) |
+| Status-Farben | fertig `#7FA872`, ungespeichert Gelb `#EDC453`, Fehler `#B5563C` (als Schrift etwas heller) |
+| Weitere Themes | „Bauen & Booten – hell“, „Ankerplatz – Graphit“, „Nachtwache – Hafenblau“ (bis 0.4 Standard), „Seekarte – hell“ – umschalten unter ⚙ → Farben |
 | Logo-Schrift | Big Shoulders Stencil (Schablonen-Schrift wie Rumpf-Beschriftung auf der Werft) |
 | Text-Schrift | Inter (mitgeliefert, sieht auf jeder Distribution gleich aus) |
-| App-Icon | Rettungsring in Orange/Weiß – erinnert zugleich an eine Schallplatte |
+| App-Icon | Rettungsring in Bernstein/Erdgrün auf `#1C1F1C` – erinnert zugleich an eine Schallplatte |
+| Logo-Farbe | Bernstein `#E5A00D` (in Nachtwache/Seekarte/Graphit wie die Schrift) |
 
 ### Kern-Arbeitsablauf: „Speichern & nächster Ordner“
 
@@ -218,7 +221,9 @@ und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/REC
   wie `%artist%`), Tags aus Dateiname, Nummerieren und Umbenennen; gespeichert in
   `~/.config/bub3tagmusic/actions.json`; Beispiel-Aktionen; Vorschau; **ein** Rückgängig-Schritt – auch
   mit Umbenennen
-- [x] #13 **ReplayGain** über `rsgain`: Track + Album (Album = Ordner), nur Track oder entfernen; −18/−23/−14
+- [x] #13 **ReplayGain** über `rsgain`: Standard **„Nur messen“** (nichts wird geschrieben). Schreiben (Track + Album,
+  nur Track) oder Entfernen nur nach roter Warnung im Fenster und ausdrücklicher Rückfrage („Abbrechen“ ist
+  vorausgewählt); Album = Ordner; −18/−23/−14
   LUFS, Übersteuern verhindern; Fortschritt, Abbrechen, Fehlerliste; Spalten „RG Track“/„RG Album“
 - [x] #12 **Unbekannte Dateien erkennen** (Strg+Shift+L): Fingerabdruck mit `fpcalc`, Abfrage bei AcoustID
   (≤ 3/s), passendste Veröffentlichung (Album aus den Tags > Studioalbum > frühestes Jahr), Vorschau mit
@@ -338,7 +343,7 @@ Echte MP3s mit großen Covern auf einer alten Festplatte brauchen beim ersten Ei
 | Eingebettete Cover-Größe | 600 × 600, JPEG-Qualität 90 (Datei im Ordner bleibt voll) |
 | Unterordner laden | aus (Strg+R) |
 | Nach dem Öffnen alle Dateien auswählen | an |
-| Theme | dunkel („Nachtwache“) |
+| Theme | „Bauen & Booten“ (dunkel); wer bis 0.4 Nachtwache als Standard hatte, wird einmalig umgestellt |
 
 Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3tagmusic/cache.sqlite`
 
@@ -360,6 +365,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 10. Nächster Schritt
 
-1. 0.4.0 mit `make` bauen und an einer **Kopie** testen – vor allem Aktionen, Duplikate (Papierkorb!) und ReplayGain
+1. 0.9.0 mit `make` bauen und an einer **Kopie** ausgiebig testen – letzter Test vor 1.0
 2. AcoustID-Key eintragen (#23) und „Unbekannte Dateien erkennen“ an ein paar Dateien ohne Tags ausprobieren
 3. Rückmeldungen aus dem Praxistest (#18) – danach Feinschliff nach Wunsch (alle Phasen sind umgesetzt)

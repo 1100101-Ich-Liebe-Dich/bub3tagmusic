@@ -53,7 +53,7 @@ def main():
     app = QApplication(sys.argv[:1])
     from bub3tagmusic.app import prepare_app
     prepare_app(app)
-    theme.apply(app, "dark")
+    theme.apply(app, "bub")
     from bub3tagmusic.ui import tools as T
     from bub3tagmusic.ui.mainwindow import MainWindow
 
@@ -225,13 +225,13 @@ def main():
     check(len(win.table.selected_items()) == n, "Auswahl für Rechtsklick")
 
     # Helles Theme
-    win.apply_theme("light")
+    win.apply_theme("bub_light")
     d = dialog("replace")
     d.find.setText("Lied")
     pump(app, 0.4)
     shot(d, "t7_light.png")
     d.reject()
-    win.apply_theme("dark")
+    win.apply_theme("bub")
     win.grab().save(os.path.join(out, "t0_window.png"))
     win.session.revert()
     print()

@@ -110,7 +110,7 @@ def main():
     app = QApplication(sys.argv[:1])
     from bub3tagmusic.app import prepare_app
     prepare_app(app)
-    theme.apply(app, "dark")
+    theme.apply(app, "bub")
     from bub3tagmusic.ui.mainwindow import MainWindow
 
     # Rückfragen automatisch bestätigen
@@ -299,10 +299,33 @@ def test_replaygain(app, win, out):
         d.grab().save(os.path.join(out, "x6_replaygain_fehlt.png"))
         d.reject()
         return
+    from bub3tagmusic.core import replaygain as rg
+    check(d._mode() == rg.MODE_SCAN and d.start_btn.text() == "Messen", "Start ist immer „Nur messen“")
+    check(not d.message.isVisible() or not d.message.text(), "beim Messen keine Warnung")
+    mtimes = [os.stat(it.path).st_mtime_ns for it in items]
+    d.start()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning() and d.results, 120), "gemessen")
+    pump(app, 0.3)
+    check(all(r.gain for r in d.results), f"Messwerte da: {[r.gain for r in d.results]}")
+    check([os.stat(it.path).st_mtime_ns for it in items] == mtimes and not any(it.rec.get("rg") for it in items),
+          "Nur messen: keine Datei verändert")
+    check("nichts geändert" in d.message.text(), d.message.text())
+    # Schreiben: Warnung im Fenster + Rückfrage; Abbrechen = nichts passiert
+    d.modes.buttons()[1].setChecked(True)
+    pump(app)
+    check("NICHT mit Strg+Z" in d.message.text() and d.message.isVisible(), "Warnung sichtbar beim Schreiben")
+    asked = []
+    d.confirm_write = lambda mode, n: (asked.append((mode, n)), False)[1]
+    d.start()
+    pump(app, 0.3)
+    check(asked == [(rg.MODE_ALBUM, 4)] and (d.task is None or not d.task.isRunning()), "Rückfrage kommt, Nein = nichts")
+    check([os.stat(it.path).st_mtime_ns for it in items] == mtimes, "nach Nein: Dateien unverändert")
+    d.confirm_write = lambda mode, n: (asked.append((mode, n)), True)[1]
     # ungespeicherte Änderung → erst speichern (Rückfrage wird automatisch bejaht)
     win.session.apply_fields([items[0]], {"comment": "vor ReplayGain"})
+    d.results.clear()
     d.start()
-    check(wait(app, lambda: d.task is not None and not d.task.isRunning() and d.results, 120), "ReplayGain berechnet")
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning() and d.results, 120), "ReplayGain geschrieben")
     pump(app, 0.3)
     check(win.session.modified_count() == 0, "vorher gespeichert")
     check(items[0].tags["comment"] == "vor ReplayGain", "gespeicherte Änderung bleibt erhalten")
@@ -322,7 +345,8 @@ def test_replaygain(app, win, out):
     check(border != theme.tok("modified").lower(), f"kein gelber Rahmen mehr nach Rückgängig/Speichern ({border})")
     # entfernen
     d = EXTRA_DIALOGS["replaygain"](win, items, scope)
-    d.modes.buttons()[2].setChecked(True)
+    d.modes.buttons()[3].setChecked(True)
+    d.confirm_write = lambda mode, n: True
     d.start()
     check(wait(app, lambda: d.task is not None and not d.task.isRunning(), 120), "ReplayGain entfernt")
     pump(app, 0.3)

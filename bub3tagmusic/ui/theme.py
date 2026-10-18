@@ -1,10 +1,14 @@
 """Farben, Schrift und Stylesheet.
 
-Zwei Themes:
-  * "dark"  – Nachtwache: tiefes Hafenblau, Bojen-Orange als Akzent
-  * "light" – Seekarte:   helles Kartenpapier, gleiche Akzentfarbe
+Themes (Standard zuerst):
+  * "bub"       – Bauen & Booten: Farben von www.BAUENUNDBOOTEN.de (dunkles Erdgrün, Bernstein)
+  * "bub_light" – Bauen & Booten hell: dieselben Farben auf hellem Grund
+  * "graphite"  – Ankerplatz: neutrales Graphit, Bernstein als Akzent
+  * "dark"      – Nachtwache: tiefes Hafenblau, Bojen-Orange (das frühere Standard-Theme)
+  * "light"     – Seekarte: helles Kartenpapier, Bojen-Orange
 
-Alle Farben stehen nur hier. Widgets holen sie über `tok("name")`.
+Alle Farben stehen nur hier. Widgets holen sie über `tok("name")`. Halbtransparente Linien
+der Website sind hier schon auf den Hintergrund gerechnet (deckend), damit sie überall gehen.
 """
 
 from __future__ import annotations
@@ -18,7 +22,100 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources",
 UI_FONT = "Inter"
 WORDMARK_FONT = "Big Shoulders Stencil ExtraBold"
 
+DEFAULT = "bub"
+
+# Name im Auswahlmenü, hell/dunkel, Gegenstück für „Hell / Dunkel umschalten“
+THEME_INFO: dict[str, tuple[str, bool, str]] = {
+    "bub": ("Bauen & Booten – dunkel (Standard)", True, "bub_light"),
+    "bub_light": ("Bauen & Booten – hell", False, "bub"),
+    "graphite": ("Ankerplatz – Graphit", True, "bub_light"),
+    "dark": ("Nachtwache – Hafenblau", True, "light"),
+    "light": ("Seekarte – hell", False, "dark"),
+}
+
 THEMES: dict[str, dict[str, str]] = {
+    # Farben von www.BAUENUNDBOOTEN.de
+    "bub": {
+        "bg": "#1C1F1C",            # Seitenhintergrund
+        "panel": "#171A17",         # Kopfzeile, Seitenleisten
+        "raised": "#232622",        # Karten, Dropdowns, Knöpfe
+        "sunken": "#1C1F1C",        # Dateiliste
+        "input": "#141714",
+        "hover": "#2A2E28",
+        "line": "#313730",          # Erdgrün 22 % auf Hintergrund
+        "line_soft": "#272C27",     # Erdgrün 12 %
+        "line_strong": "#424A40",   # Erdgrün 40 %
+        "text": "#E4ECE0",          # Betonung
+        "muted": "#B4C6AF",         # Fließtext
+        "faint": "#7F8B7B",         # Daten, Zähler, Nebensächliches
+        "accent": "#E5A00D",        # Bernstein
+        "accent_hover": "#F2B32B",  # Bernstein hell
+        "accent_text": "#1C1F1C",
+        "accent_soft": "#3C3215",
+        "selection": "#363D35",
+        "selection_line": "#E5A00D",
+        "done": "#7FA872",          # fertig
+        "modified": "#EDC453",      # ungespeichert (gelber als der Bernstein-Akzent)
+        "danger": "#C8664B",        # gestoppt/Fehler (#B5563C, etwas heller für Schrift)
+        "danger_soft": "#3D241D",
+        "scroll": "#3A4138",
+        "wordmark": "#E5A00D",
+        "structure": "#7A8B76",     # Erdgrün – Struktur
+    },
+    "bub_light": {
+        "bg": "#ECEEE8",
+        "panel": "#F5F6F2",
+        "raised": "#FFFFFF",
+        "sunken": "#FBFCF9",
+        "input": "#FFFFFF",
+        "hover": "#E4E9E0",
+        "line": "#D3DACF",
+        "line_soft": "#E7EBE4",
+        "line_strong": "#B4BEB0",
+        "text": "#1C1F1C",
+        "muted": "#55604F",
+        "faint": "#7F8B7B",
+        "accent": "#C98A00",
+        "accent_hover": "#E5A00D",
+        "accent_text": "#1C1F1C",
+        "accent_soft": "#F5E5BC",
+        "selection": "#DFE7DA",
+        "selection_line": "#C98A00",
+        "done": "#4E8A42",
+        "modified": "#9A6C00",
+        "danger": "#B5563C",
+        "danger_soft": "#F6DDD5",
+        "scroll": "#C4CCC0",
+        "wordmark": "#C98A00",
+        "structure": "#7A8B76",
+    },
+    "graphite": {
+        "bg": "#1A1B1D",
+        "panel": "#1F2023",
+        "raised": "#27292C",
+        "sunken": "#17181A",
+        "input": "#131416",
+        "hover": "#2D2F33",
+        "line": "#2F3135",
+        "line_soft": "#232528",
+        "line_strong": "#40434A",
+        "text": "#E7E7E5",
+        "muted": "#9EA1A6",
+        "faint": "#65686E",
+        "accent": "#E5A00D",
+        "accent_hover": "#F2B32B",
+        "accent_text": "#1A1A1A",
+        "accent_soft": "#3A3019",
+        "selection": "#2F333A",
+        "selection_line": "#E5A00D",
+        "done": "#7FA872",
+        "modified": "#EDC453",
+        "danger": "#D2694F",
+        "danger_soft": "#3E2620",
+        "scroll": "#3B3E43",
+        "wordmark": "#E7E7E5",
+        "structure": "#7A8B76",
+    },
     "dark": {
         "bg": "#121B24",
         "panel": "#172230",
@@ -41,7 +138,10 @@ THEMES: dict[str, dict[str, str]] = {
         "done": "#3FCB8D",
         "modified": "#F4C453",
         "danger": "#FF6B6B",
+        "danger_soft": "#3D2026",
         "scroll": "#2E3F51",
+        "wordmark": "#E4EBF1",
+        "structure": "#36495C",
     },
     "light": {
         "bg": "#E8EDF1",
@@ -65,15 +165,31 @@ THEMES: dict[str, dict[str, str]] = {
         "done": "#1C9A62",
         "modified": "#B97F00",
         "danger": "#D33A3A",
+        "danger_soft": "#F8DCDC",
         "scroll": "#C3CFDA",
+        "wordmark": "#13212C",
+        "structure": "#B9C6D2",
     },
 }
 
-_current = "dark"
+_current = DEFAULT
 
 
 def current() -> str:
     return _current
+
+
+def is_dark(name: str | None = None) -> bool:
+    return THEME_INFO.get(name or _current, ("", True, ""))[1]
+
+
+def partner(name: str | None = None) -> str:
+    """Hell ↔ Dunkel zum selben Theme."""
+    return THEME_INFO.get(name or _current, ("", True, "bub_light"))[2]
+
+
+def label(name: str) -> str:
+    return THEME_INFO.get(name, (name, True, ""))[0]
 
 
 def tok(name: str) -> str:
@@ -134,7 +250,7 @@ def _arrow_files(t: dict[str, str], name: str) -> dict[str, str]:
 
 def apply(app: QApplication, name: str) -> None:
     global _current
-    _current = name if name in THEMES else "dark"
+    _current = name if name in THEMES else DEFAULT
     t = dict(THEMES[_current])
     try:
         t.update({f"arrow_{k}": v for k, v in _arrow_files(t, _current).items()})
@@ -181,8 +297,8 @@ QLabel[role="heading"] {{ font-size: 15px; font-weight: 600; }}
 QLabel[role="section"] {{ color: {t['muted']}; font-size: 12px; font-weight: 600; }}
 QLabel[role="fieldlabel"] {{ color: {t['muted']}; font-size: 12px; }}
 QLabel[role="link"] {{ color: {t['muted']}; font-size: 12px; }}
-QLabel#Wordmark {{ font-family: "{WORDMARK_FONT}"; font-size: 30px; color: {t['text']}; letter-spacing: 0.5px; }}
-QLabel#AboutMark {{ font-family: "{WORDMARK_FONT}"; font-size: 52px; color: {t['text']}; letter-spacing: 0.5px; }}
+QLabel#Wordmark {{ font-family: "{WORDMARK_FONT}"; font-size: 30px; color: {t['wordmark']}; letter-spacing: 0.5px; }}
+QLabel#AboutMark {{ font-family: "{WORDMARK_FONT}"; font-size: 52px; color: {t['wordmark']}; letter-spacing: 0.5px; }}
 QLabel#CoverState {{ font-weight: 600; }}
 
 #TopBar {{ background: {t['panel']}; border-bottom: 1px solid {t['line']}; }}
@@ -329,6 +445,9 @@ QToolButton[kind="chip"]:checked {{ background: {t['accent_soft']}; border-color
 #ToolFoot {{ background: {t['panel']}; border-top: 1px solid {t['line']}; }}
 #ToolSummary {{ font-weight: 600; }}
 #ToolMessage {{ background: {t['accent_soft']}; color: {t['text']}; padding: 9px 14px; border-bottom: 1px solid {t['line']}; }}
+#ToolMessage[kind="warning"] {{ background: {t['danger_soft']}; border-bottom: 1px solid {t['danger']}; font-weight: 600; }}
+QPushButton[kind="danger"] {{ background: {t['danger']}; color: #FFFFFF; border: 1px solid {t['danger']}; font-weight: 600; }}
+QPushButton[kind="danger"]:hover {{ background: {t['danger']}; border-color: {t['text']}; }}
 QPlainTextEdit {{ background: {t['input']}; }}
 QListWidget#ResultList {{ background: {t['panel']}; border: none; outline: 0; }}
 QListWidget#ResultList::item {{ border: none; }}

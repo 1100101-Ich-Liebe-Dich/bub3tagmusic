@@ -213,6 +213,9 @@ def test_replaygain(tmp):
     cmd = rg.build_command("rsgain", ["/a/1.mp3", "/a/2.mp3"], rg.MODE_ALBUM, -18, True, False, 3)
     eq(cmd, ["rsgain", "custom", "-q", "-s", "i", "-O", "-l", "-18", "-c", "p", "-I", "3", "-a", "/a/1.mp3",
              "/a/2.mp3"], "Befehl für Album-Gain")
+    eq(rg.build_command("rsgain", ["/a/1.mp3"], rg.MODE_SCAN, skip_existing=True)[3:6], ["-s", "s", "-O"],
+       "Nur messen: rsgain schreibt nichts (-s s)")
+    eq(rg.MODE_SCAN in rg.WRITES, False, "Messen zählt nicht als Schreiben")
     eq(rg.build_command("rsgain", ["/a/1.mp3"], rg.MODE_REMOVE), ["rsgain", "custom", "-q", "-s", "d", "/a/1.mp3"],
        "Befehl zum Entfernen")
     out = ("Filename\tLoudness (LUFS)\tGain (dB)\tPeak\t Peak (dB)\tPeak Type\tClipping Adjustment?\n"
@@ -253,6 +256,21 @@ def test_replaygain(tmp):
     eq(read_file(files[1]).get("rg"), None, "entfernt")
 
 
+def test_settings_theme(tmp):
+    print("Farben")
+    os.environ["XDG_CONFIG_HOME"] = os.path.join(tmp, "cfg_theme")
+    from bub3tagmusic.core.settings import Settings
+    path = Settings.path()
+    json.dump({"theme": "dark", "recursive": True}, open(path, "w"))
+    eq(Settings.load().theme, "bub", "altes Standard-Theme (Nachtwache) → neues Standard-Theme")
+    json.dump({"theme": "dark", "theme_version": 1}, open(path, "w"))
+    eq(Settings.load().theme, "dark", "bewusst gewählte Nachtwache bleibt")
+    json.dump({"theme": "light"}, open(path, "w"))
+    eq(Settings.load().theme, "light", "Seekarte bleibt")
+    eq(Settings().theme, "bub", "neu: Bauen & Booten")
+    os.remove(path)
+
+
 def main():
     tmp = tempfile.mkdtemp()
     try:
@@ -263,6 +281,7 @@ def main():
         test_tools_external(tmp)
         test_actions(tmp)
         test_replaygain(tmp)
+        test_settings_theme(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print()

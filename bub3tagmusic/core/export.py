@@ -44,7 +44,7 @@ def _font_face() -> str:
 
 def _palette_css(p: dict[str, str]) -> str:
     keys = ("bg", "panel", "raised", "sunken", "line", "line_soft", "text", "muted", "faint", "accent",
-            "accent_soft", "hover")
+            "accent_soft", "hover", "wordmark")
     return " ".join(f"--{k.replace('_', '-')}: {p[k]};" for k in keys if k in p)
 
 
@@ -86,7 +86,7 @@ body {{ margin: 0; background: var(--bg); color: var(--text);
 header {{ background: var(--panel); border-bottom: 1px solid var(--line); padding: 18px 28px 16px;
          display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 28px; }}
 .mark {{ font-family: BuB3Mark, Impact, "Arial Narrow", sans-serif; font-weight: 800; font-size: 34px;
-        letter-spacing: .5px; line-height: 1; margin: 0; }}
+        letter-spacing: .5px; line-height: 1; margin: 0; color: var(--wordmark, var(--text)); }}
 .by {{ color: var(--muted); font-size: 12px; margin-top: 4px; }}
 .by a, footer a {{ color: var(--muted); font-weight: 600; text-decoration: none; }}
 .by a:hover, footer a:hover {{ color: var(--accent); }}

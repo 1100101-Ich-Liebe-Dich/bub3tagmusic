@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 from PySide6.QtCore import QByteArray, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QMenu, QMessageBox, QProgressBar, QPushButton, QSplitter, QToolButton,
                                QVBoxLayout, QWidget)
@@ -241,6 +241,18 @@ class MainWindow(QMainWindow):
 
         add("Einstellungen …", self.open_settings, "sliders-horizontal")
         add("Hell / Dunkel umschalten", self.toggle_theme, "sun")
+        colors = m.addMenu("Farben")
+        self._icon(colors.menuAction(), "palette", "muted")
+        group = QActionGroup(colors)
+        self._theme_actions = {}
+        for key in theme.THEME_INFO:
+            a = colors.addAction(theme.label(key))
+            a.setCheckable(True)
+            a.setActionGroup(group)
+            a.triggered.connect(lambda _=False, k=key: (self.apply_theme(k), setattr(self.settings, "theme", k)))
+            self._theme_actions[key] = a
+        colors.aboutToShow.connect(lambda: self._theme_actions[theme.current()].setChecked(True)
+                                   if theme.current() in self._theme_actions else None)
         add("Tastenkürzel", lambda: ShortcutsDialog(self).exec(), "keyboard")
         m.addSeparator()
         add("Gewählte Ordner als fertig markieren", lambda: self._mark_tree(FOLDER_DONE), "check-circle")
@@ -893,7 +905,7 @@ class MainWindow(QMainWindow):
             self.toast.show_message("Einstellungen gespeichert")
 
     def toggle_theme(self):
-        self.apply_theme("light" if theme.current() == "dark" else "dark")
+        self.apply_theme(theme.partner())
         self.settings.theme = theme.current()
 
     def apply_theme(self, name: str):

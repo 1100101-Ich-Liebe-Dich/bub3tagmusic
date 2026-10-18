@@ -171,13 +171,21 @@ def main():
     check(True, "Sortieren ohne Absturz")
 
     # Hell-Theme + kleiner Bildschirm
-    win.apply_theme("light")
+    win.apply_theme("bub_light")
     win.resize(1366, 740)
     win.btn_recursive.setChecked(False)
     win.tree.select_paths([albums[3]])
     wait(app, lambda: win.session.items and win.session.dirs()[0] == albums[3])
     pump(app, 0.5)
     win.grab().save(os.path.join(out, "05_light_small.png"))
+    for key in theme.THEME_INFO:                   # alle Farb-Themes einmal anwenden
+        win.apply_theme(key)
+        pump(app, 0.1)
+        win.grab().save(os.path.join(out, f"05_theme_{key}.png"))
+    win.toggle_theme()
+    check(theme.current() == theme.partner("light"), f"Hell/Dunkel umschalten: {theme.current()}")
+    win.apply_theme("bub_light")
+    pump(app, 0.2)
 
     # Ganze Sammlung rekursiv (Leistung)
     win.btn_recursive.setChecked(True)
@@ -197,7 +205,7 @@ def main():
     win.table.selectAll()
     pump(app, 0.2)
     print(f"  Alles auswählen + Bearbeitungsfeld: {time.time() - t0:.2f}s")
-    win.apply_theme("dark")
+    win.apply_theme("bub")
     pump(app, 0.3)
     win.grab().save(os.path.join(out, "06_collection.png"))
 

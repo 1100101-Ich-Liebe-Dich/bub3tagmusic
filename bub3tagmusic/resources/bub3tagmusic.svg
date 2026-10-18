@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="#172230"/>
-  <circle cx="32" cy="32" r="16.5" fill="none" stroke="#F3F1EC" stroke-width="11"/>
-  <circle cx="32" cy="32" r="16.5" fill="none" stroke="#FF8A2A" stroke-width="11"
+  <!-- Rettungsring in den Farben von www.BAUENUNDBOOTEN.de: Bernstein, Erdgrün, dunkler Grund -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#1C1F1C"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="13.5" fill="none" stroke="#7A8B76" stroke-opacity="0.4"/>
+  <circle cx="32" cy="32" r="16.5" fill="none" stroke="#7A8B76" stroke-width="11"/>
+  <circle cx="32" cy="32" r="16.5" fill="none" stroke="#E5A00D" stroke-width="11"
           stroke-dasharray="12.96 12.96" transform="rotate(-11.25 32 32)"/>
-  <circle cx="32" cy="32" r="3" fill="#FF8A2A"/>
+  <circle cx="32" cy="32" r="3" fill="#E5A00D"/>
 </svg>

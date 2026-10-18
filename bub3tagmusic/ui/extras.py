@@ -479,21 +479,24 @@ class ReplayGainDialog(ExtraDialog):
         self.albums = list(groups.items())
         self.exe = rg.rsgain_path()
         self.results: list[rg.AlbumResult] = []
+        self._run_mode = rg.MODE_SCAN
 
         f = self.form
         f.addWidget(section("Was soll passieren?"))
         self.modes = QButtonGroup(self)
-        cur = self.opts.get("mode", rg.MODE_ALBUM)
-        for mode, text in ((rg.MODE_ALBUM, "Track- und Album-Gain (empfohlen)"), (rg.MODE_TRACK, "Nur Track-Gain"),
-                           (rg.MODE_REMOVE, "ReplayGain-Tags entfernen")):
+        # Nur messen ist immer der Start – Schreiben muss man bewusst auswählen
+        for mode, text in ((rg.MODE_SCAN, "Nur messen – nichts wird geschrieben"),
+                           (rg.MODE_ALBUM, "Track- und Album-Gain in die Dateien schreiben"),
+                           (rg.MODE_TRACK, "Nur Track-Gain in die Dateien schreiben"),
+                           (rg.MODE_REMOVE, "ReplayGain-Tags aus den Dateien entfernen")):
             rb = QRadioButton(text)
             rb.setProperty("mode", mode)
-            rb.setChecked(mode == cur)
+            rb.setChecked(mode == rg.MODE_SCAN)
             self.modes.addButton(rb)
             f.addWidget(rb)
         self.modes.buttonToggled.connect(self._mode_changed)
         f.addWidget(hint("Album = Ordner: alle Dateien eines Ordners werden gemeinsam gemessen. "
-                         "Die Musik selbst bleibt unverändert – es werden nur Tags geschrieben."))
+                         "Die Musik selbst bleibt immer unverändert."))
         f.addSpacing(8)
         f.addWidget(section("Ziel-Lautstärke"))
         self.target = QComboBox()
@@ -508,7 +511,7 @@ class ReplayGainDialog(ExtraDialog):
         self.cb_skip = self.add_check("Schon berechnete überspringen", "skip", False,
                                       "Dateien mit vorhandenen ReplayGain-Tags werden nicht neu gemessen.")
         f.addSpacing(10)
-        self.start_btn = QPushButton("ReplayGain berechnen")
+        self.start_btn = QPushButton("Messen")
         self.start_btn.setProperty("kind", "primary")
         self.start_btn.clicked.connect(self.start)
         f.addWidget(self.start_btn)
@@ -552,25 +555,59 @@ class ReplayGainDialog(ExtraDialog):
         self.foot.addWidget(self.btn_errors)
         self.foot.addWidget(self.btn_close)
         n_files = sum(len(p) for _f, p in self.albums)
-        self.summary.setText(f"{len(self.albums):,} Alben · {n_files:,} Dateien".replace(",", "."))
+        n_alb = len(self.albums)
+        self.summary.setText(f"{n_alb:,} {'Album' if n_alb == 1 else 'Alben'} · {n_files:,} Dateien".replace(",", "."))
         self._mode_changed()
 
     def _mode(self) -> str:
         b = self.modes.checkedButton()
-        return b.property("mode") if b else rg.MODE_ALBUM
+        return b.property("mode") if b else rg.MODE_SCAN
+
+    START_TEXT = {rg.MODE_SCAN: "Messen", rg.MODE_ALBUM: "In die Dateien schreiben …",
+                  rg.MODE_TRACK: "In die Dateien schreiben …", rg.MODE_REMOVE: "Aus den Dateien entfernen …"}
+    WARNING = ("Achtung: Diese Einstellung schreibt direkt in deine Musikdateien. "
+               "Das lässt sich NICHT mit Strg+Z zurücknehmen – vorher kommt noch eine Rückfrage.")
 
     def _mode_changed(self, *_):
         mode = self._mode()
         self.opts["mode"] = mode
         remove = mode == rg.MODE_REMOVE
-        for w in (self.target, self.cb_clip, self.cb_skip):
+        for w in (self.target, self.cb_clip):
             w.setEnabled(not remove)
-        self.start_btn.setText("ReplayGain entfernen" if remove else "ReplayGain berechnen")
+        self.cb_skip.setEnabled(mode in (rg.MODE_ALBUM, rg.MODE_TRACK))
+        self.start_btn.setText(self.START_TEXT[mode])
+        writes = mode in rg.WRITES
+        if self.exe:
+            self.show_message(self.WARNING if writes else "")
+        self.message.setProperty("kind", "warning" if writes else "")
+        self.start_btn.setProperty("kind", "danger" if writes else "primary")
+        for w in (self.message, self.start_btn):
+            w.style().unpolish(w)
+            w.style().polish(w)
+
+    def confirm_write(self, mode: str, n_files: int) -> bool:
+        """Deutliche Warnung, bevor rsgain die Dateien verändert. Standard-Knopf ist „Abbrechen“."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Wirklich in die Dateien schreiben?")
+        what = ("ReplayGain-Tags aus" if mode == rg.MODE_REMOVE else "ReplayGain-Tags in")
+        box.setText(f"{what} {n_files:,} Datei(en) {'entfernen' if mode == rg.MODE_REMOVE else 'schreiben'}?"
+                    .replace(",", "."))
+        box.setInformativeText("Das passiert sofort und direkt in den Musikdateien.\n"
+                               "Strg+Z kann das NICHT rückgängig machen.\n\n"
+                               "Die Musik selbst bleibt unverändert – es geht nur um die Lautstärke-Angaben.\n"
+                               "Wer nur nachsehen will: „Nur messen“ wählen.")
+        ok = box.addButton("Ja, in die Dateien schreiben" if mode != rg.MODE_REMOVE else "Ja, entfernen",
+                           QMessageBox.ButtonRole.DestructiveRole)
+        cancel = box.addButton("Abbrechen", QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(cancel)
+        box.setEscapeButton(cancel)
+        box.exec()
+        return box.clickedButton() is ok
 
     def set_busy(self, busy: bool):
-        self.start_btn.setText("Abbrechen" if busy else ("ReplayGain entfernen" if self._mode() == rg.MODE_REMOVE
-                                                         else "ReplayGain berechnen"))
-        self.start_btn.setProperty("kind", "" if busy else "primary")
+        self.start_btn.setText("Abbrechen" if busy else self.START_TEXT[self._mode()])
+        self.start_btn.setProperty("kind", "" if busy else ("danger" if self._mode() in rg.WRITES else "primary"))
         self.start_btn.style().unpolish(self.start_btn)
         self.start_btn.style().polish(self.start_btn)
         for b in self.modes.buttons():
@@ -582,19 +619,29 @@ class ReplayGainDialog(ExtraDialog):
             self.task.cancel()
             self.progress_text.setText("Breche ab …")
             return
+        mode = self._mode()
         paths = {p for _f, ps in self.albums for p in ps}
-        unsaved = [it for it in self.win.session.items if it.path in paths and it.is_modified()]
+        if mode in rg.WRITES and not self.confirm_write(mode, len(paths)):
+            return
+        unsaved = [it for it in self.win.session.items if it.path in paths and it.is_modified()] \
+            if mode in rg.WRITES else []
         if unsaved:
             r = QMessageBox.question(self, "Erst speichern?",
                                      f"{len(unsaved)} Datei(en) haben ungespeicherte Änderungen.\n\n"
                                      "ReplayGain schreibt direkt in die Dateien – deshalb vorher speichern?")
             if r != QMessageBox.StandardButton.Yes:
                 return
-            self.win.save(then=self.start, quiet=True)
+            self.win.save(then=self._start_confirmed, quiet=True)
             return
+        self._run(mode)
+
+    def _start_confirmed(self):
+        self._run(self._mode())
+
+    def _run(self, mode: str):
         self.show_message("")
         self.btn_errors.hide()
-        mode = self._mode()
+        self._run_mode = mode
         opts = dict(target=int(self.target.currentData()), clip=self.cb_clip.isChecked(),
                     skip_existing=self.cb_skip.isChecked() and mode != rg.MODE_REMOVE,
                     id3v2=int(self.settings.id3_version), keep_mtime=bool(self.settings.keep_mtime))
@@ -617,7 +664,8 @@ class ReplayGainDialog(ExtraDialog):
                 progress(n, len(albums), "Album")
                 res = rg.process_album(exe, paths, mode, cancelled=cancelled, **opts)
                 results.append(res)
-                fresh += [read_file(p) for p in paths]
+                if mode in rg.WRITES:
+                    fresh += [read_file(p) for p in paths]
                 if res.cancelled:
                     break
             progress(len(results), len(albums), "Album")
@@ -650,7 +698,8 @@ class ReplayGainDialog(ExtraDialog):
             elif errs:
                 status, color = f"{len(errs)} Fehler", "danger"
             else:
-                status, color = ("entfernt" if self._mode() == rg.MODE_REMOVE else "fertig"), "done"
+                status, color = {rg.MODE_REMOVE: "entfernt", rg.MODE_SCAN: "gemessen"}.get(
+                    self._run_mode, "geschrieben"), "done"
             top.setText(4, status)
             top.setForeground(4, theme.qcolor(color))
             if res.error:
@@ -675,13 +724,16 @@ class ReplayGainDialog(ExtraDialog):
         errors = [e for res in self.results for e in res.errors]
         done = sum(1 for res in self.results if not res.cancelled)
         stopped = any(res.cancelled for res in self.results) or done < len(self.albums)
-        verb = "entfernt" if self._mode() == rg.MODE_REMOVE else "berechnet"
-        self.summary.setText(f"{done} von {len(self.albums)} Alben {verb}" + (f" · {len(errors)} Fehler" if errors
+        verb = {rg.MODE_REMOVE: "entfernt", rg.MODE_SCAN: "gemessen"}.get(self._run_mode, "geschrieben")
+        self.summary.setText(f"{done} von {len(self.albums)} {'Album' if len(self.albums) == 1 else 'Alben'} {verb}" + (f" · {len(errors)} Fehler" if errors
                                                                               else ""))
         if stopped:
-            self.show_message("Abgebrochen – fertige Alben sind schon gespeichert.")
+            self.show_message("Abgebrochen – fertige Alben sind schon gespeichert." if self._run_mode in rg.WRITES
+                              else "Abgebrochen.")
+        elif self._run_mode == rg.MODE_SCAN:
+            self.show_message("Nur gemessen – an den Dateien wurde nichts geändert.")
         self.btn_errors.setVisible(bool(errors))
-        self.win.toast.show_message(f"ReplayGain {verb}: {done} Album/Alben")
+        self.win.toast.show_message(f"ReplayGain {verb}: {done} {'Album' if done == 1 else 'Alben'}")
 
     def _show_errors(self):
         from .dialogs import ErrorListDialog

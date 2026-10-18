@@ -5,7 +5,7 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.4.0 – Phase 4 (Extras)**. Alle geplanten Phasen sind umgesetzt.
+Stand: **Version 0.9.0 – Release-Kandidat vor 1.0**. Alle geplanten Phasen sind umgesetzt.
 
 ---
 
@@ -101,11 +101,13 @@ Ein-/ausblenden über *Extras → Erweiterte Filter*.
 
 ### Extras (Menü „Extras“)
 
+![Aktionen](docs/screenshot-aktionen.png)
+
 | Funktion | Was sie macht |
 |---|---|
 | **Aktionen** (Alt+7) | Mehrere Schritte als Aktion speichern und auf einmal ausführen: Aufräumen, Schreibweise, Ersetzen, Feld setzen (z. B. Albuminterpret = `%artist%`), Tags aus Dateiname, Nummerieren, Umbenennen. Mit Vorschau; Strg+Z nimmt alles in einem Schritt zurück. Beispiel: „Album fertig machen“. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Erkennt Dateien ohne Tags am Klang (Fingerabdruck + AcoustID) und schlägt Titel, Interpret, Album, Jahr, Track vor. Braucht einen kostenlosen AcoustID-Key (*Einstellungen → Online*). |
-| **ReplayGain berechnen** | Misst die Lautheit und schreibt ReplayGain-Tags (Track + Album, Album = Ordner) oder entfernt sie. Die Musik selbst bleibt unverändert. Spalten „RG Track“/„RG Album“ per Rechtsklick auf den Spaltenkopf. |
+| **ReplayGain** | Misst die Lautheit (Track + Album, Album = Ordner). Standard ist **„Nur messen“** – da wird nichts geschrieben. In die Dateien schreiben oder ReplayGain-Tags entfernen geht nur nach roter Warnung und ausdrücklicher Rückfrage (lässt sich nicht mit Strg+Z zurücknehmen). Die Musik selbst bleibt immer unverändert. Spalten „RG Track“/„RG Album“ per Rechtsklick auf den Spaltenkopf. |
 | **Duplikate finden** | In der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach Klang (auch ohne Tags). Beste Qualität ist markiert; gelöscht wird nur, was du anhakst (in den Papierkorb). |
 | **Liste exportieren** (Strg+Shift+E) | Sichtbare Spalten als CSV (für LibreOffice/Excel) oder als schöne HTML-Seite zum Weitergeben und Drucken. |
 
@@ -137,6 +139,9 @@ zeigt bei Bedarf den passenden Befehl.
 | F1 | Alle Tastenkürzel |
 
 Rechtsklick auf die Spaltenköpfe blendet Spalten ein/aus (Albuminterpret, Komponist, Kommentar, Ordner, ReplayGain …).
+
+**Farben:** ⚙ → *Farben* – „Bauen & Booten“ (Standard, Farben von www.BAUENUNDBOOTEN.de), „Bauen & Booten – hell“,
+„Ankerplatz – Graphit“, „Nachtwache“ und „Seekarte“. *Hell / Dunkel umschalten* wechselt zum passenden Gegenstück.
 Klick auf einen Spaltenkopf sortiert, ein dritter Klick stellt die Ordner-Reihenfolge wieder her.
 
 ---
@@ -199,7 +204,7 @@ bub3tagmusic/
 │   ├── actions.py      Aktionen-Fenster + Schritt-Editor
 │   ├── extras.py       Duplikate, ReplayGain (EXTRA_DIALOGS)
 │   ├── acoustid.py     Unbekannte Dateien erkennen
-│   ├── theme.py        Farben „Nachtwache“ (dunkel) und „Seekarte“ (hell)
+│   ├── theme.py        Farb-Themes: „Bauen & Booten“ (Standard), hell, Graphit, Nachtwache, Seekarte
 │   └── icons.py        Phosphor-Icons
 └── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon, Logo-Schrift für HTML-Export
 packaging/

@@ -166,7 +166,8 @@ class ExportDialog(QDialog):
                 subtitle = "gefiltert: " + describe(self.win.filterbar.active(), self.win.filter.text())
             fn, args, kw = export.write_html, (path, headers, rows), dict(
                 title=title, subtitle=subtitle, numeric=numeric,
-                dark=theme.THEMES["dark"], light=theme.THEMES["light"])
+                dark=theme.THEMES[theme.current() if theme.is_dark() else theme.partner()],
+                light=theme.THEMES[theme.partner() if theme.is_dark() else theme.current()])
         self.go.setEnabled(False)
         self.go.setText("Exportiere …")
         job = Job(lambda: fn(*args, **kw))

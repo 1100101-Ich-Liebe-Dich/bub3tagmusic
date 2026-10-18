@@ -2,6 +2,20 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [0.9.0] – 2026-10-18 – Release-Kandidat vor 1.0
+
+### Neu
+- **Neues Standard-Theme „Bauen & Booten“** in den Farben von www.BAUENUNDBOOTEN.de (Erdgrün-Dunkel, Bernstein),
+  dazu „Bauen & Booten – hell“ und „Ankerplatz – Graphit“. „Nachtwache“ und „Seekarte“ bleiben wählbar.
+  Schnell wechseln: ⚙ → Farben. Wer bisher das alte Standard-Theme hatte, bekommt einmalig das neue.
+- App-Icon (Rettungsring) und Logo in Bernstein/Erdgrün.
+
+### Geändert
+- **ReplayGain startet jetzt immer mit „Nur messen“** – da wird nichts geschrieben. Schreiben oder Entfernen
+  zeigt eine rote Warnung im Fenster, einen roten Knopf und fragt vorher ausdrücklich nach („Abbrechen“ ist
+  vorausgewählt), weil sich das nicht mit Strg+Z zurücknehmen lässt.
+- „1 Album“ statt „1 Alben“ im ReplayGain-Fenster.
+
 ## [0.4.0] – 2026-10-18 – Phase 4: Extras
 
 ### Neu

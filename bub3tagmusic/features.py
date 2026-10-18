@@ -71,9 +71,9 @@ FEATURES: tuple[Feature, ...] = (
     Feature("acoustid", "Unbekannte Dateien erkennen", 4, "extras", "fingerprint",
             "Erkennt Titel ohne Tags per Audio-Fingerabdruck (fpcalc + AcoustID) – Titel, Interpret, Album, "
             "Jahr, Track. Braucht einen kostenlosen AcoustID-Key.", "Ctrl+Shift+L", ready=True),
-    Feature("replaygain", "ReplayGain berechnen", 4, "extras", "sliders-horizontal",
-            "Misst die Lautheit und schreibt ReplayGain-Tags – pro Track und pro Album (über rsgain). "
-            "Die Musik selbst bleibt unverändert.", ready=True),
+    Feature("replaygain", "ReplayGain …", 4, "extras", "sliders-horizontal",
+            "Misst die Lautheit pro Track und Album (über rsgain). Standard ist „Nur messen“ – in die Dateien "
+            "geschrieben wird nur nach ausdrücklicher Rückfrage. Die Musik selbst bleibt unverändert.", ready=True),
     Feature("duplicates", "Duplikate finden", 4, "extras", "copy",
             "Findet doppelte Titel in der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach "
             "Klang (Fingerabdruck). Nichts wird automatisch gelöscht.", ready=True),

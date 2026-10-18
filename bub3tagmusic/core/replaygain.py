@@ -18,7 +18,8 @@ from typing import Callable
 
 from .tools_external import find_tool
 
-MODE_ALBUM, MODE_TRACK, MODE_REMOVE = "album", "track", "remove"
+MODE_SCAN, MODE_ALBUM, MODE_TRACK, MODE_REMOVE = "scan", "album", "track", "remove"
+WRITES = (MODE_ALBUM, MODE_TRACK, MODE_REMOVE)      # diese Modi verändern die Dateien
 TARGETS = (
     (-18, "−18 LUFS – ReplayGain 2.0 (Standard)"),
     (-23, "−23 LUFS – EBU R128 (Rundfunk)"),
@@ -61,10 +62,11 @@ def build_command(exe: str, files: list[str], mode: str, target: int = -18, clip
     cmd = [exe, "custom", "-q"]
     if mode == MODE_REMOVE:
         return cmd + ["-s", "d", *files]
-    cmd += ["-s", "i", "-O", "-l", str(int(target)), "-c", "p" if clip else "n", "-I", str(id3v2)]
-    if mode == MODE_ALBUM:
+    tagmode = "s" if mode == MODE_SCAN else "i"        # s = nur messen, nichts schreiben
+    cmd += ["-s", tagmode, "-O", "-l", str(int(target)), "-c", "p" if clip else "n", "-I", str(id3v2)]
+    if mode in (MODE_ALBUM, MODE_SCAN):
         cmd.append("-a")
-    if skip_existing:
+    if skip_existing and mode != MODE_SCAN:
         cmd.append("-S")
     return cmd + list(files)
 
@@ -135,7 +137,7 @@ def process_album(exe: str, files: list[str], mode: str = MODE_ALBUM, *, target:
     folder = os.path.dirname(files[0]) if files else ""
     res = AlbumResult(folder, [Result(p) for p in files])
     mtimes = {}
-    if keep_mtime:
+    if keep_mtime and mode in WRITES:
         for p in files:
             try:
                 st = os.stat(p)
@@ -182,7 +184,7 @@ def process_album(exe: str, files: list[str], mode: str = MODE_ALBUM, *, target:
         for r in res.files:
             if r.path in tracks:
                 r.gain, r.peak = tracks[r.path]
-        if album and mode == MODE_ALBUM:
+        if album and mode in (MODE_ALBUM, MODE_SCAN):
             res.gain, res.peak = album
     for p, (at, mt) in mtimes.items():
         try:

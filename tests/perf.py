@@ -38,7 +38,7 @@ def main():
     prepare_app(app)
     from bub3tagmusic.core.settings import Settings
     from bub3tagmusic.ui import theme
-    theme.apply(app, "dark")
+    theme.apply(app, "bub")
     from bub3tagmusic.ui.mainwindow import MainWindow
     from bub3tagmusic.ui.filetable import COLUMN_INDEX
     win = MainWindow(Settings())
