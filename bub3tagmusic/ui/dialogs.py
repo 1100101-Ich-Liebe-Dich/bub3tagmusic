@@ -125,8 +125,8 @@ class SettingsDialog(QDialog):
         f = QFormLayout(o)
         f.setContentsMargins(18, 18, 18, 18)
         f.setVerticalSpacing(12)
-        f.addRow(_muted("Die Online-Funktionen kommen in Phase 3 und 4. Zugangsdaten können schon "
-                        "jetzt eingetragen werden.", "faint"))
+        f.addRow(_muted("MusicBrainz, Cover-Suche (Cover Art Archive, iTunes, Deezer) und Künstlerbilder "
+                        "brauchen keine Zugangsdaten. Nur Discogs braucht einen kostenlosen Token.", "faint"))
         self.discogs = QLineEdit(settings.discogs_token)
         self.discogs.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         self.discogs.setPlaceholderText("persönlicher Token von discogs.com/settings/developers")
@@ -213,6 +213,9 @@ SHORTCUTS = (
         ("Strg+O", "Sammlung öffnen"),
         ("Strg+F", "Liste filtern"),
         ("F5", "Ordner neu einlesen"),
+        ("Strg+L", "Album online suchen (MusicBrainz / Discogs)"),
+        ("Strg+K", "Cover online suchen"),
+        ("Strg+J", "Künstlerbild online suchen"),
         ("Strg+,", "Einstellungen"),
         ("F1", "Diese Übersicht"),
     )),

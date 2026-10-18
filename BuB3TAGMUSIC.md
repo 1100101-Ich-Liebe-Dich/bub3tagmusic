@@ -3,7 +3,7 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.2.0 – **Phase 2 fertig: alle Werkzeuge mit Live-Vorschau** (18.10.2026).
+> **Aktueller Stand:** Version 0.3.0 – **Phase 3 fertig: Album-, Cover- und Künstlerbild-Suche online** (18.10.2026).
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -176,19 +176,29 @@ Musik/
 wirken auf die Auswahl oder sonst die ganze Liste, Einstellungen werden gemerkt, Übernehmen = ein
 Rückgängig-Schritt. Erreichbar über Menü „Werkzeuge“, Alt+1 … Alt+5 und Rechtsklick in der Liste.
 
-### Phase 3: Online
+### Phase 3: Online ✅ fertig (0.3.0)
 
-- [ ] #7 **Album-Suche** über MusicBrainz
-  - **Eine Anfrage pro Album** mit Albumname + Künstler, nicht pro Track
-  - Danach Trefferliste mit Vorschau: Titel, Tracks, Jahr, Label, Cover
-  - Übernahme erst nach Bestätigung, Tracks werden über Nummer/Länge zugeordnet
-- [ ] #8 **Discogs** als zweite Quelle (Token nötig, Account wird angelegt)
-- [ ] #9 **Cover-Suche** über Cover Art Archive, iTunes, Deezer
-  - Treffer als Bildergitter mit Auflösung
-  - Speichern als `cover.jpg` im Album-Ordner und/oder einbetten
-- [ ] #10 **Künstlerbild-Suche** über Deezer (ohne Key), optional TheAudioDB / fanart.tv → `folder.jpg`
-- [x] Wartezeit-Regel vorbereitet (`online/base.py`: RateLimiter, 1 Anfrage/Sekunde)
-- [x] Datentypen für Treffer vorbereitet (AlbumMatch, TrackMatch, CoverCandidate)
+- [x] #7 **Album-Suche über MusicBrainz** (Strg+L)
+  - **Eine** Suchanfrage pro Album (Album + Interpret, vorbelegt aus Tags bzw. Ordnernamen
+    `Künstler/Jahr - Album`), danach **eine** Anfrage für die Trackliste des gewählten Treffers
+  - Höchstens 1 Anfrage/Sekunde, eigener User-Agent, Antworten werden im Speicher gemerkt (nichts doppelt)
+  - Trefferliste mit Cover-Vorschau, Jahr · Land · Label · Format · Trackzahl und Passt-Wert;
+    Treffer mit genau so vielen Tracks wie Dateien kommen nach oben
+  - Zuordnung Datei → Track: automatisch, nach Tracknummer (mit Disc), nach Reihenfolge oder nach Länge;
+    Abweichende Längen werden markiert
+  - Felder einzeln wählbar (Titel, Interpret, Album + Albuminterpret, Jahr, Track/Disc, Genre, Cover)
+  - Disc-Nummer nur bei Mehrfach-CDs; Übernahme = ein Rückgängig-Schritt
+- [x] #8 **Discogs** als zweite Quelle (im selben Dialog umschaltbar) – braucht den Token (#21);
+  Positionen wie A1/B2 (Vinyl), 1-03, 2-2a werden richtig gelesen
+- [x] #9 **Cover-Suche** (Strg+K) über Cover Art Archive, iTunes (bis 3000 px) und Deezer (1000 px)
+  - Bildergitter mit Größe und Quelle, Quellen einzeln schaltbar, Doppelklick übernimmt
+  - Einbetten (verkleinert) und/oder `cover.jpg` in voller Größe in den Album-Ordner
+- [x] #10 **Künstlerbild-Suche** (Strg+J) über Deezer und TheAudioDB → `folder.jpg` im Künstler-Ordner
+- [x] Fehlt das Internet oder fällt eine Quelle aus, gibt es eine klare Meldung; die anderen Quellen liefern weiter
+
+**Testen ohne Musikdienste:** Die Arbeitsumgebung erreicht MusicBrainz & Co. nicht. Deshalb zeichnet der
+GitHub-Workflow „Testdaten aufzeichnen“ echte Antworten auf (`tests/record_online.py` → `tests/fixtures/online/`),
+und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/RECORD` ändern und hochladen.
 
 ### Phase 4: Für Fortgeschrittene
 
@@ -230,7 +240,8 @@ BuB3TAGMUSIC/
     │   ├── tools.py          Werkzeug-Logik (Phase 2)
     │   ├── rename.py         Umbenennen: Plan, Prüfung, zweistufig ausführen
     │   └── settings.py       Einstellungen (JSON)
-    ├── online/               Phase 3/4: Schnittstellen stehen, Inhalte folgen
+    ├── online/               http (Limiter, Zertifikate), musicbrainz, discogs, coversearch,
+    │                         artistimages, matching (Datei ↔ Track), acoustid (Phase 4)
     └── ui/                   Oberfläche (mainwindow, session, workers, foldertree,
                               filetable, editpanel, coverwidget, dialogs, theme, icons,
                               tools = Werkzeug-Dialoge, widgets = Bausteine)
@@ -312,13 +323,13 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 - [ ] #21 Discogs-Account + Token anlegen (übernimmt BAUENUNDBOOTEN zum Testen)
 - [ ] #23 AcoustID-Key (später, Phase 4)
 - [ ] #22 APE- und DSF-Dateien zum Testen (falls in der Sammlung vorhanden)
-- [ ] Ordner umbenennen (z. B. `%year% - %album%`) – Wunsch? Dann als eigenes Werkzeug mit Vorschau
-- [ ] Gleichnamige Begleitdateien (.lrc, .cue) beim Umbenennen mitnehmen – Wunsch?
+- [x] Ordner umbenennen – umgesetzt als eigenes Werkzeug (Alt+6), Fertig-Status wandert mit
+- [x] Gleichnamige Begleitdateien (.lrc, .txt, .srt …) wandern beim Umbenennen mit
 
 ---
 
 ## 10. Nächster Schritt
 
-1. Phase 2 mit `make` bauen und an einer **Kopie** testen – besonders Umbenennen und Tags aus Dateiname
-2. Rückmeldung sammeln und nachschärfen
-3. Phase 3 starten: MusicBrainz-Album-Suche (#7), Cover-Suche (#9), Künstlerbild (#10), Discogs (#8)
+1. Phase 3 mit `make` bauen und an einer **Kopie** testen – Album-Suche, Cover, Künstlerbild (braucht Internet)
+2. Discogs-Token eintragen (#21) und Discogs ausprobieren
+3. Phase 4: Aktionen (#11), AcoustID (#12), ReplayGain (#13), Duplikate (#14), Export (#15), Filter (#16)

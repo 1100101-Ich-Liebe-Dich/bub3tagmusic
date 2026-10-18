@@ -329,5 +329,11 @@ QToolButton[kind="chip"]:checked {{ background: {t['accent_soft']}; border-color
 #ToolSummary {{ font-weight: 600; }}
 #ToolMessage {{ background: {t['accent_soft']}; color: {t['text']}; padding: 9px 14px; border-bottom: 1px solid {t['line']}; }}
 QPlainTextEdit {{ background: {t['input']}; }}
+QListWidget#ResultList {{ background: {t['panel']}; border: none; outline: 0; }}
+QListWidget#ResultList::item {{ border: none; }}
+QListWidget#ImageGrid {{ background: {t['sunken']}; border: none; outline: 0; padding: 10px; }}
+QListWidget#ImageGrid::item {{ border-radius: 10px; padding: 6px; color: {t['muted']}; border: none; }}
+QListWidget#ImageGrid::item:hover {{ background: {t['hover']}; }}
+QListWidget#ImageGrid::item:selected {{ background: {t['selection']}; color: {t['text']}; border: 1px solid {t['accent']}; }}
 #Card {{ background: {t['panel']}; border: 1px solid {t['line']}; border-radius: 12px; }}
 """

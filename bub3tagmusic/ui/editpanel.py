@@ -161,7 +161,8 @@ class EditPanel(QWidget):
         more.addSeparator()
         self.act_remove = more.addAction("Cover entfernen", self._cover_remove)
         more.addSeparator()
-        self.act_online = more.addAction("Online suchen …  (Phase 3)", lambda: self.featureRequested.emit("cover_search"))
+        self.act_online = more.addAction("Cover online suchen …\tStrg+K", lambda: self.featureRequested.emit("cover_search"))
+        more.addAction("Künstlerbild online suchen …\tStrg+J", lambda: self.featureRequested.emit("artist_image"))
         self.btn_more.setMenu(more)
         self.btn_more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         for b in (self.btn_load, self.btn_folder, self.btn_more):
@@ -436,7 +437,7 @@ class EditPanel(QWidget):
             self.cover_info.setText(self._describe(first_with))
         else:
             self.cover_state.setText("Kein Cover")
-            self.cover_info.setText("Bild reinziehen oder laden")
+            self.cover_info.setText("Reinziehen – oder Strg+K sucht online")
         self.cover.set_cover(pm, badge, role)
 
         # Ordnerbild (cover.jpg) prüfen

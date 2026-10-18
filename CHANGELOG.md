@@ -2,6 +2,22 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [0.3.0] – 2026-10-18 – Phase 3: Online
+
+### Neu
+- **Album suchen** (Strg+L) bei MusicBrainz oder Discogs: eine Anfrage pro Album, Trefferliste mit Cover,
+  Trackliste automatisch den Dateien zugeordnet (Tracknummer/Disc, Reihenfolge oder Länge), Felder wählbar,
+  Cover auf Wunsch gleich mit. Übernahme ist ein einziger Rückgängig-Schritt.
+- **Cover suchen** (Strg+K): Cover Art Archive, iTunes (bis 3000 px), Deezer – einbetten und/oder cover.jpg.
+- **Künstlerbild suchen** (Strg+J): Deezer und TheAudioDB → folder.jpg im Künstler-Ordner.
+- **Ordner umbenennen** (Alt+6) nach Tags, z. B. `%year% - %album%`; Fertig-Status wandert mit.
+- **Begleitdateien** (.lrc, .txt, .srt …) wandern beim Umbenennen mit.
+- Rechtsklick-Menü in der Liste enthält jetzt auch die Online-Funktionen.
+
+### Technik
+- Online ohne Zusatzbibliotheken (urllib); Zertifikate der Distribution werden gezielt geladen, sonst certifi.
+- Echte Antworten der Dienste werden auf GitHub aufgezeichnet; alle Online-Tests spielen sie ab.
+
 ## [0.2.0] – 2026-10-18 – Phase 2: Werkzeuge
 
 ### Neu

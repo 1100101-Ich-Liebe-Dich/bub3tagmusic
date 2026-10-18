@@ -21,6 +21,7 @@ from .editpanel import EditPanel
 from .filetable import FileTable
 from .foldertree import FolderTree
 from .session import Session
+from .online import ONLINE_DIALOGS
 from .tools import TOOL_DIALOGS
 from .workers import LoadWorker, RenameWorker, SaveWorker
 
@@ -538,6 +539,16 @@ class MainWindow(QMainWindow):
             return
         TOOL_DIALOGS[feature_id](self, items, scope).exec()
 
+    def open_online(self, feature_id: str):
+        if self._save_worker is not None:
+            return
+        self.panel.commit()
+        items, scope = self.tool_items()
+        if not items:
+            self.toast.show_message("Erst links einen Ordner öffnen")
+            return
+        ONLINE_DIALOGS[feature_id](self, items, scope).exec()
+
     def run_rename(self, pairs, label: str, record_undo: bool = True):
         if not pairs or self._save_worker is not None:
             return
@@ -590,11 +601,13 @@ class MainWindow(QMainWindow):
         if not items:
             return
         m = QMenu(self)
-        for f in features.by_group("tools"):
-            if f.ready:
-                a = m.addAction(icons.icon(f.icon, "muted"),
-                                f"{f.title}\t{f.shortcut.replace('Ctrl', 'Strg')}" if f.shortcut else f.title)
-                a.triggered.connect(lambda _=False, fid=f.id: self.open_tool(fid))
+        for group in ("tools", "online"):
+            for f in features.by_group(group):
+                if f.ready:
+                    a = m.addAction(icons.icon(f.icon, "muted"),
+                                    f"{f.title}\t{f.shortcut.replace('Ctrl', 'Strg')}" if f.shortcut else f.title)
+                    a.triggered.connect(lambda _=False, fid=f.id: self.run_feature(fid))
+            m.addSeparator()
         m.addSeparator()
         modified = [it for it in items if it.is_modified()]
         if modified:
@@ -687,6 +700,9 @@ class MainWindow(QMainWindow):
     def run_feature(self, feature_id: str):
         if feature_id in TOOL_DIALOGS:
             self.open_tool(feature_id)
+            return
+        if feature_id in ONLINE_DIALOGS:
+            self.open_online(feature_id)
             return
         handler = FEATURE_HANDLERS.get(feature_id)
         if handler:

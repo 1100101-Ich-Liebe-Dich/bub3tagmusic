@@ -53,7 +53,10 @@ nach jeder Sitzung aktuell halten.
 - Werkzeug-Logik gehört nach `core/tools.py` bzw. `core/rename.py` (ohne Qt, mit Tests in `tests/test_tools.py`).
 - Änderungen pro Datei verschieden → `session.apply_changes([(item, {feld: wert})], label)` = ein Rückgängig-Schritt.
 - Umbenennen: `mainwindow.run_rename(pairs, label)` → `RenameWorker` → `session.finish_rename` (+ Cache-Umzug).
-- Online-Code: `online/` – Datentypen (`AlbumMatch`, `CoverCandidate`) und `RateLimiter` sind da.
+- Online-Code: `online/` (ohne Qt). Alle Abrufe über `online/http.py` (`get_json`, `get_image`) – nie direkt
+  urllib. Jeder Dienst hat einen eigenen `RateLimiter`; MusicBrainz ≤ 1/s, EINE Suche + EINE Trackliste pro Album.
+- Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
+  `ImageLoader` (beide in `ui/workers.py`). Album-Daten + Cover gemeinsam: `session.apply_changes(..., cover=CoverData)`.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
 - Massenänderungen (Umbenennen, Online-Übernahme) immer mit Vorschau.
 
@@ -74,6 +77,11 @@ tests/run_all.sh --perf   # zusätzlich Leistung mit 1.000 Alben / 50.000 Listen
 make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 ```
 
+- **Musikdienste sind von der Arbeitsumgebung aus gesperrt** (MusicBrainz, CAA, iTunes, Deezer, Discogs,
+  TheAudioDB). Echte Antworten zeichnet GitHub auf: `tests/fixtures/online/RECORD` ändern → pushen → Workflow
+  „Testdaten aufzeichnen“ abwarten → `git pull`. Die Zusammenfassung steht als Hinweise (::notice::) im Lauf und ist
+  über `gh api repos/…/check-runs/<job-id>/annotations` lesbar (Logs selbst sind nicht abrufbar).
+  Tests: `tests/test_online.py`, `tests/ui_online.py` (fehlende große Bilder ersetzt der Test durch ein JPEG).
 - Echter X-Bildschirm zum Testen: `apt-get install -y xvfb` funktioniert in der Arbeitsumgebung,
   dann `Xvfb :77 -screen 0 1366x768x24 &` und `DISPLAY=:77 …`. Screenshot: `PIL.ImageGrab.grab(xdisplay=":77")`.
 - Fehlende Systembibliotheken simulieren: Dateien aus `/usr/lib/x86_64-linux-gnu` kurz wegschieben +
@@ -108,6 +116,10 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - Fehlermeldungen von `re` sind englisch/technisch → in `core/tools.py` in verständliches Deutsch übersetzen.
 - AppImage nutzt Qt 6.9, die Entwicklung 6.12: Oberflächentests zusätzlich mit dem Python aus dem
   AppImage laufen lassen (`dist/*.AppImage --appimage-extract`, dann `squashfs-root/usr/python/bin/python3 tests/ui_tools.py …`).
+- **Eigenes Python (AppImage) lädt keine System-Zertifikate von selbst** (`cert_store_stats` = 0, nur capath).
+  `online/http.ca_file()` nimmt daher die Zertifikatsdatei der Distribution (Debian/Fedora/openSUSE/Alpine …),
+  sonst certifi. `SSL_CERT_FILE` hat Vorrang.
+- Matching nach Länge ist bei fast gleich langen Tracks mehrdeutig – nur Rückfallebene, Vorschau markiert Abweichungen.
 - **Stylesheet schlägt `setFont()`**: `* { font-family … }` im QSS überschreibt Schriften aus dem Code.
   Besondere Schriften/Größen per `objectName` im QSS setzen (z. B. `QLabel#Wordmark`).
 - **Variable Fonts**: Qt sieht nur die Standard-Instanz. Feste Instanz mit

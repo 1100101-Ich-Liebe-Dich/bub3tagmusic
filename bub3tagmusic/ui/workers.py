@@ -127,3 +127,64 @@ class RenameWorker(QThread):
         except Exception:
             pass
         self.done.emit(results)
+
+
+class Job(QThread):
+    """Führt eine Funktion im Hintergrund aus (z. B. eine Online-Abfrage)."""
+
+    done = Signal(object)
+    failed = Signal(str)
+    _running: set = set()          # hält laufende Jobs am Leben, auch wenn der Dialog schon zu ist
+
+    def __init__(self, fn, *args):
+        super().__init__()
+        self.fn, self.args = fn, args
+        Job._running.add(self)
+        self.finished.connect(lambda: Job._running.discard(self))
+
+    def run(self):
+        try:
+            result = self.fn(*self.args)
+        except Exception as exc:       # Online-Fehler sind verständlich formuliert, alles andere kurz melden
+            from ..online.base import OnlineError
+            self.failed.emit(str(exc) if isinstance(exc, OnlineError) else f"Unerwarteter Fehler: {exc}")
+            return
+        self.done.emit(result)
+
+
+class ImageLoader(QThread):
+    """Lädt viele kleine Vorschaubilder (bis zu 4 gleichzeitig) und meldet jedes einzeln."""
+
+    loaded = Signal(int, bytes)
+
+    def __init__(self, jobs: list[tuple[int, str]]):
+        super().__init__()
+        self.jobs = jobs
+        self._stop = False
+        Job._running.add(self)
+        self.finished.connect(lambda: Job._running.discard(self))
+
+    def stop(self):
+        self._stop = True
+
+    def run(self):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        from ..online.http import get_image
+
+        def load(job):
+            idx, url = job
+            if self._stop:
+                return idx, b""
+            try:
+                return idx, get_image(url)
+            except Exception:
+                return idx, b""
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for fut in as_completed([pool.submit(load, j) for j in self.jobs]):
+                idx, data = fut.result()
+                if self._stop:
+                    break
+                if data:
+                    self.loaded.emit(idx, data)

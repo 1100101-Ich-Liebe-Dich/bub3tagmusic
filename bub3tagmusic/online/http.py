@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import os
 import ssl
 import threading
 import time
@@ -57,17 +58,39 @@ def host_name(url: str) -> str:
     return host
 
 
+# Wo die Distributionen ihre Zertifikate ablegen (das eigene Python im AppImage
+# findet sie nicht von selbst). Erste vorhandene Datei gewinnt, sonst certifi.
+CA_FILES = (
+    "/etc/ssl/certs/ca-certificates.crt",                 # Debian, Ubuntu, Mint, Arch, Gentoo
+    "/etc/pki/tls/certs/ca-bundle.crt",                   # Fedora, RHEL, CentOS
+    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  # Fedora (neu)
+    "/etc/ssl/ca-bundle.pem",                             # openSUSE
+    "/etc/ssl/cert.pem",                                  # Alpine, Void, manche Arch
+)
+
+
+def ca_file() -> str:
+    env = os.environ.get("SSL_CERT_FILE")
+    if env and os.path.isfile(env):
+        return env
+    for path in CA_FILES:
+        if os.path.isfile(path):
+            return path
+    try:
+        import certifi
+        return certifi.where()
+    except ImportError:
+        return ""
+
+
 def _context() -> ssl.SSLContext:
     global _ssl_ctx
     if _ssl_ctx is None:
-        ctx = ssl.create_default_context()
+        path = ca_file()
         try:
-            if ctx.cert_store_stats().get("x509_ca", 0) == 0:
-                import certifi
-                ctx = ssl.create_default_context(cafile=certifi.where())
-        except Exception:
-            pass
-        _ssl_ctx = ctx
+            _ssl_ctx = ssl.create_default_context(cafile=path) if path else ssl.create_default_context()
+        except (OSError, ssl.SSLError):
+            _ssl_ctx = ssl.create_default_context()
     return _ssl_ctx
 
 

@@ -68,16 +68,21 @@ class Session(QObject):
             self.stateChanged.emit()
         return len(touched)
 
-    def apply_changes(self, changes: list[tuple[FileItem, dict[str, str]]], label: str) -> int:
-        """Unterschiedliche Änderungen je Datei – als EIN Rückgängig-Schritt (Werkzeuge)."""
+    def apply_changes(self, changes: list[tuple[FileItem, dict[str, str]]], label: str, cover=None) -> int:
+        """Unterschiedliche Änderungen je Datei – als EIN Rückgängig-Schritt (Werkzeuge, Online).
+
+        cover: optional CoverData, das alle genannten Dateien zusätzlich bekommen.
+        """
         step = EditStep(label)
         touched = []
         for it, ch in changes:
             ch = {k: v for k, v in ch.items() if k in FIELD_BY_KEY and it.tags.get(k, "") != v}
-            if not ch:
+            if not ch and cover is None:
                 continue
             step.entries.append((it, it.snapshot()))
             it.tags.update(ch)
+            if cover is not None:
+                it.cover_action = cover
             touched.append(it)
         if touched:
             self.undo.push_edit(step)

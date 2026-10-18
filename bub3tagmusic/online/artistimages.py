@@ -42,8 +42,9 @@ def from_audiodb(artist: str) -> list[CoverCandidate]:
                            ("strArtistFanart2", "Fanart"), ("strArtistWideThumb", "Breitbild")):
             url = a.get(key)
             if url:
-                out.append(CoverCandidate("TheAudioDB", url, url + "/preview",
-                                          description=f"{name} · {label}", score=score - (0 if key == "strArtistThumb" else 0.05)))
+                out.append(CoverCandidate("TheAudioDB", url, url + "/preview", description=f"{name} · {label}",
+                                          score=score - (0 if key == "strArtistThumb" else 0.05),
+                                          size_hint="Original"))
     return out
 
 

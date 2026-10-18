@@ -15,7 +15,7 @@ API = "https://api.discogs.com/"
 LIMITER = RateLimiter(per_second=0.9)
 
 _NUMBER_SUFFIX = re.compile(r"\s+\(\d+\)$")          # "Nirvana (2)" → "Nirvana"
-_DISC_POS = re.compile(r"^(?:CD|DVD|Disc|Disk)?\s*(\d+)\s*[-.]\s*(\d+)$", re.IGNORECASE)
+_DISC_POS = re.compile(r"^(?:CD|DVD|Disc|Disk)?\s*(\d+)\s*[-.]\s*(\d+)[a-z]?$", re.IGNORECASE)
 _SIDE_POS = re.compile(r"^([A-Z])(\d*)$")
 
 

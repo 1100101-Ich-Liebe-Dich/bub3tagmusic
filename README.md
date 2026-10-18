@@ -5,8 +5,8 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.2.0 – Phase 2 (Werkzeuge)**. Die Funktionen der Phasen 3–4 sind
-in den Menüs „Online“ und „Extras“ schon als Platzhalter zu sehen.
+Stand: **Version 0.3.0 – Phase 3 (Online)**. Die Funktionen der Phase 4 sind
+im Menü „Extras“ schon als Platzhalter zu sehen.
 
 ---
 
@@ -73,9 +73,25 @@ und zeigen **vorher eine Live-Vorschau**: geänderte Werte gelb, Probleme rot.
 | **Groß-/Kleinschreibung** (Alt+4) | `DER TITEL` → `Der Titel`. Kleine Wörter (und, der, the …) und feste Schreibweisen (AC/DC …) einstellbar; gemischte Schreibweisen wie „iPhone“ bleiben geschützt. |
 | **Suchen & Ersetzen** (Alt+5) | In gewählten Feldern, wahlweise Groß/klein, ganze Wörter oder reguläre Ausdrücke (`$1` / `\1`). |
 | **Aufräumen** | Doppelte Leerzeichen, Unterstriche, leere Klammern, unsichtbare Zeichen, „ft.“ → „feat.“, führende Nullen. |
+| **Ordner umbenennen** (Alt+6) | Album-Ordner nach ihren Tags, z. B. `%year% - %album%`. Alles im Ordner bleibt beisammen, der Fertig-Status wandert mit. |
+
+Beim Umbenennen von Dateien wandern gleichnamige Begleitdateien (`01 - Lied.lrc`, `.txt`, `.srt` …) mit.
 
 Übernehmen wirkt wie jede Bearbeitung: gelb markiert, **Strg+S** speichert, **Strg+Z** nimmt das ganze
 Werkzeug in einem Schritt zurück. Umbenennen passiert sofort – Strg+Z benennt zurück.
+
+### Online (Menü „Online“ oder Rechtsklick in der Liste)
+
+![Album suchen](docs/screenshot-online.png)
+
+| Funktion | Was sie macht |
+|---|---|
+| **Album suchen** (Strg+L) | Sucht das Album bei **MusicBrainz** oder **Discogs** – eine Anfrage pro Album, Interpret und Album sind aus Tags oder Ordnernamen vorbelegt. Zeigt die Trackliste zugeordnet zu deinen Dateien (nach Tracknummer, Reihenfolge oder Länge) und übernimmt nur die Felder, die du auswählst – auf Wunsch samt Cover. |
+| **Cover suchen** (Strg+K) | Bildergitter aus Cover Art Archive, iTunes (bis 3000 px) und Deezer. Einbetten und/oder als `cover.jpg` in den Album-Ordner. Doppelklick übernimmt. |
+| **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB, gespeichert als `folder.jpg` im Künstler-Ordner. |
+
+Alles außer Discogs funktioniert ohne Anmeldung. Für Discogs einen kostenlosen Token unter
+*Einstellungen → Online* eintragen (discogs.com → Settings → Developers).
 
 ### Tastenkürzel
 
@@ -91,7 +107,8 @@ Werkzeug in einem Schritt zurück. Umbenennen passiert sofort – Strg+Z benennt
 | F2 | Zelle in der Liste bearbeiten |
 | Strg+F | Liste filtern |
 | Strg+Shift+V | Bild aus der Zwischenablage als Cover |
-| Alt+1 … Alt+5 | Werkzeuge (Tags aus Dateiname, Umbenennen, Nummerieren, Schreibweise, Ersetzen) |
+| Alt+1 … Alt+6 | Werkzeuge (Tags aus Dateiname, Umbenennen, Nummerieren, Schreibweise, Ersetzen, Ordner) |
+| Strg+L / Strg+K / Strg+J | Album / Cover / Künstlerbild online suchen |
 | F5 | Neu einlesen |
 | Strg+, | Einstellungen |
 | F1 | Alle Tastenkürzel |
@@ -129,9 +146,12 @@ bub3tagmusic/
 │   ├── tools.py        Werkzeug-Logik: nummerieren, Schreibweise, ersetzen, aufräumen
 │   ├── rename.py       Umbenennen: Plan + Prüfung + sicheres Ausführen (zweistufig)
 │   └── settings.py     Einstellungen (JSON)
-├── online/             Phase 3/4: Schnittstellen + Datentypen stehen schon
-│   ├── base.py         AlbumMatch, CoverCandidate, RateLimiter (1 Anfrage/s)
-│   └── musicbrainz.py, discogs.py, coversearch.py, artistimages.py, acoustid.py
+├── online/             ohne Qt
+│   ├── base.py         AlbumMatch, CoverCandidate, RateLimiter, Ähnlichkeit
+│   ├── http.py         urllib, Wartezeiten, Zertifikate, Speicher, austauschbar für Tests
+│   ├── musicbrainz.py, discogs.py, coversearch.py, artistimages.py
+│   ├── matching.py     Dateien ↔ Album-Tracks zuordnen
+│   └── acoustid.py     Phase 4
 ├── ui/
 │   ├── mainwindow.py   Hauptfenster, Speichern, Rückgängig, Navigation
 │   ├── session.py      alle Bearbeitungen laufen hier durch (→ Rückgängig)
@@ -143,6 +163,7 @@ bub3tagmusic/
 │   ├── dialogs.py      Einstellungen, Tastenkürzel, Über, Fehlerliste, Toast
 │   ├── tools.py        Werkzeug-Dialoge mit Live-Vorschau (ToolDialog + 6 Werkzeuge)
 │   ├── widgets.py      Bausteine: Muster-Feld, Feld-Chips, Fließ-Layout
+│   ├── online.py       Album-, Cover- und Künstlerbild-Suche
 │   ├── theme.py        Farben „Nachtwache“ (dunkel) und „Seekarte“ (hell)
 │   └── icons.py        Phosphor-Icons
 └── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon
@@ -161,12 +182,14 @@ sonst die Methode in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag u
 ### Tests
 
 ```bash
-tests/run_all.sh           # alles: Kern (alle Formate) + Oberfläche durchklicken (braucht ffmpeg)
+tests/run_all.sh           # alles: Formate, Werkzeuge, Online (aufgezeichnet), Oberfläche (braucht ffmpeg)
 tests/run_all.sh --perf    # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
 python3 tests/make_testfiles.py ZIEL --collection 100   # Test-Sammlung zum Ausprobieren erzeugen
 ```
 
 Auf GitHub laufen die Tests bei jedem Hochladen automatisch (Python 3.10, 3.11 und 3.13), inklusive Screenshots.
+Die Online-Tests spielen echte, aufgezeichnete Antworten ab (`tests/fixtures/online/`). Neu aufzeichnen:
+`tests/fixtures/online/RECORD` ändern und hochladen – der Workflow „Testdaten aufzeichnen“ erledigt den Rest.
 Arbeitsnotizen und Regeln fürs Weiterentwickeln: `CLAUDE.md`. Änderungen: `CHANGELOG.md`.
 
 Lizenzen der mitgelieferten Schriften: `bub3tagmusic/resources/fonts/OFL-*.txt` (SIL Open Font License).

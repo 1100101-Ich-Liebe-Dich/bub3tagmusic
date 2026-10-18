@@ -132,3 +132,22 @@ def tags_for(album: AlbumMatch, track_index: int, fields: set[str], *, disc_only
     if "genre" in fields and album.genre:
         out["genre"] = album.genre
     return out
+
+
+def rank_for_files(matches: list[AlbumMatch], n_files: int) -> list[AlbumMatch]:
+    """Treffer mit genau so vielen Tracks wie Dateien nach oben; Kassetten/Vinyl leicht nach unten."""
+    def key(m: AlbumMatch):
+        bonus = 0
+        if n_files and m.track_total == n_files:
+            bonus += 25
+        elif n_files and m.track_total:
+            bonus -= min(15, abs(m.track_total - n_files) * 2)
+        f = (m.formats or "").lower()
+        if "cd" in f or "digital" in f:
+            bonus += 5
+        if "cassette" in f:
+            bonus -= 5
+        if m.extra.get("status") and m.extra.get("status") != "Official":
+            bonus -= 10
+        return -(m.score + bonus)
+    return sorted(matches, key=key)

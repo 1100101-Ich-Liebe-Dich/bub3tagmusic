@@ -52,15 +52,16 @@ FEATURES: tuple[Feature, ...] = (
     # --- Phase 3: Online ---------------------------------------------------
     Feature("musicbrainz", "Album suchen – MusicBrainz", 3, "online", "disc",
             "Eine Suche pro Album mit Album + Künstler. Treffer mit Trackliste, Jahr, "
-            "Label und Cover; Übernahme erst nach deiner Bestätigung.", "Ctrl+L"),
+            "Label und Cover; Übernahme erst nach deiner Bestätigung.", "Ctrl+L", ready=True),
     Feature("discogs", "Album suchen – Discogs", 3, "online", "disc",
             "Zweite Quelle für Album-Daten. Braucht einen kostenlosen Discogs-Token "
-            "(Einstellungen → Online)."),
+            "(Einstellungen → Online).", ready=True),
     Feature("cover_search", "Cover suchen …", 3, "online", "image-square",
             "Sucht bei Cover Art Archive, iTunes und Deezer. Treffer als Bildergitter "
-            "mit Auflösung; speichern als cover.jpg und/oder einbetten.", "Ctrl+K"),
+            "mit Auflösung; speichern als cover.jpg und/oder einbetten.", "Ctrl+K", ready=True),
     Feature("artist_image", "Künstlerbild suchen …", 3, "online", "user-circle",
-            "Sucht ein Künstlerfoto und legt es als folder.jpg im Künstler-Ordner ab."),
+            "Sucht ein Künstlerfoto (Deezer, TheAudioDB) und legt es als folder.jpg im Künstler-Ordner ab.",
+            "Ctrl+J", ready=True),
 
     # --- Phase 4: Extras ---------------------------------------------------
     Feature("actions", "Aktionen …", 4, "extras", "lightning",
