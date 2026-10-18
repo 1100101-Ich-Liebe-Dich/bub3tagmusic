@@ -7,7 +7,7 @@
 #   make test       alle Tests
 #   make clean      räumt die Bau-Zwischenstände weg (die fertige Datei bleibt)
 #
-# Zum Bauen reichen bash, curl, tar und make. Python & Co. lädt das Bauskript selbst.
+# Zum Bauen reichen make und curl oder wget. Python & Co. lädt das Bauskript selbst.
 
 VERSION  := $(shell sed -n 's/^APP_VERSION = "\(.*\)"/\1/p' bub3tagmusic/__init__.py)
 APPIMAGE := dist/BuB3TAGMUSIC-$(VERSION)-x86_64.AppImage

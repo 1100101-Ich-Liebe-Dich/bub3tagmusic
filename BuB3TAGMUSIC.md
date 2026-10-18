@@ -199,6 +199,7 @@ BuB3TAGMUSIC/
 ├── requirements.txt, pyproject.toml
 ├── BuB3TAGMUSIC.md           dieses Dokument
 ├── README.md                 Kurzanleitung
+├── ANLEITUNG.md              Bauen mit make, Schritt für Schritt
 ├── docs/                     Screenshots
 ├── tests/                    Kern-Test, Oberflächen-Test, Leistungstest, Testdateien
 └── bub3tagmusic/
@@ -298,6 +299,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 10. Nächster Schritt
 
-1. AppImage starten (`chmod +x`, Doppelklick) – mit einer **Kopie** von ein paar Künstler-Ordnern testen
+1. Mit `make` bauen (siehe `ANLEITUNG.md`) und mit einer **Kopie** von ein paar Künstler-Ordnern testen
 2. Rückmeldung sammeln und Phase 1 nachschärfen
 3. Phase 2 starten: Tags ↔ Dateiname, Auto-Nummerierung, Schreibweise, Suchen & Ersetzen

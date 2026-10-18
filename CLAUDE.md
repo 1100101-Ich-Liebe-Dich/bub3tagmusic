@@ -15,6 +15,9 @@ nach jeder Sitzung aktuell halten.
 
 ## Was dem Auftraggeber wichtig ist
 
+- **Keine Installation** – lieber eine ausführbare Datei, die er **selbst mit `make` baut**.
+  Fertige AppImages (≈ 60 MB) **nicht ungefragt schicken**, ihm sind sie zu groß. Anleitung: `ANLEITUNG.md`.
+
 - **Einfach** zu bedienen, alles auf den ersten Blick klar. **Super modern** aussehen.
 - **Alte Hardware + zehntausende Dateien** dürfen kein Problem sein.
 - Arbeitsweise: **Ordner für Ordner** durch eine riesige Sammlung (Musik/Künstler/Album/).

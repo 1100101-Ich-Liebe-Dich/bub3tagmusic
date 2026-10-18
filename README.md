@@ -10,36 +10,22 @@ in den Menüs „Werkzeuge“, „Online“ und „Extras“ schon als Platzhalt
 
 ---
 
-## Starten – ohne Installation
+## Bauen & starten – ohne Installation
 
-BuB3TAGMUSIC ist **eine einzige Datei** (AppImage). Nichts installieren, nichts einrichten:
-
-```bash
-chmod +x BuB3TAGMUSIC-0.1.2-x86_64.AppImage     # einmalig ausführbar machen
-./BuB3TAGMUSIC-0.1.2-x86_64.AppImage            # starten (oder Doppelklick)
-./BuB3TAGMUSIC-0.1.2-x86_64.AppImage ~/Musik    # direkt mit einem Ordner
-```
-
-Im Programm unter ⚙ → **Ins Startmenü eintragen** – dann startet es künftig auch über das Menü.
-
-**Läuft auf** jedem 64-Bit-Linux ab etwa 2018: Ubuntu 20.04+, Linux Mint 20+, Debian 10+, Fedora 29+,
-openSUSE Leap 15.3+, Arch/Manjaro. Das AppImage bringt sein eigenes Python, Qt und alle Bibliotheken mit
-(auch die Qt-Hilfsbibliotheken, die manchen Systemen fehlen – die werden aber nur benutzt, wenn sie wirklich fehlen).
-
-Falls beim Start „FUSE“ bemängelt wird: `sudo apt install fuse3` (bzw. `fuse`), oder ohne FUSE starten mit
-`./BuB3TAGMUSIC-…AppImage --appimage-extract-and-run`.
-
-### Selbst bauen mit `make`
+BuB3TAGMUSIC wird mit `make` zu **einer einzigen Datei** (AppImage) gebaut, die ohne Installation läuft.
+**Schritt-für-Schritt-Anleitung: [ANLEITUNG.md](ANLEITUNG.md)** – in Kurzform:
 
 ```bash
-make              # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage  (≈ 20 s, beim ersten Mal + Downloads)
-make install      # legt die Datei nach ~/.local/bin und trägt sie ins Startmenü ein
-make uninstall    # entfernt beides wieder
+sudo apt install make wget      # einmalig (Fedora: dnf, Arch: pacman)
+make                            # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
+make install                    # optional: ins Startmenü (make uninstall entfernt es wieder)
 ```
 
-Zum Bauen reichen `bash`, `curl`, `tar` und `make` – Python, Qt & Co. lädt das Bauskript selbst
-(nach `build/tools`). Auf GitHub wird das AppImage außerdem bei jedem Hochladen automatisch gebaut,
-auf einem echten X-Bildschirm getestet und unter *Actions → Tests → BuB3TAGMUSIC-AppImage* bereitgestellt.
+Zum Bauen reichen `make` und `curl` oder `wget` – Python, Qt & Co. lädt das Bauskript selbst
+(nach `build/tools`). Läuft auf jedem 64-Bit-Linux ab etwa 2018: Ubuntu 20.04+, Linux Mint 20+,
+Debian 10+, Fedora 29+, openSUSE Leap 15.3+, Arch/Manjaro.
+
+Fertige AppImages baut GitHub außerdem bei jedem Hochladen (*Actions → Tests → BuB3TAGMUSIC-AppImage*).
 
 ### Für Entwickler: aus dem Quellcode
 

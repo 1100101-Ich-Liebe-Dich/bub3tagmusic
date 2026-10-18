@@ -3,7 +3,7 @@
 #
 #   packaging/build_appimage.sh        (oder einfach: make)
 #
-# Braucht nur: bash, curl, tar, ldd – alles andere (uv, Python, appimagetool)
+# Braucht nur: bash, tar, ldd und curl ODER wget – alles andere (uv, Python, appimagetool)
 # wird beim ersten Mal nach build/tools geladen. Ergebnis: dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
@@ -22,9 +22,18 @@ if [ "$(uname -m)" != "x86_64" ]; then
   echo "Nur x86_64 (64-Bit-PC) wird unterstützt – Qt 6 gibt es nicht für 32 Bit." >&2
   exit 1
 fi
-for cmd in curl tar ldd; do
+for cmd in tar ldd; do
   command -v "$cmd" >/dev/null || { echo "Es fehlt das Programm '$cmd'." >&2; exit 1; }
 done
+# Herunterladen mit curl, sonst wget (Ubuntu hat oft nur wget)
+if command -v curl >/dev/null && [ -z "${BUB3_USE_WGET:-}" ]; then
+  fetch() { curl -fsSL -o "$1" "$2"; }
+elif command -v wget >/dev/null; then
+  fetch() { wget -q -O "$1" "$2"; }
+else
+  echo "Zum Herunterladen fehlt curl oder wget:  sudo apt install curl" >&2
+  exit 1
+fi
 mkdir -p "$TOOLS" "$DIST"
 
 # --- Werkzeuge ------------------------------------------------------------------
@@ -35,21 +44,22 @@ else
   UV="$TOOLS/uv"
   if [ ! -x "$UV" ]; then
     echo "Lade uv (Python-Paketwerkzeug) …"
-    curl -fsSL https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz \
-      | tar -xz -C "$TOOLS" --strip-components=1
+    fetch "$TOOLS/uv.tar.gz" https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz
+    tar -xzf "$TOOLS/uv.tar.gz" -C "$TOOLS" --strip-components=1
+    rm -f "$TOOLS/uv.tar.gz"
   fi
 fi
 APPIMAGETOOL="$TOOLS/appimagetool-x86_64.AppImage"
 RUNTIME="$TOOLS/runtime-x86_64"
 if [ ! -x "$APPIMAGETOOL" ]; then
   echo "Lade appimagetool …"
-  curl -fsSL -o "$APPIMAGETOOL" \
+  fetch "$APPIMAGETOOL" \
     https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
   chmod +x "$APPIMAGETOOL"
 fi
 if [ ! -f "$RUNTIME" ]; then
   echo "Lade AppImage-Laufzeit …"
-  curl -fsSL -o "$RUNTIME" https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+  fetch "$RUNTIME" https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
 fi
 echo "uv: $("$UV" --version)"
 
