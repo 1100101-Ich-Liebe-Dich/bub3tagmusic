@@ -2,6 +2,22 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [0.1.2] – 2026-10-18
+
+### Neu
+- **BuB3TAGMUSIC als eine ausführbare Datei (AppImage)** – keine Installation mehr nötig:
+  `chmod +x`, Doppelklick, läuft. Bringt eigenes Python und Qt mit; läuft ab Ubuntu 20.04 / Mint 20 /
+  Debian 10 / Fedora 29. Fehlende Qt-Hilfsbibliotheken (z. B. libxcb-cursor0) werden automatisch nachgereicht.
+- `make` baut das AppImage selbst, `make install` / `make uninstall` für Startmenü-Eintrag.
+- GitHub baut das AppImage bei jedem Hochladen, testet es auf einem X-Bildschirm und stellt es bereit.
+- Im AppImage: ⚙ → „Ins Startmenü eintragen“.
+- `--version` und `--selftest [ORDNER]` (automatischer Starttest, ändert nichts).
+- Qt-eigene Texte auf Deutsch (z. B. „Ja/Nein“ in Rückfragen, Datei-Dialoge).
+
+### Behoben
+- Beim ersten Start war das Fenster höher als ein 1366×768-Bildschirm (Statusleiste abgeschnitten).
+  Jetzt passt es sich an; kleine Bildschirme starten maximiert.
+
 ## [0.1.1] – 2026-10-18
 
 ### Neu

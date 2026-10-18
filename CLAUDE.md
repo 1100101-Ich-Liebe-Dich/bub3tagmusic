@@ -28,7 +28,11 @@ nach jeder Sitzung aktuell halten.
 ## Technik
 
 - Python ≥ 3.10, **PySide6-Essentials** (nicht das volle PySide6 – spart ~250 MB; unter Python < 3.12 Version 6.8–6.10), mutagen, Pillow, qtawesome.
-- Start: `python3 -m bub3tagmusic [ORDNER]`; Installation beim Nutzer: `install.sh` → `.venv` + Startmenü.
+- **Auslieferung: AppImage** (Wunsch: keine Installation). `make` → `packaging/build_appimage.sh`
+  → `dist/BuB3TAGMUSIC-<version>-x86_64.AppImage`. Fürs AppImage feste Versionen in
+  `packaging/requirements-appimage.txt` (Qt 6.9 = läuft ab glibc 2.28; ab Qt 6.10 wäre glibc 2.34 nötig).
+- Entwickeln: `python3 -m bub3tagmusic [ORDNER]` oder `install.sh` → `.venv`, `start.sh`.
+- Version steht in `bub3tagmusic/__init__.py` (APP_VERSION) **und** `pyproject.toml` – beide ändern.
 - Einstellungen `~/.config/bub3tagmusic/settings.json`, Cache `~/.cache/bub3tagmusic/cache.sqlite`.
 
 ### Architektur-Regeln
@@ -57,7 +61,13 @@ nach jeder Sitzung aktuell halten.
 ```bash
 tests/run_all.sh          # Kern (alle Formate) + Oberfläche durchklicken, ~1 Min.
 tests/run_all.sh --perf   # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
+make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 ```
+
+- Echter X-Bildschirm zum Testen: `apt-get install -y xvfb` funktioniert in der Arbeitsumgebung,
+  dann `Xvfb :77 -screen 0 1366x768x24 &` und `DISPLAY=:77 …`. Screenshot: `PIL.ImageGrab.grab(xdisplay=":77")`.
+- Fehlende Systembibliotheken simulieren: Dateien aus `/usr/lib/x86_64-linux-gnu` kurz wegschieben +
+  `ldconfig`, danach zurück. `BUB3_DEBUG=1` zeigt, was AppRun nachreicht.
 
 - Bei Oberflächen-Änderungen die Screenshots ansehen (`SHOTS=ordner tests/run_all.sh`).
 - `BuB3TAGMUSIC.md` + `CHANGELOG.md` aktualisieren, Issues schließen (`Closes #n` im Commit).
@@ -75,6 +85,11 @@ tests/run_all.sh --perf   # zusätzlich Leistung mit 1.000 Alben / 50.000 Listen
   auf Python < 3.12 nur PySide6 6.8–6.10; `app._check_qt_version()` warnt sonst. Bei jedem PySide6-Update
   unter Python 3.10 testen (CI macht das). Prüfen geht mit `sys.getrefcount(None)` vor/nach vielen Aufrufen.
 
+- **`libxkbcommon-x11` nie allein nachreichen**: Gemischt mit einer anderen `libxkbcommon`-Version
+  stürzt Qt beim Start ab (Segfault). AppRun reicht sie nur als Paar nach und sonst nur, was fehlt.
+- Nicht alle mitgebrachten Bibliotheken pauschal per `LD_LIBRARY_PATH` voranstellen – Systemversionen
+  haben Vorrang (AppRun baut pro Start ein Temp-Verzeichnis mit Links nur auf die fehlenden).
+- Erststart-Fenstergröße muss auf 1366×768 passen (`MainWindow._fit_to_screen`).
 - **Stylesheet schlägt `setFont()`**: `* { font-family … }` im QSS überschreibt Schriften aus dem Code.
   Besondere Schriften/Größen per `objectName` im QSS setzen (z. B. `QLabel#Wordmark`).
 - **Variable Fonts**: Qt sieht nur die Standard-Instanz. Feste Instanz mit

@@ -1,0 +1,49 @@
+#!/bin/sh
+# BuB3TAGMUSIC – Starter im AppImage (präsentiert von www.BAUENUNDBOOTEN.de)
+HERE="$(dirname "$(readlink -f "$0")")"
+
+# Qt braucht unter X11 ein paar kleine xcb-Hilfsbibliotheken, die auf manchen
+# Systemen fehlen (z. B. libxcb-cursor0 auf Ubuntu 22.04). Das AppImage bringt
+# sie mit, reicht aber NUR die nach, die dem System wirklich fehlen – vorhandene
+# Systembibliotheken haben immer Vorrang.
+have_lib() {
+  for ld in /sbin/ldconfig /usr/sbin/ldconfig; do
+    if [ -x "$ld" ] && "$ld" -p 2>/dev/null | grep -q "^[[:space:]]*$1 (.*x86-64"; then
+      return 0
+    fi
+  done
+  for d in /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu /usr/lib64 /lib64 /usr/lib /lib; do
+    [ -e "$d/$1" ] && return 0
+  done
+  return 1
+}
+
+FALLBACK="$HERE/usr/lib/fallback"
+missing=""
+for lib in "$FALLBACK"/*.so.*; do
+  [ -e "$lib" ] || continue
+  name="$(basename "$lib")"
+  [ "$name" = "libxkbcommon.so.0" ] && continue   # kommt nur als Paar mit -x11 (siehe unten)
+  have_lib "$name" || missing="$missing $name"
+done
+case " $missing " in
+  # libxkbcommon-x11 funktioniert nur mit genau passender libxkbcommon → beide aus dem AppImage
+  *" libxkbcommon-x11.so.0 "*) missing="$missing libxkbcommon.so.0" ;;
+esac
+
+LIBDIR=""
+if [ -n "$missing" ]; then
+  LIBDIR="$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/bub3tagmusic-libs.XXXXXX")"
+  for name in $missing; do
+    ln -s "$FALLBACK/$name" "$LIBDIR/$name"
+  done
+  export LD_LIBRARY_PATH="$LIBDIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  [ -n "$BUB3_DEBUG" ] && echo "BuB3TAGMUSIC: nachgereicht:$missing" >&2
+fi
+
+export PYTHONNOUSERSITE=1
+export BUB3_APPIMAGE=1
+"$HERE/usr/python/bin/python3" -I -m bub3tagmusic "$@"
+status=$?
+[ -n "$LIBDIR" ] && rm -rf "$LIBDIR"
+exit $status

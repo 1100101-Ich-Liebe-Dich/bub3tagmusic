@@ -5,27 +5,49 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.1.1 – Phase 1 (Grundgerüst)**. Die Funktionen der Phasen 2–4 sind
+Stand: **Version 0.1.2 – Phase 1 (Grundgerüst)**. Die Funktionen der Phasen 2–4 sind
 in den Menüs „Werkzeuge“, „Online“ und „Extras“ schon als Platzhalter zu sehen.
 
 ---
 
-## Installieren & starten
+## Starten – ohne Installation
+
+BuB3TAGMUSIC ist **eine einzige Datei** (AppImage). Nichts installieren, nichts einrichten:
 
 ```bash
-cd BuB3TAGMUSIC
-./install.sh        # einmalig: eigene Python-Umgebung + Startmenü-Eintrag
-./start.sh          # oder über das Startmenü „BuB3TAGMUSIC“
-./start.sh ~/Musik  # direkt mit einem Ordner starten
+chmod +x BuB3TAGMUSIC-0.1.2-x86_64.AppImage     # einmalig ausführbar machen
+./BuB3TAGMUSIC-0.1.2-x86_64.AppImage            # starten (oder Doppelklick)
+./BuB3TAGMUSIC-0.1.2-x86_64.AppImage ~/Musik    # direkt mit einem Ordner
 ```
 
-Voraussetzung ist Python 3.10 oder neuer. Fehlt etwas, sagt `install.sh` genau, was zu tun ist.
+Im Programm unter ⚙ → **Ins Startmenü eintragen** – dann startet es künftig auch über das Menü.
 
-- Debian/Ubuntu/Mint: `sudo apt install python3-venv libxcb-cursor0`
-- Fedora: `sudo dnf install python3 xcb-util-cursor`
-- Arch/Manjaro: `sudo pacman -S python`
+**Läuft auf** jedem 64-Bit-Linux ab etwa 2018: Ubuntu 20.04+, Linux Mint 20+, Debian 10+, Fedora 29+,
+openSUSE Leap 15.3+, Arch/Manjaro. Das AppImage bringt sein eigenes Python, Qt und alle Bibliotheken mit
+(auch die Qt-Hilfsbibliotheken, die manchen Systemen fehlen – die werden aber nur benutzt, wenn sie wirklich fehlen).
 
-Es wird nichts systemweit installiert: alles liegt im Programmordner (`.venv`).
+Falls beim Start „FUSE“ bemängelt wird: `sudo apt install fuse3` (bzw. `fuse`), oder ohne FUSE starten mit
+`./BuB3TAGMUSIC-…AppImage --appimage-extract-and-run`.
+
+### Selbst bauen mit `make`
+
+```bash
+make              # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage  (≈ 20 s, beim ersten Mal + Downloads)
+make install      # legt die Datei nach ~/.local/bin und trägt sie ins Startmenü ein
+make uninstall    # entfernt beides wieder
+```
+
+Zum Bauen reichen `bash`, `curl`, `tar` und `make` – Python, Qt & Co. lädt das Bauskript selbst
+(nach `build/tools`). Auf GitHub wird das AppImage außerdem bei jedem Hochladen automatisch gebaut,
+auf einem echten X-Bildschirm getestet und unter *Actions → Tests → BuB3TAGMUSIC-AppImage* bereitgestellt.
+
+### Für Entwickler: aus dem Quellcode
+
+```bash
+./install.sh        # einmalig: eigene Python-Umgebung (.venv) + Startmenü-Eintrag
+./start.sh ~/Musik  # bzw. make run
+```
+
 Einstellungen: `~/.config/bub3tagmusic/`, Zwischenspeicher: `~/.cache/bub3tagmusic/`.
 
 > **Erste Tests bitte an einer Kopie** eines Teils der Sammlung.
@@ -87,7 +109,7 @@ MP3 (ID3v2.3 / v2.4, ID3v1), FLAC, M4A/AAC/ALAC, OGG Vorbis, Opus, WMA, WAV, AIF
 
 ```
 bub3tagmusic/
-├── app.py              Programmstart
+├── app.py              Programmstart (auch --version, --selftest)
 ├── features.py         Fahrplan: alle Funktionen der Phasen 2–4 (baut die Menüs)
 ├── core/               ohne Qt – auch in Hintergrund-Prozessen nutzbar
 │   ├── fields.py       einheitliche Feldnamen (title, artist, …)
@@ -114,6 +136,12 @@ bub3tagmusic/
 │   ├── theme.py        Farben „Nachtwache“ (dunkel) und „Seekarte“ (hell)
 │   └── icons.py        Phosphor-Icons
 └── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon
+packaging/
+├── build_appimage.sh   baut das AppImage (eigenes Python 3.12, Qt 6.9, verschlankt)
+├── requirements-appimage.txt   feste Versionen fürs AppImage (läuft ab glibc 2.28)
+├── prune.py            wirft Ungenutztes raus (Qt-Bibliotheken per ldd ermittelt)
+├── AppRun              Starter im AppImage, reicht fehlende xcb-Bibliotheken nach
+└── libs/               diese xcb-Bibliotheken aus Ubuntu 20.04 (MIT/X11-Lizenz, siehe copyright/)
 ```
 
 **Neue Funktion aus dem Fahrplan fertig?** In `features.py` `ready=True` setzen und in

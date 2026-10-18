@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=BuB3TAGMUSIC
+GenericName=Musik-Tagger
+Comment=Musik-Tags und Cover bearbeiten – präsentiert von www.BAUENUNDBOOTEN.de
+Exec=bub3tagmusic %f
+Icon=bub3tagmusic
+Terminal=false
+Categories=AudioVideo;Audio;Qt;
+Keywords=tag;tagger;mp3;flac;cover;id3;musik;
+MimeType=inode/directory;
+StartupWMClass=bub3tagmusic

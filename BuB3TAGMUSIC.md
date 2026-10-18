@@ -3,7 +3,7 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.1.1 – **Phase 1 fertig** (18.10.2026).
+> **Aktueller Stand:** Version 0.1.2 – **Phase 1 fertig, als eine ausführbare Datei (AppImage)** (18.10.2026).
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -35,8 +35,9 @@ Ein Tagger mit mindestens dem Kern-Funktionsumfang von Mp3tag, aber:
 | Einlesen | mehrere CPU-Kerne ab 150 neuen Dateien | erstes Einlesen großer Ordner deutlich schneller |
 | Icons | Phosphor (über qtawesome) | modern, einheitlich, in beiden Themes einfärbbar |
 | Online-Abfragen | im Hintergrund, mit Wartezeit-Regel | Oberfläche friert nie ein (Phase 3) |
-| Installation | `install.sh` → eigene Umgebung im Programmordner + Startmenü-Eintrag | nichts systemweit, läuft auf jeder Distribution |
-| Auslieferung später | AppImage (evtl. Flatpak) | Phase 4 |
+| Auslieferung | **AppImage** – eine Datei, ausführbar machen, starten; selbst bauen mit `make` | Wunsch: keine Installation |
+| AppImage-Inhalt | eigenes Python 3.12 + Qt 6.9 (feste Versionen), Qt verschlankt (59 MB) | läuft ab glibc 2.28 (Ubuntu 20.04, Mint 20, Debian 10, Fedora 29) |
+| Für Entwickler | `install.sh` → `.venv` im Programmordner, `start.sh` | Arbeiten direkt am Quellcode |
 
 ### Unterstützte Formate
 
@@ -184,7 +185,7 @@ Musik/
 - [ ] #14 Duplikate finden
 - [ ] #15 Export als CSV / HTML
 - [ ] #16 Erweiterte Filter („alle ohne Cover“, „alle ohne Jahr“ …) – einfacher Textfilter gibt es schon
-- [ ] #17 AppImage bauen
+- [x] #17 AppImage bauen – *vorgezogen in 0.1.2*: `make`, automatisch auf GitHub bei jedem Hochladen, Selbsttest auf X-Bildschirm
 
 ---
 
@@ -192,7 +193,9 @@ Musik/
 
 ```
 BuB3TAGMUSIC/
-├── install.sh / start.sh     Installation + Start
+├── Makefile                  make = AppImage bauen, make install, make test …
+├── packaging/                AppImage-Bau (Skript, Starter, Verschlanken, xcb-Bibliotheken)
+├── install.sh / start.sh     Start aus dem Quellcode (für Entwickler)
 ├── requirements.txt, pyproject.toml
 ├── BuB3TAGMUSIC.md           dieses Dokument
 ├── README.md                 Kurzanleitung
@@ -246,6 +249,23 @@ Echte MP3s mit großen Covern auf einer alten Festplatte brauchen beim ersten Ei
 
 ---
 
+### AppImage – wie es funktioniert
+
+- `make` → `packaging/build_appimage.sh`: lädt bei Bedarf `uv`, ein eigenständiges Python 3.12
+  (python-build-standalone, ab glibc 2.17) und `appimagetool`, installiert die Pakete aus
+  `packaging/requirements-appimage.txt`, wirft Ungenutztes raus (`prune.py`: Testdateien, Tk,
+  QML/Quick, virtuelle Tastatur, nicht gebrauchte Qt-Bibliotheken – per `ldd` ermittelt) und packt alles
+  mit zstd zu einer Datei. Dauer ≈ 20 Sekunden.
+- **Qt 6.9 statt 6.12 im AppImage:** Ab Qt 6.10 verlangen die Qt-Pakete glibc 2.34; mit 6.9 läuft
+  BuB3TAGMUSIC auch auf älteren Systemen, wie sie auf alter Hardware oft laufen.
+- **Fehlende Systembibliotheken:** Qt braucht unter X11 kleine xcb-Hilfsbibliotheken (z. B. `libxcb-cursor0`,
+  fehlt auf Ubuntu 22.04). Sie liegen in `packaging/libs` (aus Ubuntu 20.04, MIT/X11). Der Starter `AppRun`
+  reicht **nur die fehlenden** nach. `libxkbcommon-x11` wird nur zusammen mit der passenden `libxkbcommon`
+  nachgereicht – gemischt mit einer anderen Version stürzt Qt ab (geprüft).
+- Getestet: echtes X11 (virtueller Bildschirm) mit vollständigem System, „wie Ubuntu 22.04“ und ganz
+  nacktem System; Wayland-Plugin ist enthalten. `--selftest` prüft den Start automatisch.
+- Im Programm: ⚙ → **Ins Startmenü eintragen** (nur im AppImage sichtbar).
+
 ## 8. Standard-Einstellungen (änderbar)
 
 | Einstellung | Standard |
@@ -278,6 +298,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 10. Nächster Schritt
 
-1. `./install.sh`, dann `./start.sh` – mit einer **Kopie** von ein paar Künstler-Ordnern testen
+1. AppImage starten (`chmod +x`, Doppelklick) – mit einer **Kopie** von ein paar Künstler-Ordnern testen
 2. Rückmeldung sammeln und Phase 1 nachschärfen
 3. Phase 2 starten: Tags ↔ Dateiname, Auto-Nummerierung, Schreibweise, Suchen & Ersetzen

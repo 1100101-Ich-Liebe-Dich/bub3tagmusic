@@ -34,8 +34,43 @@ def _check_qt_version() -> None:
               f"ausführen (installiert dann PySide6 6.10).", file=sys.stderr)
 
 
+def _load_qt_german(app) -> bool:
+    """Qt-eigene Texte (Ja/Nein, Datei-Dialog …) auf Deutsch – passend zur Oberfläche."""
+    from PySide6.QtCore import QLibraryInfo, QTranslator
+    tr = QTranslator(app)
+    if tr.load("qtbase_de", QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)):
+        app.installTranslator(tr)
+        return True
+    return False
+
+
+HELP = """BuB3TAGMUSIC – moderner Musik-Tagger für Linux (präsentiert von www.BAUENUNDBOOTEN.de)
+
+Aufruf:  bub3tagmusic [ORDNER]
+  ORDNER          Musik-Sammlung direkt öffnen
+  --version       Version anzeigen
+  --selftest [ORDNER]
+                  Startet ohne Rückfragen, lädt (falls angegeben) das erste Album
+                  aus ORDNER, beendet sich und meldet SELFTEST OK. Ändert keine Dateien
+                  und nutzt eigene, temporäre Einstellungen.
+"""
+
+
 def run(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
+    if "--help" in argv or "-h" in argv:
+        print(HELP)
+        return 0
+    if "--version" in argv:
+        from . import APP_NAME, APP_VERSION
+        print(f"{APP_NAME} {APP_VERSION}")
+        return 0
+    selftest = "--selftest" in argv
+    if selftest:
+        import tempfile
+        tmp = tempfile.mkdtemp(prefix="bub3selftest_")
+        os.environ["XDG_CONFIG_HOME"] = os.path.join(tmp, "config")
+        os.environ["XDG_CACHE_HOME"] = os.path.join(tmp, "cache")
     _check_qt_version()
 
     from PySide6.QtCore import Qt
@@ -53,6 +88,7 @@ def run(argv: list[str] | None = None) -> int:
     app.setOrganizationName("BAUENUNDBOOTEN")
     app.setDesktopFileName(APP_ID)
     prepare_app(app)
+    german = _load_qt_german(app)
     icon_path = os.path.join(os.path.dirname(__file__), "resources", "bub3tagmusic.svg")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
@@ -70,5 +106,51 @@ def run(argv: list[str] | None = None) -> int:
         settings.last_root = os.path.abspath(args[0])
         win._update_empty_text()
 
-    win.show()
+    if getattr(win, "start_maximized", False) and not selftest:
+        win.showMaximized()
+    else:
+        win.show()
+    if selftest:
+        return _selftest(app, win, args[0] if args else "", german)
     return app.exec()
+
+
+def _selftest(app, win, folder: str, german: bool) -> int:
+    """Für Build-Prüfungen: läuft komplett durch und beendet sich selbst."""
+    import time
+
+    import PySide6
+
+    def wait(cond, timeout):
+        t0 = time.time()
+        while time.time() - t0 < timeout:
+            app.processEvents()
+            if cond():
+                return True
+            time.sleep(0.02)
+        return False
+
+    ok = True
+    info = [f"Python {sys.version.split()[0]}", f"PySide6 {PySide6.__version__}",
+            f"Plattform {app.platformName()}",
+            f"Qt deutsch {'ja' if german else 'nein'}"]
+    if folder:
+        if not wait(lambda: win.tree.root_node is not None, 30):
+            ok = False
+            info.append("Ordnerbaum: Zeitüberschreitung")
+        elif win.tree._albums:
+            win.tree.select_paths([win.tree._albums[0]])
+            if wait(lambda: len(win.session.items) > 0, 60):
+                info.append(f"{len(win.tree._albums)} Alben, erstes Album {len(win.session.items)} Dateien")
+                errors = [it for it in win.session.items if it.error]
+                if errors:
+                    ok = False
+                    info.append(f"Lesefehler: {errors[0].error}")
+            else:
+                ok = False
+                info.append("Album laden: Zeitüberschreitung")
+    wait(lambda: False, 0.5)
+    print("SELFTEST " + ("OK" if ok else "FEHLER") + " – " + ", ".join(info))
+    win.session.revert()
+    win.close()
+    return 0 if ok else 1

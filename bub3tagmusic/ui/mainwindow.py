@@ -220,6 +220,10 @@ class MainWindow(QMainWindow):
         add("Gewählte Ordner als fertig markieren", lambda: self._mark_tree(FOLDER_DONE), "check-circle")
         add("Gewählte Ordner als offen markieren", lambda: self._mark_tree(FOLDER_OPEN), "circle")
         add("Zwischenspeicher leeren", self._clear_cache, "trash")
+        self._act_desktop = None
+        if os.environ.get("APPIMAGE"):
+            self._act_desktop = add("Ins Startmenü eintragen", self._toggle_desktop_entry, "list-plus")
+            m.aboutToShow.connect(self._update_desktop_action)
         m.addSeparator()
         add(f"Über {APP_NAME}", lambda: AboutDialog(self).exec(), "info")
         add(PRESENTER, lambda: open_url(PRESENTER_URL), "anchor")
@@ -620,13 +624,69 @@ class MainWindow(QMainWindow):
     # ==================================================================
     def _restore_state(self):
         s = self.settings
+        self.start_maximized = False
         if s.window_geometry:
             self.restoreGeometry(QByteArray.fromBase64(s.window_geometry.encode()))
+        else:
+            self._fit_to_screen()
         if s.splitter_state:
             self.splitter.restoreState(QByteArray.fromBase64(s.splitter_state.encode()))
         self.table.apply_column_settings(s.hidden_columns, s.column_widths)
         if s.last_root and os.path.isdir(s.last_root):
             self.tree.set_root(s.last_root, [p for p in s.last_selection if os.path.isdir(p)])
+
+    def _fit_to_screen(self):
+        """Erster Start: Fenster passend zum Bildschirm – kleine Bildschirme maximiert."""
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return
+        avail = screen.availableGeometry()
+        if avail.width() < 1440 or avail.height() < 900:
+            self.start_maximized = True
+            self.resize(min(1360, avail.width()), min(820, avail.height()))
+            return
+        w, h = min(1440, int(avail.width() * 0.9)), min(900, int(avail.height() * 0.9))
+        self.resize(w, h)
+        self.move(avail.left() + (avail.width() - w) // 2, avail.top() + (avail.height() - h) // 2)
+
+    # --- Startmenü (nur im AppImage) ------------------------------------------
+    @staticmethod
+    def _desktop_entry_path() -> str:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+        return os.path.join(base, "applications", "bub3tagmusic.desktop")
+
+    def _toggle_desktop_entry(self):
+        path = self._desktop_entry_path()
+        base = os.path.dirname(os.path.dirname(path))
+        icon = os.path.join(base, "icons", "hicolor", "scalable", "apps", "bub3tagmusic.svg")
+        if os.path.exists(path):
+            for p in (path, icon):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+            self.toast.show_message("Aus dem Startmenü entfernt")
+        else:
+            appimage = os.environ.get("APPIMAGE", "")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            os.makedirs(os.path.dirname(icon), exist_ok=True)
+            import shutil
+            shutil.copyfile(os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources",
+                                         "bub3tagmusic.svg"), icon)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "[Desktop Entry]\nType=Application\nName=BuB3TAGMUSIC\nGenericName=Musik-Tagger\n"
+                    "Comment=Musik-Tags und Cover bearbeiten – präsentiert von www.BAUENUNDBOOTEN.de\n"
+                    f'Exec="{appimage}" %f\nIcon=bub3tagmusic\nTerminal=false\n'
+                    "Categories=AudioVideo;Audio;Qt;\nKeywords=tag;tagger;mp3;flac;cover;id3;musik;\n"
+                    "StartupWMClass=bub3tagmusic\n")
+            self.toast.show_message("Im Startmenü eingetragen – bitte die AppImage-Datei nicht mehr verschieben")
+        self._update_desktop_action()
+
+    def _update_desktop_action(self):
+        if self._act_desktop is not None:
+            self._act_desktop.setText("Aus dem Startmenü entfernen" if os.path.exists(self._desktop_entry_path())
+                                      else "Ins Startmenü eintragen")
 
     def _store_state(self):
         s = self.settings
