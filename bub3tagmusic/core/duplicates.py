@@ -22,7 +22,7 @@ from typing import Callable
 
 from .fingerprint import FingerprintError, fingerprint, from_blob, similarity, to_blob
 
-LOSSLESS = {"FLAC", "ALAC", "WAV", "AIFF", "APE", "WavPack", "WV", "DSF", "OggFLAC"}
+LOSSLESS = {"FLAC", "OGG-FLAC", "WAV", "AIFF", "APE", "WavPack", "DSF"}
 SIMILAR = 0.93                     # ab hier gilt der Klang als gleich (Anteil gleicher Bits)
 FP_KEEP = 300                      # so viele Teil-Abdrücke (≈ 40 s) reichen zum Vergleichen
 MIN_SHARED = 3                     # so viele exakt gleiche Teil-Abdrücke machen ein Paar verdächtig

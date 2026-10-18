@@ -10,12 +10,13 @@ import os
 
 from PySide6.QtCore import QFile, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QDialog, QDoubleSpinBox, QFrame,
+from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFrame,
                                QHBoxLayout, QHeaderView, QLabel, QMessageBox, QProgressBar, QPushButton,
                                QRadioButton, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from .. import features
 from ..core import duplicates as dup
+from ..core import replaygain as rg
 from ..core.tools_external import find_tool, install_hint
 from . import icons, theme
 from .filetable import fmt_length
@@ -461,6 +462,233 @@ class DuplicatesDialog(ExtraDialog):
                                                            "Schreibrechte prüfen") for p in errors], self).exec()
 
 
+# ======================================================================
+# ReplayGain
+# ======================================================================
+class ReplayGainDialog(ExtraDialog):
+    feature_id = "replaygain"
+
+    def __init__(self, win, items, scope):
+        super().__init__(win, scope)
+        self.items = list(items)
+        self.albums: list[tuple[str, list[str]]] = []
+        groups: dict[str, list[str]] = {}
+        for it in self.items:
+            if not it.error:
+                groups.setdefault(it.dir, []).append(it.path)
+        self.albums = list(groups.items())
+        self.exe = rg.rsgain_path()
+        self.results: list[rg.AlbumResult] = []
+
+        f = self.form
+        f.addWidget(section("Was soll passieren?"))
+        self.modes = QButtonGroup(self)
+        cur = self.opts.get("mode", rg.MODE_ALBUM)
+        for mode, text in ((rg.MODE_ALBUM, "Track- und Album-Gain (empfohlen)"), (rg.MODE_TRACK, "Nur Track-Gain"),
+                           (rg.MODE_REMOVE, "ReplayGain-Tags entfernen")):
+            rb = QRadioButton(text)
+            rb.setProperty("mode", mode)
+            rb.setChecked(mode == cur)
+            self.modes.addButton(rb)
+            f.addWidget(rb)
+        self.modes.buttonToggled.connect(self._mode_changed)
+        f.addWidget(hint("Album = Ordner: alle Dateien eines Ordners werden gemeinsam gemessen. "
+                         "Die Musik selbst bleibt unverändert – es werden nur Tags geschrieben."))
+        f.addSpacing(8)
+        f.addWidget(section("Ziel-Lautstärke"))
+        self.target = QComboBox()
+        for value, label in rg.TARGETS:
+            self.target.addItem(label, value)
+        self.target.setCurrentIndex(max(0, self.target.findData(self.opts.get("target", -18))))
+        self.target.currentIndexChanged.connect(lambda _i: self.opts.__setitem__("target", self.target.currentData()))
+        f.addWidget(self.target)
+        f.addSpacing(4)
+        self.cb_clip = self.add_check("Übersteuern verhindern", "clip", True,
+                                      "Senkt die Verstärkung, wenn laute Spitzen sonst verzerren würden.")
+        self.cb_skip = self.add_check("Schon berechnete überspringen", "skip", False,
+                                      "Dateien mit vorhandenen ReplayGain-Tags werden nicht neu gemessen.")
+        f.addSpacing(10)
+        self.start_btn = QPushButton("ReplayGain berechnen")
+        self.start_btn.setProperty("kind", "primary")
+        self.start_btn.clicked.connect(self.start)
+        f.addWidget(self.start_btn)
+        if not self.exe:
+            self.start_btn.setEnabled(False)
+            h = hint(install_hint("rsgain"), "muted")
+            h.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            f.addWidget(h)
+            self.show_message("rsgain fehlt – ohne das Programm lässt sich ReplayGain nicht berechnen. "
+                              "Anleitung links.")
+        f.addStretch(1)
+
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["Album (Ordner)", "Dateien", "Album-Gain", "Spitze", "Status"])
+        self.tree.setRootIsDecorated(True)
+        self.tree.setUniformRowHeights(True)
+        hh = self.tree.header()
+        hh.setStretchLastSection(False)
+        hh.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for folder, paths in self.albums:
+            top = QTreeWidgetItem([os.path.basename(folder) or folder, str(len(paths)), "", "", "wartet"])
+            top.setToolTip(0, folder)
+            top.setForeground(4, theme.qcolor("faint"))
+            for c in (1, 2, 3):
+                top.setTextAlignment(c, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            for p in paths:
+                ch = QTreeWidgetItem([os.path.basename(p), "", "", "", ""])
+                ch.setToolTip(0, p)
+                for c in (2, 3):
+                    ch.setTextAlignment(c, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                top.addChild(ch)
+            self.tree.addTopLevelItem(top)
+        self.content.addWidget(self.tree, 1)
+
+        self.btn_errors = QPushButton("Fehler anzeigen")
+        self.btn_errors.clicked.connect(self._show_errors)
+        self.btn_errors.hide()
+        self.btn_close = QPushButton("Schließen")
+        self.btn_close.clicked.connect(self.reject)
+        self.foot.addWidget(self.btn_errors)
+        self.foot.addWidget(self.btn_close)
+        n_files = sum(len(p) for _f, p in self.albums)
+        self.summary.setText(f"{len(self.albums):,} Alben · {n_files:,} Dateien".replace(",", "."))
+        self._mode_changed()
+
+    def _mode(self) -> str:
+        b = self.modes.checkedButton()
+        return b.property("mode") if b else rg.MODE_ALBUM
+
+    def _mode_changed(self, *_):
+        mode = self._mode()
+        self.opts["mode"] = mode
+        remove = mode == rg.MODE_REMOVE
+        for w in (self.target, self.cb_clip, self.cb_skip):
+            w.setEnabled(not remove)
+        self.start_btn.setText("ReplayGain entfernen" if remove else "ReplayGain berechnen")
+
+    def set_busy(self, busy: bool):
+        self.start_btn.setText("Abbrechen" if busy else ("ReplayGain entfernen" if self._mode() == rg.MODE_REMOVE
+                                                         else "ReplayGain berechnen"))
+        self.start_btn.setProperty("kind", "" if busy else "primary")
+        self.start_btn.style().unpolish(self.start_btn)
+        self.start_btn.style().polish(self.start_btn)
+        for b in self.modes.buttons():
+            b.setEnabled(not busy)
+        self.btn_close.setEnabled(not busy)
+
+    def start(self):
+        if self.task is not None and self.task.isRunning():
+            self.task.cancel()
+            self.progress_text.setText("Breche ab …")
+            return
+        paths = {p for _f, ps in self.albums for p in ps}
+        unsaved = [it for it in self.win.session.items if it.path in paths and it.is_modified()]
+        if unsaved:
+            r = QMessageBox.question(self, "Erst speichern?",
+                                     f"{len(unsaved)} Datei(en) haben ungespeicherte Änderungen.\n\n"
+                                     "ReplayGain schreibt direkt in die Dateien – deshalb vorher speichern?")
+            if r != QMessageBox.StandardButton.Yes:
+                return
+            self.win.save(then=self.start, quiet=True)
+            return
+        self.show_message("")
+        self.btn_errors.hide()
+        mode = self._mode()
+        opts = dict(target=int(self.target.currentData()), clip=self.cb_clip.isChecked(),
+                    skip_existing=self.cb_skip.isChecked() and mode != rg.MODE_REMOVE,
+                    id3v2=int(self.settings.id3_version), keep_mtime=bool(self.settings.keep_mtime))
+        exe, albums = self.exe, list(self.albums)
+        self.results = []
+        results = self.results
+        for t in range(self.tree.topLevelItemCount()):
+            top = self.tree.topLevelItem(t)
+            for c in (2, 3):
+                top.setText(c, "")
+            top.setText(4, "wartet")
+            top.setForeground(4, theme.qcolor("faint"))
+
+        def work(progress, cancelled):
+            from ..core.tags import read_file
+            fresh = []
+            for n, (_folder, paths) in enumerate(albums):
+                if cancelled():
+                    break
+                progress(n, len(albums), "Album")
+                res = rg.process_album(exe, paths, mode, cancelled=cancelled, **opts)
+                results.append(res)
+                fresh += [read_file(p) for p in paths]
+                if res.cancelled:
+                    break
+            progress(len(results), len(albums), "Album")
+            return fresh
+
+        self.start_task(work, done=self._finished, label="Messe Lautheit …")
+
+    def _progress(self, d: int, t: int, text: str):
+        super()._progress(d, t, text)
+        self._show_results()
+        if d < self.tree.topLevelItemCount() and d >= len(self.results):
+            top = self.tree.topLevelItem(d)
+            top.setText(4, "läuft …")
+            top.setForeground(4, theme.qcolor("modified"))
+            self.tree.scrollToItem(top)
+
+    def _show_results(self):
+        for i, res in enumerate(list(self.results)):
+            top = self.tree.topLevelItem(i)
+            if top is None or top.data(0, ROLE_INDEX) == "done":
+                continue
+            top.setData(0, ROLE_INDEX, "done")
+            top.setText(2, res.gain.replace(".", ","))
+            top.setText(3, res.peak.replace(".", ","))
+            errs = [r for r in res.files if r.error]
+            if res.cancelled:
+                status, color = "abgebrochen", "faint"
+            elif errs and len(errs) == len(res.files):
+                status, color = "Fehler", "danger"
+            elif errs:
+                status, color = f"{len(errs)} Fehler", "danger"
+            else:
+                status, color = ("entfernt" if self._mode() == rg.MODE_REMOVE else "fertig"), "done"
+            top.setText(4, status)
+            top.setForeground(4, theme.qcolor(color))
+            if res.error:
+                top.setToolTip(4, res.error)
+            for c, r in enumerate(res.files):
+                ch = top.child(c)
+                if ch is None:
+                    continue
+                ch.setText(2, r.gain.replace(".", ","))
+                ch.setText(3, r.peak.replace(".", ","))
+                if r.error:
+                    ch.setText(4, r.error)
+                    ch.setForeground(4, theme.qcolor("danger"))
+
+    def _finished(self, fresh: list):
+        self._show_results()
+        try:
+            self.win.cache.put_many(fresh)
+        except Exception:
+            pass
+        self.win.session.refresh_records(fresh)
+        errors = [e for res in self.results for e in res.errors]
+        done = sum(1 for res in self.results if not res.cancelled)
+        stopped = any(res.cancelled for res in self.results) or done < len(self.albums)
+        verb = "entfernt" if self._mode() == rg.MODE_REMOVE else "berechnet"
+        self.summary.setText(f"{done} von {len(self.albums)} Alben {verb}" + (f" · {len(errors)} Fehler" if errors
+                                                                              else ""))
+        if stopped:
+            self.show_message("Abgebrochen – fertige Alben sind schon gespeichert.")
+        self.btn_errors.setVisible(bool(errors))
+        self.win.toast.show_message(f"ReplayGain {verb}: {done} Album/Alben")
+
+    def _show_errors(self):
+        from .dialogs import ErrorListDialog
+        ErrorListDialog("ReplayGain – nicht alles geklappt",
+                        [e for res in self.results for e in res.errors], self).exec()
+
+
 def _actions_dialog(win, items, scope):
     from .actions import ActionsDialog
     return ActionsDialog(win, items, scope)
@@ -469,4 +697,5 @@ def _actions_dialog(win, items, scope):
 EXTRA_DIALOGS = {
     "duplicates": DuplicatesDialog,
     "actions": _actions_dialog,
+    "replaygain": ReplayGainDialog,
 }

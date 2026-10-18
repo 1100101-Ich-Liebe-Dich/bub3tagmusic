@@ -29,7 +29,7 @@ TOOLS = {
     "rsgain": {
         "what": "rsgain misst die Lautheit und schreibt ReplayGain-Tags",
         "packages": {
-            "debian": "sudo apt install rsgain   (ab Ubuntu 24.04 / Mint 22 / Debian 13)",
+            "debian": "sudo apt install rsgain\n    (gibt es ab Ubuntu 24.04, Mint 22 und Debian 13)",
             "fedora": "sudo dnf install rsgain",
             "arch": "aus dem AUR: rsgain",
             "suse": "aus dem Packman-Repository: rsgain",
@@ -39,14 +39,18 @@ TOOLS = {
 }
 
 
+def _runnable(path: str) -> bool:
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+
 def find_tool(name: str) -> str:
     env = os.environ.get(f"BUB3_{name.upper()}")
     if env:
-        return env if os.access(env, os.X_OK) else ""
+        return env if _runnable(env) else ""
     appdir = os.environ.get("APPDIR")
     if appdir:
         cand = os.path.join(appdir, "usr", "bin", name)
-        if os.access(cand, os.X_OK):
+        if _runnable(cand):
             return cand
     return shutil.which(name) or ""
 

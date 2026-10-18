@@ -37,6 +37,23 @@ class Session(QObject):
     def clear(self) -> None:
         self.set_records([])
 
+    def refresh_records(self, recs: list[dict]) -> int:
+        """Dateien wurden von außen geändert (z. B. ReplayGain): neuen Stand übernehmen.
+
+        Nur für Einträge ohne ungespeicherte Änderungen – die würden sonst verloren gehen.
+        """
+        by_path = {r["path"]: r for r in recs if not r.get("error")}
+        changed = []
+        for it in self.items:
+            rec = by_path.get(it.path)
+            if rec is not None and not it.is_modified():
+                it.apply_saved(rec)
+                changed.append(it)
+        if changed:
+            self.itemsChanged.emit(changed)
+            self.stateChanged.emit()
+        return len(changed)
+
     def remove_paths(self, paths) -> int:
         """Dateien aus der Liste nehmen (z. B. nach „In den Papierkorb“)."""
         gone = set(paths)

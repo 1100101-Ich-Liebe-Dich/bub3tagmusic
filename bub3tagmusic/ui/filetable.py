@@ -50,9 +50,13 @@ COLUMNS: tuple[Column, ...] = (
     Column("samplerate", "Hz", 70, "info", "right"),
     Column("format", "Format", 70, "info"),
     Column("tagtype", "Tag", 76, "info"),
+    Column("rg_track", "RG Track", 84, "info", "right"),
+    Column("rg_album", "RG Album", 84, "info", "right"),
     Column("folder", "Ordner", 220, "file"),
 )
 COLUMN_INDEX = {c.key: i for i, c in enumerate(COLUMNS)}
+# Später dazugekommene Spalten: bei vorhandenen Einstellungen erst einmal ausgeblendet
+NEW_HIDDEN = {"rg_track", "rg_album"}
 
 
 def fmt_length(sec: float) -> str:
@@ -183,6 +187,10 @@ class FileTableModel(QAbstractTableModel):
             return r.get("format", "")
         if k == "tagtype":
             return r.get("tagtype", "")
+        if k == "rg_track":
+            return (r.get("rg") or {}).get("track", "")
+        if k == "rg_album":
+            return (r.get("rg") or {}).get("album", "")
         return ""
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
@@ -226,6 +234,13 @@ class FileTableModel(QAbstractTableModel):
             key = lambda i: number_sort_key(items[i].tags.get(col.key, ""))  # noqa: E731
         elif col.key == "length":
             key = lambda i: items[i].rec.get("length", 0)  # noqa: E731
+        elif col.key in ("rg_track", "rg_album"):
+            def key(i, k=col.key[3:]):  # noqa: E306
+                v = (items[i].rec.get("rg") or {}).get(k, "")
+                try:
+                    return (0, float(v.split()[0]))
+                except (ValueError, IndexError):
+                    return (1, 0.0)
         elif col.key in ("bitrate", "samplerate"):
             key = lambda i: items[i].rec.get(col.key, 0) or 0  # noqa: E731
         elif col.key == "cover":
@@ -353,7 +368,7 @@ class FileTable(QTableView):
     def apply_column_settings(self, hidden: list[str], widths: dict[str, int]):
         hh = self.horizontalHeader()
         for i, c in enumerate(COLUMNS):
-            hh.setSectionHidden(i, c.key in hidden)
+            hh.setSectionHidden(i, c.key in hidden or (c.key in NEW_HIDDEN and c.key not in widths))
             if c.key in widths and c.key != "state":
                 hh.resizeSection(i, max(30, int(widths[c.key])))
 

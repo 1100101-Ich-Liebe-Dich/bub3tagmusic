@@ -131,6 +131,7 @@ def main():
     test_filters(app, win, root, out)
     test_export(app, win, work, out)
     test_actions(app, win, root, files, out)
+    test_replaygain(app, win, out)
     test_duplicates(app, win, root, files, out)
 
     win.session.revert()
@@ -278,6 +279,53 @@ def test_actions(app, win, root, files, out):
     check(d.model.preview.apply_count == 4, f"eigene Aktion: {d.model.preview.summary}")
     from bub3tagmusic.core import actions as A
     check(any(a.name == "Kommentar weg" for a in A.load_actions(d.path)), "eigene Aktion gespeichert")
+    d.reject()
+
+
+def test_replaygain(app, win, out):
+    print("ReplayGain")
+    from bub3tagmusic.ui.extras import EXTRA_DIALOGS
+    from bub3tagmusic.ui.filetable import COLUMN_INDEX
+    win.table.selectAll()
+    pump(app)
+    items, scope = win.tool_items()
+    d = EXTRA_DIALOGS["replaygain"](win, items, scope)
+    d.show()
+    pump(app)
+    check(d.tree.topLevelItemCount() == 2, "zwei Alben (Ordner)")
+    if not find_tool("rsgain"):
+        check(not d.start_btn.isEnabled() and "rsgain" in d.message.text(), "ohne rsgain: Hinweis statt Start")
+        d.grab().save(os.path.join(out, "x6_replaygain_fehlt.png"))
+        d.reject()
+        return
+    # ungespeicherte Änderung → erst speichern (Rückfrage wird automatisch bejaht)
+    win.session.apply_fields([items[0]], {"comment": "vor ReplayGain"})
+    d.start()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning() and d.results, 120), "ReplayGain berechnet")
+    pump(app, 0.3)
+    check(win.session.modified_count() == 0, "vorher gespeichert")
+    check(items[0].tags["comment"] == "vor ReplayGain", "gespeicherte Änderung bleibt erhalten")
+    check(all(r.gain for r in d.results) and all(not r.error for r in d.results),
+          f"Album-Gain je Ordner: {[r.gain for r in d.results]}")
+    rgs = [(it.rec.get("rg") or {}) for it in win.session.items]
+    check(all(r.get("track") and r.get("album") for r in rgs), f"Liste kennt die neuen Werte: {rgs[:1]}")
+    win.table.horizontalHeader().setSectionHidden(COLUMN_INDEX["rg_album"], False)
+    win.table.horizontalHeader().setSectionHidden(COLUMN_INDEX["rg_track"], False)
+    d.grab().save(os.path.join(out, "x6_replaygain.png"))
+    d.reject()
+    pump(app)
+    win.grab().save(os.path.join(out, "x7_replaygain_liste.png"))
+    fe = win.panel.fields["title"]
+    pos = fe.mapTo(win, fe.rect().topLeft())
+    border = win.grab().toImage().pixelColor(pos.x() + 40, pos.y()).name()
+    check(border != theme.tok("modified").lower(), f"kein gelber Rahmen mehr nach Rückgängig/Speichern ({border})")
+    # entfernen
+    d = EXTRA_DIALOGS["replaygain"](win, items, scope)
+    d.modes.buttons()[2].setChecked(True)
+    d.start()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning(), 120), "ReplayGain entfernt")
+    pump(app, 0.3)
+    check(not any(it.rec.get("rg") for it in win.session.items), "keine ReplayGain-Werte mehr")
     d.reject()
 
 

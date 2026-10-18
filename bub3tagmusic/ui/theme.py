@@ -226,7 +226,7 @@ QLineEdit, QComboBox, QSpinBox, QPlainTextEdit {{
 }}
 QLineEdit:hover, QComboBox:hover, QSpinBox:hover {{ border-color: {t['line_strong']}; }}
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QPlainTextEdit:focus {{ border-color: {t['accent']}; }}
-QLineEdit[modified="true"], QComboBox[modified="true"] {{ border-color: {t['modified']}; }}
+QLineEdit[edited="true"], QComboBox[edited="true"] {{ border-color: {t['modified']}; }}
 QLineEdit:disabled, QComboBox:disabled {{ color: {t['faint']}; background: {t['panel']}; border-color: {t['line_soft']}; }}
 QLineEdit#FilterField {{ border-radius: 9px; padding: 6px 10px; background: {t['input']}; }}
 QComboBox::drop-down {{ border: none; width: 24px; }}

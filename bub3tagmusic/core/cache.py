@@ -17,6 +17,8 @@ import threading
 import time
 from pathlib import Path
 
+from .tags import RECORD_VERSION
+
 SCHEMA_VERSION = 2
 
 FOLDER_OPEN = 0
@@ -86,9 +88,11 @@ class Cache:
             for path, mtime, size, data in c.execute(q, chunk):
                 if stats.get(path) == (mtime, size):
                     try:
-                        out[path] = json.loads(data)
+                        rec = json.loads(data)
                     except ValueError:
-                        pass
+                        continue
+                    if rec.get("v", 1) >= RECORD_VERSION:      # ältere Datensätze neu lesen
+                        out[path] = rec
         return out
 
     def put_many(self, records: list[dict]) -> None:

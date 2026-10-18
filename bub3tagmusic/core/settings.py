@@ -50,7 +50,7 @@ class Settings:
     last_root: str = ""
     last_selection: list[str] = field(default_factory=list)
     hidden_columns: list[str] = field(default_factory=lambda: [
-        "albumartist", "composer", "comment", "tagtype", "samplerate", "folder",
+        "albumartist", "composer", "comment", "tagtype", "samplerate", "folder", "rg_track", "rg_album",
     ])
     column_widths: dict[str, int] = field(default_factory=dict)
     window_geometry: str = ""

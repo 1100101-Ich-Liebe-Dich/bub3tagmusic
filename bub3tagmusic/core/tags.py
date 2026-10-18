@@ -608,6 +608,58 @@ def _open(path: str):
     return f
 
 
+# Version des Datensatz-Aufbaus: ältere Einträge im Zwischenspeicher werden neu gelesen
+RECORD_VERSION = 2       # 2 = mit ReplayGain-Werten (Phase 4)
+
+
+def _rg_text(value) -> str:
+    """Einen ReplayGain-Wert aus beliebigem Tag-Format holen (ID3-Frame, Liste, Bytes, APE/ASF-Wert)."""
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    text = getattr(value, "text", None)            # ID3 TXXX
+    if text is not None:
+        value = text[0] if text else ""
+    inner = getattr(value, "value", None)          # ASF-Attribut
+    if inner is not None and not isinstance(value, (str, bytes)):
+        value = inner
+    if isinstance(value, (bytes, bytearray)):
+        value = bytes(value).decode("utf-8", "replace")
+    return str(value).strip().strip("\x00")
+
+
+def read_replaygain(f) -> dict:
+    """{'track': '-7.21 dB', 'album': '-6.80 dB'} – nur vorhandene Werte. Opus: R128 umgerechnet."""
+    tags = getattr(f, "tags", None)
+    if not tags:
+        return {}
+    out = {}
+    try:
+        items = list(tags.items())
+    except Exception:
+        return {}
+    for key, value in items:
+        k = str(key).lower()
+        if k.startswith("txxx:"):
+            k = k[5:]
+        elif k.startswith("----:com.apple.itunes:"):
+            k = k[22:]
+        for which in ("track", "album"):
+            if k == f"replaygain_{which}_gain":
+                v = _rg_text(value)
+                try:
+                    out[which] = f"{float(v.split()[0]):+.2f} dB"
+                except (ValueError, IndexError):
+                    if v:
+                        out[which] = v
+            elif k == f"r128_{which}_gain" and which not in out:
+                try:
+                    db = int(_rg_text(value)) / 256 + 5     # R128 (−23 LUFS) → ReplayGain (−18 LUFS)
+                    out[which] = f"{db:+.2f} dB"
+                except ValueError:
+                    pass
+    return out
+
+
 def read_file(path: str) -> dict:
     """Liest Tags + Audio-Infos. Gibt immer ein Dict zurück (Fehler im Feld 'error').
 
@@ -619,6 +671,7 @@ def read_file(path: str) -> dict:
         "path": path, "mtime": 0, "size": 0, "format": os.path.splitext(path)[1][1:].upper(),
         "tagtype": "", "tags": dict.fromkeys(FIELD_KEYS, ""), "length": 0.0, "bitrate": 0,
         "samplerate": 0, "channels": 0, "cover": None, "cover_count": 0, "error": "",
+        "v": RECORD_VERSION,
     }
     try:
         st = os.stat(path)
@@ -638,6 +691,9 @@ def read_file(path: str) -> dict:
         if cover is not None:
             rec["cover"] = image_info(cover.data)
             rec["cover_count"] = count
+        rg = read_replaygain(f)
+        if rg:
+            rec["rg"] = rg
     except TagWriteError as exc:
         rec["error"] = str(exc)
     except Exception as exc:  # nie wegen einer Datei abstürzen

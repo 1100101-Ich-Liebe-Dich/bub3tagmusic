@@ -64,10 +64,13 @@ class FieldEdit(QLineEdit):
         self.setText(value)
         self.setPlaceholderText((MIXED if self.clearable else MIXED_SHORT) if mixed else "")
         self._clear.setVisible(self.clearable and (bool(value) or mixed))
-        if self.property("modified") != modified:
-            self.setProperty("modified", modified)
+        # Eigener Name „edited“: QLineEdit hat schon eine Eigenschaft „modified“, die setText() still
+        # zurücksetzt – dann blieb der gelbe Rahmen stehen, obwohl nichts mehr geändert war.
+        if self.property("edited") != modified:
+            self.setProperty("edited", modified)
             self.style().unpolish(self)
             self.style().polish(self)
+            self.update()
 
     def _on_edit(self, text: str):
         self.dirty = True

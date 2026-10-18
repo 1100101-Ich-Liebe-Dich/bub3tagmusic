@@ -207,6 +207,52 @@ def test_actions(tmp):
        "Platzhalter im Wert: Schrägstrich bleibt, Track ohne Gesamtzahl")
 
 
+def test_replaygain(tmp):
+    print("ReplayGain")
+    from bub3tagmusic.core import replaygain as rg
+    cmd = rg.build_command("rsgain", ["/a/1.mp3", "/a/2.mp3"], rg.MODE_ALBUM, -18, True, False, 3)
+    eq(cmd, ["rsgain", "custom", "-q", "-s", "i", "-O", "-l", "-18", "-c", "p", "-I", "3", "-a", "/a/1.mp3",
+             "/a/2.mp3"], "Befehl für Album-Gain")
+    eq(rg.build_command("rsgain", ["/a/1.mp3"], rg.MODE_REMOVE), ["rsgain", "custom", "-q", "-s", "d", "/a/1.mp3"],
+       "Befehl zum Entfernen")
+    out = ("Filename\tLoudness (LUFS)\tGain (dB)\tPeak\t Peak (dB)\tPeak Type\tClipping Adjustment?\n"
+           "01 - A.mp3\t-21.75\t3.75\t0.090820\t-20.84\tSample\tN\n"
+           "01 - A.mp3\t-12.00\t-6.00\t0.990000\t-0.09\tSample\tY\n"
+           "Album\t-15.00\t-3.00\t0.990000\t-0.09\tSample\tN\n")
+    tracks, album = rg.parse_output(out, ["/x/CD1/01 - A.mp3", "/x/CD2/01 - A.mp3"])
+    eq(tracks, {"/x/CD1/01 - A.mp3": ("+3.75 dB", "0.090820"), "/x/CD2/01 - A.mp3": ("-6.00 dB", "0.990000")},
+       "Ausgabe lesen – auch bei gleichen Dateinamen in Reihenfolge")
+    eq(album, ("-3.00 dB", "0.990000"), "Album-Zeile")
+    from bub3tagmusic.core.tags import read_replaygain
+
+    class _F:
+        tags = {"R128_TRACK_GAIN": ["-1280"], "REPLAYGAIN_ALBUM_GAIN": ["-6.5 dB"]}
+    eq(read_replaygain(_F()), {"track": "+0.00 dB", "album": "-6.50 dB"}, "R128 (Opus) umgerechnet")
+    exe = rg.rsgain_path()
+    if not exe or not shutil.which("ffmpeg"):
+        print("   (rsgain oder ffmpeg fehlt – echter Durchlauf übersprungen)")
+        return
+    import subprocess
+    files = []
+    for n, ext in enumerate(("flac", "mp3", "ogg"), 1):
+        p = os.path.join(tmp, "rg", f"0{n} - Lied.{ext}")
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"sine=frequency={300 * n}:duration=3",
+                        p], check=True)
+        files.append(p)
+    bad = os.path.join(tmp, "rg", "04 - kaputt.mp3")
+    open(bad, "wb").write(b"kein audio" * 100)
+    before = os.stat(files[0]).st_mtime_ns
+    res = rg.process_album(exe, files + [bad], rg.MODE_ALBUM, keep_mtime=True)
+    eq([bool(r.gain) for r in res.files], [True, True, True, False], "kaputte Datei bremst das Album nicht")
+    eq(bool(res.gain) and "lesen" in res.files[3].error, True, f"Album-Gain + Fehlertext ({res.files[3].error})")
+    eq(os.stat(files[0]).st_mtime_ns, before, "Änderungsdatum bleibt (Einstellung)")
+    from bub3tagmusic.core.tags import read_file
+    eq(set(read_file(files[1]).get("rg", {})), {"track", "album"}, "Werte stehen in der Datei")
+    rg.process_album(exe, files, rg.MODE_REMOVE)
+    eq(read_file(files[1]).get("rg"), None, "entfernt")
+
+
 def main():
     tmp = tempfile.mkdtemp()
     try:
@@ -216,6 +262,7 @@ def main():
         test_duplicates()
         test_tools_external(tmp)
         test_actions(tmp)
+        test_replaygain(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print()
