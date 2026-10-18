@@ -11,7 +11,7 @@ Cover Cover Art Archive für Die Ärzte – Die Bestie in Menschengestalt: 3 Tre
 Cover iTunes für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover Deezer für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover-Vorschau Cover Art Archive geladen
-MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · DE · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
+MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · GB · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
 MB Album The Wall: 26 Tracks, 2 Disc(s), Genre 'Progressive Rock', Cover ja, Track1 'In the Flesh?' 200s
 CAA Vorschaubild geladen
 Cover Cover Art Archive für Pink Floyd – The Wall: 2 Treffer 
@@ -26,7 +26,9 @@ Künstlerbild TheAudioDB für Die Ärzte: 4
 Künstlerbild-Vorschau Deezer geladen
 Discogs 249504: Rick Astley – Never Gonna Give You Up (1987), 2 Tracks, 1 Disc(s), Positionen [1, 2]
 Discogs 1: The Persuader – Stockholm (1999), 6 Tracks, 1 Disc(s), Positionen [1, 2, 3, 4, 5, 6]
-AcoustID Fehler: MusicBrainz antwortet mit Fehler 503 – später nochmal versuchen
+MB Aufnahmen Hells Bells: 5
+AcoustID Track: {'mbid': '2d280634-5967-4523-bef8-62a6ad51662d', 'trackid': 'b4c7e235-84d7-491c-95ca-d6e5e713c332'}
+AcoustID Lookup: 1 Aufnahme(n); erste: Hells Bells / AC/DC / Back in Melbourne / 2004 / Track 1/12 / Album + Compilation + Live / weitere 2
 AcoustID Fingerabdruck-Lookup (Testklang): 0 Treffer
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
 AcoustID falscher Key → AcoustID-Key ungültig – in Einstellungen → Online prüfen
