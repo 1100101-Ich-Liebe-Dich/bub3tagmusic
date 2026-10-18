@@ -1,0 +1,37 @@
+name: Testdaten aufzeichnen
+
+# Zeichnet echte Antworten von MusicBrainz, Cover Art Archive, iTunes, Deezer,
+# Discogs und TheAudioDB auf und legt sie nach tests/fixtures/online.
+# Auslösen: Datei tests/fixtures/online/RECORD ändern (oder per Hand in GitHub).
+on:
+  push:
+    branches: [main]
+    paths: ["tests/fixtures/online/RECORD"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bibliotheken
+        run: pip install -q mutagen Pillow certifi
+
+      - name: Aufzeichnen
+        run: python tests/record_online.py
+
+      - name: Ins Repository legen
+        run: |
+          git config user.name "BuB3TAGMUSIC Testdaten"
+          git config user.email "actions@users.noreply.github.com"
+          git add tests/fixtures/online
+          git commit -m "Testdaten der Online-Dienste aufgezeichnet [skip ci]" || echo "nichts Neues"
+          git push

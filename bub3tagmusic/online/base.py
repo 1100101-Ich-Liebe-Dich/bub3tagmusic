@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import difflib
+import re
 import threading
 import time
+import unicodedata
 from dataclasses import dataclass, field
 
 from .. import APP_NAME, APP_VERSION, PRESENTER_URL
@@ -42,6 +45,7 @@ class TrackMatch:
     artist: str = ""
     length: float = 0.0          # Sekunden – zum Zuordnen der eigenen Dateien
     disc: int = 1
+    track_total: int = 0         # Anzahl Tracks auf dieser Disc
 
 
 @dataclass
@@ -57,8 +61,17 @@ class AlbumMatch:
     track_total: int = 0
     disc_total: int = 1
     tracks: list[TrackMatch] = field(default_factory=list)
-    cover_url: str = ""
+    cover_url: str = ""          # kleines Vorschaubild
+    cover_full_url: str = ""     # Cover in voller Größe (zum Übernehmen)
+    formats: str = ""            # "CD", "2×CD", "Digital Media", "Vinyl" …
     score: int = 0               # 0–100, wie gut der Treffer passt
+    extra: dict = field(default_factory=dict)
+
+    @property
+    def details(self) -> str:
+        parts = [self.year, self.country, self.label, self.formats,
+                 f"{self.track_total} Tracks" if self.track_total else ""]
+        return " · ".join(p for p in parts if p)
 
 
 @dataclass
@@ -68,4 +81,51 @@ class CoverCandidate:
     thumb_url: str = ""
     width: int = 0
     height: int = 0
-    description: str = ""
+    description: str = ""        # z. B. "Kurs Nord – Ankerplatz"
+    score: float = 0.0           # Ähnlichkeit zur Suche (0–1)
+    size_hint: str = ""          # wenn die Größe vorher unbekannt ist, z. B. "bis 3000 px"
+
+    @property
+    def size_text(self) -> str:
+        if self.width and self.height:
+            return f"{self.width} × {self.height}"
+        return self.size_hint
+
+
+# ----------------------------------------------------------------------
+# Ähnlichkeit von Namen (für Sortierung der Treffer)
+# ----------------------------------------------------------------------
+def normalize(text: str) -> str:
+    text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+    text = re.sub(r"\(.*?\)|\[.*?\]", " ", text)          # (Remastered), [Deluxe]
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    text = re.sub(r"^the\s+", "", text.strip())
+    return " ".join(text.split())
+
+
+def similarity(a: str, b: str) -> float:
+    a, b = normalize(a), normalize(b)
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def match_score(want_artist: str, want_album: str, artist: str, album: str) -> float:
+    """0–1: wie gut passt ein Treffer zur Suche (Album zählt etwas mehr)."""
+    if not want_artist:
+        return similarity(want_album, album)
+    return 0.45 * similarity(want_artist, artist) + 0.55 * similarity(want_album, album)
+
+
+def seconds(text: str) -> float:
+    """'4:05' → 245, '1:02:03' → 3723, '' → 0."""
+    try:
+        parts = [int(p) for p in (text or "").strip().split(":")]
+    except ValueError:
+        return 0.0
+    total = 0
+    for p in parts:
+        total = total * 60 + p
+    return float(total) if parts else 0.0
