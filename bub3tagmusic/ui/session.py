@@ -13,7 +13,7 @@ from ..core.covers import CoverData
 from ..core.fields import FIELD_BY_KEY
 from ..core.model import FileItem
 from ..core.tags import COVER_KEEP, COVER_REMOVE
-from ..core.undo import EditStep, SaveStep, UndoStack
+from ..core.undo import EditStep, RenameStep, SaveStep, UndoStack
 from .workers import SaveJob
 
 
@@ -62,6 +62,23 @@ class Session(QObject):
                 step.entries.append((it, it.snapshot()))
                 it.tags.update(changes)
                 touched.append(it)
+        if touched:
+            self.undo.push_edit(step)
+            self.itemsChanged.emit(touched)
+            self.stateChanged.emit()
+        return len(touched)
+
+    def apply_changes(self, changes: list[tuple[FileItem, dict[str, str]]], label: str) -> int:
+        """Unterschiedliche Änderungen je Datei – als EIN Rückgängig-Schritt (Werkzeuge)."""
+        step = EditStep(label)
+        touched = []
+        for it, ch in changes:
+            ch = {k: v for k, v in ch.items() if k in FIELD_BY_KEY and it.tags.get(k, "") != v}
+            if not ch:
+                continue
+            step.entries.append((it, it.snapshot()))
+            it.tags.update(ch)
+            touched.append(it)
         if touched:
             self.undo.push_edit(step)
             self.itemsChanged.emit(touched)
@@ -138,6 +155,25 @@ class Session(QObject):
             self.itemsChanged.emit(changed)
         self.stateChanged.emit()
         return ok, errors
+
+    def finish_rename(self, results: list[dict], label: str, record_undo: bool = True) -> tuple[int, list]:
+        by_path = {it.path: it for it in self.items}
+        done, errors, changed = [], [], []
+        for r in results:
+            if r["error"]:
+                errors.append((r["old"], r["error"]))
+                continue
+            done.append((r["old"], r["new"]))
+            it = by_path.get(r["old"])
+            if it is not None:
+                it.set_path(r["new"])
+                changed.append(it)
+        if record_undo and done:
+            self.undo.push_rename(RenameStep(label, done))
+        if changed:
+            self.itemsChanged.emit(changed)
+        self.stateChanged.emit()
+        return len(done), errors
 
     @staticmethod
     def undo_jobs(step: SaveStep) -> list[SaveJob]:

@@ -28,6 +28,13 @@ class FileItem:
         self.tags = dict(self.orig)
         self.cover_action = COVER_KEEP
 
+    def set_path(self, new: str) -> None:
+        """Nach dem Umbenennen."""
+        self.path = new
+        self._dir = os.path.dirname(new)
+        self._name = os.path.basename(new)
+        self.rec = dict(self.rec, path=new)
+
     # --- Bequemlichkeit ---------------------------------------------------
     @property
     def dir(self) -> str:

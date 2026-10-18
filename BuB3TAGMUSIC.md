@@ -3,7 +3,7 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.1.2 – **Phase 1 fertig, als eine ausführbare Datei (AppImage)** (18.10.2026).
+> **Aktueller Stand:** Version 0.2.0 – **Phase 2 fertig: alle Werkzeuge mit Live-Vorschau** (18.10.2026).
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -154,14 +154,27 @@ Musik/
 - [x] Fehler einzelner Dateien stoppen nie den Rest – Fehlerliste zum Kopieren
 - [x] Platzhalter für alle Funktionen der Phasen 2–4 in den Menüs (mit Beschreibung und geplantem Kürzel)
 
-### Phase 2: Dateiname ↔ Tags & Werkzeuge
+### Phase 2: Dateiname ↔ Tags & Werkzeuge ✅ fertig (0.2.0)
 
-- [ ] #1 Tags aus Dateinamen/Ordnernamen, z. B. `%artist%/%album%/%track% - %title%` *(Kernfunktion schon fertig und getestet: `core/patterns.py`)*
-- [ ] #2 Dateinamen aus Tags erzeugen (mit Vorschau vor dem Umbenennen)
-- [ ] #3 Tracknummern automatisch vergeben (pro Ordner)
-- [ ] #4 Groß-/Kleinschreibung korrigieren
-- [ ] #5 Suchen & Ersetzen, auch mit Regex
-- [ ] #6 Leerzeichen säubern, Sonderzeichen ersetzen
+- [x] #1 Tags aus Datei-/Ordnernamen, z. B. `%artist%/%year% - %album%/%track% - %title%`
+  - „/“ = Ordnerebene, `%dummy%` überspringt, Vorlagen + die letzten 12 Muster, Tippfehler-Hinweis („meintest du %title%?“)
+  - Führende Nullen weg, Unterstriche als Leerzeichen, „nur leere Felder füllen“
+- [x] #2 Dateinamen aus Tags – Vorschau alt → neu, prüft fehlende Tags, doppelte Namen, vorhandene Dateien, Länge
+  - Zweistufiges Umbenennen (auch Tauschen A↔B), überschreibt nie, Fehler werden zurückgerollt
+  - USB-/Windows-taugliche Namen (Standard), Tracknummer auffüllen, Rückgängig benennt zurück
+  - Ordner umbenennen: bewusst noch nicht (siehe offene Punkte)
+- [x] #3 Tracks nummerieren – Listen-Reihenfolge, pro Ordner neu, Gesamtzahl, führende Null, Startwert,
+  Disc-Nummer aus Ordnernamen (CD1, Disc 2 …) samt Gesamtzahl der Discs
+- [x] #4 Groß-/Kleinschreibung – 4 Modi, Felder wählbar, kleine Wörter + feste Schreibweisen einstellbar,
+  römische Zahlen, „(feat. …)“ bleibt klein, gemischte Schreibweise (iPhone) geschützt
+- [x] #5 Suchen & Ersetzen – Groß/klein, ganze Wörter, reguläre Ausdrücke mit `$1`/`\1`,
+  verständliche Fehlermeldungen, Trefferzahl
+- [x] #6 Aufräumen – 7 Regeln einzeln schaltbar (unsichtbare Zeichen, Unterstriche, feat., leere Klammern,
+  doppelte Leerzeichen, Rand, führende Nullen)
+
+**Gemeinsam für alle Werkzeuge:** Live-Vorschau (geändert gelb, Probleme rot, unveränderte ausblendbar),
+wirken auf die Auswahl oder sonst die ganze Liste, Einstellungen werden gemerkt, Übernehmen = ein
+Rückgängig-Schritt. Erreichbar über Menü „Werkzeuge“, Alt+1 … Alt+5 und Rechtsklick in der Liste.
 
 ### Phase 3: Online
 
@@ -213,15 +226,19 @@ BuB3TAGMUSIC/
     │   ├── cache.py          SQLite: Tags + Ordner-Status (mit Versions-Migration)
     │   ├── model.py          geladene Datei mit Bearbeitungsstand
     │   ├── undo.py           Rückgängig-Verlauf
-    │   ├── patterns.py       Muster %artist% … (Phase-2-Baustein)
+    │   ├── patterns.py       Muster %artist% … in beide Richtungen, mit Ordnerebenen
+    │   ├── tools.py          Werkzeug-Logik (Phase 2)
+    │   ├── rename.py         Umbenennen: Plan, Prüfung, zweistufig ausführen
     │   └── settings.py       Einstellungen (JSON)
     ├── online/               Phase 3/4: Schnittstellen stehen, Inhalte folgen
     └── ui/                   Oberfläche (mainwindow, session, workers, foldertree,
-                              filetable, editpanel, coverwidget, dialogs, theme, icons)
+                              filetable, editpanel, coverwidget, dialogs, theme, icons,
+                              tools = Werkzeug-Dialoge, widgets = Bausteine)
 ```
 
-**Neue Funktion anschließen:** in `features.py` `ready=True` setzen und in `ui/mainwindow.py`
-unter `FEATURE_HANDLERS` die Methode eintragen. Menüeintrag und Tastenkürzel existieren schon.
+**Neue Funktion anschließen:** in `features.py` `ready=True` setzen und – bei einem Werkzeug mit
+Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen, sonst die Methode
+in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel existieren schon.
 
 ---
 
@@ -244,6 +261,7 @@ unter `FEATURE_HANDLERS` die Methode eintragen. Menüeintrag und Tastenkürzel e
 | Liste mit 50.000 Einträgen füllen / sortieren / filtern | 0,3 s / 0,1 s / 0,1 s |
 | 50.000 Dateien auswählen + Bearbeitungsfeld | ca. 1 s |
 | Genre für 50.000 Dateien setzen / rückgängig | 0,3 s / 0,3 s |
+| Werkzeug-Vorschau für ≈ 42.000 Dateien (je nach Werkzeug) | 0,25 – 1,4 s |
 
 Echte MP3s mit großen Covern auf einer alten Festplatte brauchen beim ersten Einlesen länger
 (grob 5–20 ms pro Datei). Danach greift der Cache.
@@ -294,11 +312,13 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 - [ ] #21 Discogs-Account + Token anlegen (übernimmt BAUENUNDBOOTEN zum Testen)
 - [ ] #23 AcoustID-Key (später, Phase 4)
 - [ ] #22 APE- und DSF-Dateien zum Testen (falls in der Sammlung vorhanden)
+- [ ] Ordner umbenennen (z. B. `%year% - %album%`) – Wunsch? Dann als eigenes Werkzeug mit Vorschau
+- [ ] Gleichnamige Begleitdateien (.lrc, .cue) beim Umbenennen mitnehmen – Wunsch?
 
 ---
 
 ## 10. Nächster Schritt
 
-1. Mit `make` bauen (siehe `ANLEITUNG.md`) und mit einer **Kopie** von ein paar Künstler-Ordnern testen
-2. Rückmeldung sammeln und Phase 1 nachschärfen
-3. Phase 2 starten: Tags ↔ Dateiname, Auto-Nummerierung, Schreibweise, Suchen & Ersetzen
+1. Phase 2 mit `make` bauen und an einer **Kopie** testen – besonders Umbenennen und Tags aus Dateiname
+2. Rückmeldung sammeln und nachschärfen
+3. Phase 3 starten: MusicBrainz-Album-Suche (#7), Cover-Suche (#9), Künstlerbild (#10), Discogs (#8)

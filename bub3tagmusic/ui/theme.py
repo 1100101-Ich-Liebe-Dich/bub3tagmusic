@@ -106,10 +106,40 @@ def wordmark_font(size_px: int = 26) -> QFont:
     return f
 
 
+def _arrow_files(t: dict[str, str], name: str) -> dict[str, str]:
+    """Kleine Pfeil-Symbole für Auswahllisten und Zahlenfelder in Theme-Farbe.
+
+    Sobald ein Stylesheet Comboboxen/Spinboxen gestaltet, zeichnet Qt die Pfeile
+    nicht mehr selbst – deshalb liegen sie als SVG im Cache.
+    """
+    from ..core.settings import cache_dir
+    folder = cache_dir() / "theme"
+    folder.mkdir(parents=True, exist_ok=True)
+    out = {}
+    shapes = {"down": "M2 4 L6 8 L10 4", "up": "M2 8 L6 4 L10 8"}
+    for key, d in shapes.items():
+        for role in ("muted", "faint"):
+            path = folder / f"chevron-{key}-{name}-{role}.svg"
+            svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">'
+                   f'<path d="{d}" fill="none" stroke="{t[role]}" stroke-width="1.6" '
+                   f'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+            try:
+                if not path.exists() or path.read_text() != svg:
+                    path.write_text(svg)
+            except OSError:
+                pass
+            out[f"{key}_{role}"] = path.as_posix()
+    return out
+
+
 def apply(app: QApplication, name: str) -> None:
     global _current
     _current = name if name in THEMES else "dark"
-    t = THEMES[_current]
+    t = dict(THEMES[_current])
+    try:
+        t.update({f"arrow_{k}": v for k, v in _arrow_files(t, _current).items()})
+    except Exception:
+        pass
 
     pal = QPalette()
     roles = {
@@ -198,7 +228,18 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QPlainTextEdit:focus {{ border
 QLineEdit[modified="true"], QComboBox[modified="true"] {{ border-color: {t['modified']}; }}
 QLineEdit:disabled, QComboBox:disabled {{ color: {t['faint']}; background: {t['panel']}; border-color: {t['line_soft']}; }}
 QLineEdit#FilterField {{ border-radius: 9px; padding: 6px 10px; background: {t['input']}; }}
-QComboBox::drop-down {{ border: none; width: 22px; }}
+QComboBox::drop-down {{ border: none; width: 24px; }}
+QComboBox::down-arrow {{ image: url("{t.get('arrow_down_muted', '')}"); width: 12px; height: 12px; }}
+QComboBox::down-arrow:disabled {{ image: url("{t.get('arrow_down_faint', '')}"); }}
+QSpinBox {{ padding-right: 22px; }}
+QSpinBox::up-button, QSpinBox::down-button {{
+    subcontrol-origin: border; width: 20px; border: none; background: transparent; margin-right: 2px;
+}}
+QSpinBox::up-button {{ subcontrol-position: top right; margin-top: 2px; }}
+QSpinBox::down-button {{ subcontrol-position: bottom right; margin-bottom: 2px; }}
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background: {t['hover']}; border-radius: 4px; }}
+QSpinBox::up-arrow {{ image: url("{t.get('arrow_up_muted', '')}"); width: 10px; height: 10px; }}
+QSpinBox::down-arrow {{ image: url("{t.get('arrow_down_muted', '')}"); width: 10px; height: 10px; }}
 QComboBox QLineEdit {{ border: none; padding: 0; margin: 0; background: transparent; border-radius: 0; }}
 QComboBox QAbstractItemView {{
     background: {t['raised']}; border: 1px solid {t['line']}; outline: 0;
@@ -275,5 +316,18 @@ QListWidget {{ background: {t['input']}; border: 1px solid {t['line']}; border-r
 QListWidget::item {{ padding: 6px; border-bottom: 1px solid {t['line_soft']}; }}
 QCheckBox, QRadioButton {{ spacing: 8px; }}
 #Toast {{ background: {t['raised']}; border: 1px solid {t['line_strong']}; border-radius: 10px; padding: 9px 14px; color: {t['text']}; font-weight: 500; }}
+QToolButton[kind="chip"] {{
+    background: {t['raised']}; border: 1px solid {t['line']}; border-radius: 11px;
+    padding: 3px 10px; font-size: 12px; color: {t['muted']};
+}}
+QToolButton[kind="chip"]:hover {{ border-color: {t['line_strong']}; color: {t['text']}; }}
+QToolButton[kind="chip"]:checked {{ background: {t['accent_soft']}; border-color: {t['accent']}; color: {t['text']}; }}
+#ToolHead {{ background: {t['panel']}; border-bottom: 1px solid {t['line']}; }}
+#ToolOptions, #ToolOptionsInner {{ background: {t['panel']}; border-right: 1px solid {t['line']}; }}
+#ToolOptionsInner {{ border: none; }}
+#ToolFoot {{ background: {t['panel']}; border-top: 1px solid {t['line']}; }}
+#ToolSummary {{ font-weight: 600; }}
+#ToolMessage {{ background: {t['accent_soft']}; color: {t['text']}; padding: 9px 14px; border-bottom: 1px solid {t['line']}; }}
+QPlainTextEdit {{ background: {t['input']}; }}
 #Card {{ background: {t['panel']}; border: 1px solid {t['line']}; border-radius: 12px; }}
 """

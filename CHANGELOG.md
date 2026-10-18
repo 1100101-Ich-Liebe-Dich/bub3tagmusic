@@ -2,9 +2,27 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
-## [Unveröffentlicht]
+## [0.2.0] – 2026-10-18 – Phase 2: Werkzeuge
 
 ### Neu
+- **Tags aus Dateiname / Ordnername** (Alt+1) – Muster mit Ordnerebenen, `%dummy%`, Vorlagen + Verlauf,
+  Tippfehler-Hinweis, „nur leere Felder füllen“.
+- **Dateinamen aus Tags** (Alt+2) – sicheres zweistufiges Umbenennen mit Prüfung auf fehlende Tags,
+  doppelte Namen und vorhandene Dateien; USB-/Windows-taugliche Namen; Rückgängig benennt zurück.
+- **Tracks nummerieren** (Alt+3) – pro Ordner, Gesamtzahl, führende Null, Disc-Nummer aus Ordnernamen.
+- **Groß-/Kleinschreibung** (Alt+4) – vier Modi, kleine Wörter und feste Schreibweisen einstellbar,
+  gemischte Schreibweise geschützt.
+- **Suchen & Ersetzen** (Alt+5) – auch mit regulären Ausdrücken und `$1`.
+- **Aufräumen** – sieben einzeln schaltbare Regeln.
+- Alle Werkzeuge mit Live-Vorschau; Übernehmen ist ein einziger Rückgängig-Schritt; Einstellungen werden gemerkt.
+- Rechtsklick in der Dateiliste: Werkzeuge, Änderungen verwerfen, Ordner im Dateimanager öffnen.
+- Tastenkürzel-Übersicht (F1) mit den Werkzeugen.
+
+### Verbessert
+- Auswahllisten und Zahlenfelder zeigen wieder ihre Pfeile (z. B. Genre-Feld).
+- Speichern verwirft jetzt alle vorherigen Bearbeitungsschritte aus dem Verlauf (sie sind ja gespeichert).
+
+### Außerdem
 - `ANLEITUNG.md`: Bauen mit `make` Schritt für Schritt, mit Hilfe bei Problemen.
 - Bauen klappt jetzt auch nur mit `wget` (Ubuntu hat `curl` oft nicht vorinstalliert).
 

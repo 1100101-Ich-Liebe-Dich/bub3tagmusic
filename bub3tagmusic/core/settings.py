@@ -55,6 +55,9 @@ class Settings:
     window_geometry: str = ""
     splitter_state: str = ""
 
+    # --- Werkzeuge (Phase 2): letzte Einstellungen je Werkzeug ---------
+    tool_options: dict = field(default_factory=dict)
+
     # --- Online (Phase 3) ---------------------------------------------
     discogs_token: str = ""
     acoustid_key: str = ""               # Phase 4

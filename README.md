@@ -5,8 +5,8 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.1.2 – Phase 1 (Grundgerüst)**. Die Funktionen der Phasen 2–4 sind
-in den Menüs „Werkzeuge“, „Online“ und „Extras“ schon als Platzhalter zu sehen.
+Stand: **Version 0.2.0 – Phase 2 (Werkzeuge)**. Die Funktionen der Phasen 3–4 sind
+in den Menüs „Online“ und „Extras“ schon als Platzhalter zu sehen.
 
 ---
 
@@ -58,6 +58,25 @@ und einen Künstler- oder den Sammlungsordner anklicken.
 **Rückgängig (Strg+Z)** nimmt Bearbeitungen zurück – und auch schon Gespeichertes:
 Vor jedem Speichern merkt sich das Programm die alten Werte (die letzten 20 Speichervorgänge).
 
+### Werkzeuge (Menü „Werkzeuge“, Alt+1 … Alt+5 oder Rechtsklick in der Liste)
+
+Alle Werkzeuge arbeiten auf der Auswahl (oder auf allen Dateien der Liste, wenn nichts ausgewählt ist)
+und zeigen **vorher eine Live-Vorschau**: geänderte Werte gelb, Probleme rot.
+
+![Werkzeug](docs/screenshot-werkzeug.png)
+
+| Werkzeug | Was es macht |
+|---|---|
+| **Tags aus Dateiname** (Alt+1) | Füllt Felder aus Datei- und Ordnernamen, z. B. `%artist%/%year% - %album%/%track% - %title%`. „/“ trennt Ordnerebenen, `%dummy%` überspringt Teile. Tippfehler im Muster werden erkannt. |
+| **Dateinamen aus Tags** (Alt+2) | Benennt Dateien um, z. B. `%track% - %title%` → `03 - Am Kai.mp3`. Prüft vorher fehlende Tags und doppelte Namen, überschreibt nie etwas, auch Tauschen klappt. Wahlweise USB-/Windows-tauglich. |
+| **Tracks nummerieren** (Alt+3) | In Listen-Reihenfolge, pro Ordner neu, mit Gesamtzahl (3/12), führender Null oder Disc-Nummer aus Ordnernamen (CD1, Disc 2 …). |
+| **Groß-/Kleinschreibung** (Alt+4) | `DER TITEL` → `Der Titel`. Kleine Wörter (und, der, the …) und feste Schreibweisen (AC/DC …) einstellbar; gemischte Schreibweisen wie „iPhone“ bleiben geschützt. |
+| **Suchen & Ersetzen** (Alt+5) | In gewählten Feldern, wahlweise Groß/klein, ganze Wörter oder reguläre Ausdrücke (`$1` / `\1`). |
+| **Aufräumen** | Doppelte Leerzeichen, Unterstriche, leere Klammern, unsichtbare Zeichen, „ft.“ → „feat.“, führende Nullen. |
+
+Übernehmen wirkt wie jede Bearbeitung: gelb markiert, **Strg+S** speichert, **Strg+Z** nimmt das ganze
+Werkzeug in einem Schritt zurück. Umbenennen passiert sofort – Strg+Z benennt zurück.
+
 ### Tastenkürzel
 
 | Kürzel | Funktion |
@@ -72,6 +91,7 @@ Vor jedem Speichern merkt sich das Programm die alten Werte (die letzten 20 Spei
 | F2 | Zelle in der Liste bearbeiten |
 | Strg+F | Liste filtern |
 | Strg+Shift+V | Bild aus der Zwischenablage als Cover |
+| Alt+1 … Alt+5 | Werkzeuge (Tags aus Dateiname, Umbenennen, Nummerieren, Schreibweise, Ersetzen) |
 | F5 | Neu einlesen |
 | Strg+, | Einstellungen |
 | F1 | Alle Tastenkürzel |
@@ -105,7 +125,9 @@ bub3tagmusic/
 │   ├── cache.py        SQLite: Tags + Ordner-Status
 │   ├── model.py        eine geladene Datei mit Bearbeitungsstand
 │   ├── undo.py         Rückgängig-Verlauf (Bearbeiten + Speichern)
-│   ├── patterns.py     %artist% - %title% (Baustein Phase 2, schon getestet)
+│   ├── patterns.py     Muster %artist% - %title% (beide Richtungen, mit Ordnerebenen)
+│   ├── tools.py        Werkzeug-Logik: nummerieren, Schreibweise, ersetzen, aufräumen
+│   ├── rename.py       Umbenennen: Plan + Prüfung + sicheres Ausführen (zweistufig)
 │   └── settings.py     Einstellungen (JSON)
 ├── online/             Phase 3/4: Schnittstellen + Datentypen stehen schon
 │   ├── base.py         AlbumMatch, CoverCandidate, RateLimiter (1 Anfrage/s)
@@ -119,6 +141,8 @@ bub3tagmusic/
 │   ├── editpanel.py    Bearbeitungsfeld + Cover-Aktionen
 │   ├── coverwidget.py  Cover-Anzeige mit Drag & Drop
 │   ├── dialogs.py      Einstellungen, Tastenkürzel, Über, Fehlerliste, Toast
+│   ├── tools.py        Werkzeug-Dialoge mit Live-Vorschau (ToolDialog + 6 Werkzeuge)
+│   ├── widgets.py      Bausteine: Muster-Feld, Feld-Chips, Fließ-Layout
 │   ├── theme.py        Farben „Nachtwache“ (dunkel) und „Seekarte“ (hell)
 │   └── icons.py        Phosphor-Icons
 └── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon
@@ -130,8 +154,9 @@ packaging/
 └── libs/               diese xcb-Bibliotheken aus Ubuntu 20.04 (MIT/X11-Lizenz, siehe copyright/)
 ```
 
-**Neue Funktion aus dem Fahrplan fertig?** In `features.py` `ready=True` setzen und in
-`ui/mainwindow.py` unter `FEATURE_HANDLERS` die Methode eintragen – Menüeintrag und Tastenkürzel gibt es dann schon.
+**Neue Funktion aus dem Fahrplan fertig?** In `features.py` `ready=True` setzen und
+– für ein Werkzeug mit Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen,
+sonst die Methode in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel gibt es dann schon.
 
 ### Tests
 

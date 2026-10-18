@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, Q
 from .. import APP_NAME, PRESENTER, PRESENTER_URL, features
 from ..core.cache import FOLDER_DONE, FOLDER_OPEN, Cache
 from ..core.settings import Settings, cache_dir
-from ..core.undo import EditStep, SaveStep
+from ..core.undo import EditStep, RenameStep, SaveStep
 from . import icons, theme
 from .dialogs import (AboutDialog, ComingSoonDialog, ErrorListDialog, SettingsDialog, ShortcutsDialog, Toast,
                       open_url)
@@ -21,9 +21,11 @@ from .editpanel import EditPanel
 from .filetable import FileTable
 from .foldertree import FolderTree
 from .session import Session
-from .workers import LoadWorker, SaveWorker
+from .tools import TOOL_DIALOGS
+from .workers import LoadWorker, RenameWorker, SaveWorker
 
-# Fertige Funktionen späterer Phasen hier eintragen: feature-id → Methodenname
+# Fertige Funktionen späterer Phasen hier eintragen: feature-id → Methodenname.
+# Werkzeuge mit Vorschau-Dialog stehen stattdessen in ui/tools.py → TOOL_DIALOGS.
 FEATURE_HANDLERS: dict[str, str] = {}
 
 
@@ -81,6 +83,8 @@ class MainWindow(QMainWindow):
         self.tree.foldersSelected.connect(self._on_folders_selected)
         self.tree.progressChanged.connect(lambda *_: self._update_status())
         self.table.selectionChangedSignal.connect(self._sel_timer_start)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._table_menu)
         self.session.stateChanged.connect(self._update_status)
         self.session.itemsChanged.connect(self._on_items_changed)
         self.panel.message.connect(self.toast.show_message)
@@ -198,7 +202,8 @@ class MainWindow(QMainWindow):
     def _feature_menu(self, group: str) -> QMenu:
         m = QMenu(self)
         for f in features.by_group(group):
-            act = m.addAction(icons.icon(f.icon, "muted"), f"{f.title}\tPhase {f.phase}" if not f.ready else f.title)
+            right = (f.shortcut.replace("Ctrl", "Strg") if f.shortcut else "") if f.ready else f"Phase {f.phase}"
+            act = m.addAction(icons.icon(f.icon, "muted"), f"{f.title}\t{right}" if right else f.title)
             act.setToolTip(f.description)
             act.triggered.connect(lambda _=False, fid=f.id: self.run_feature(fid))
             self._icon_targets.append((act, f.icon, "muted"))
@@ -512,6 +517,77 @@ class MainWindow(QMainWindow):
             self.tree.mark(paths, status)
 
     # ==================================================================
+    # Werkzeuge (Phase 2)
+    # ==================================================================
+    def tool_items(self):
+        """Auswahl – oder, wenn nichts ausgewählt ist, alle Dateien der Liste."""
+        items = self.table.selected_items()
+        if items:
+            n = len(items)
+            return items, f"Gilt für {n:,} ausgewählte Datei{'en' if n != 1 else ''}".replace(",", ".")
+        items = self.table.model_.visible_items()
+        return items, f"Gilt für alle {len(items):,} Dateien in der Liste".replace(",", ".")
+
+    def open_tool(self, feature_id: str):
+        if self._save_worker is not None:
+            return
+        self.panel.commit()
+        items, scope = self.tool_items()
+        if not items:
+            self.toast.show_message("Erst links einen Ordner öffnen")
+            return
+        TOOL_DIALOGS[feature_id](self, items, scope).exec()
+
+    def run_rename(self, pairs, label: str, record_undo: bool = True):
+        if not pairs or self._save_worker is not None:
+            return
+        w = RenameWorker(pairs, self.cache, self)
+        self._save_worker = w
+        self.table.setEnabled(False)
+        self.panel.setEnabled(False)
+        self.lbl_progress.setText("Benenne um …")
+        self.lbl_progress.show()
+
+        def finished(results):
+            self._save_worker = None
+            self.lbl_progress.hide()
+            self.table.setEnabled(True)
+            self.panel.setEnabled(True)
+            ok, errors = self.session.finish_rename(results, label, record_undo=record_undo)
+            self.panel.refresh()
+            if errors:
+                self.toast.show_message(f"{ok} umbenannt, {len(errors)} mit Fehler")
+                ErrorListDialog("Nicht alles umbenannt", errors, self).exec()
+            else:
+                self.toast.show_message(label if record_undo else f"Zurückbenannt: {ok} Datei(en)")
+
+        w.done.connect(finished)
+        w.finished.connect(w.deleteLater)
+        w.start()
+
+    def _table_menu(self, pos):
+        items = self.table.selected_items()
+        if not items:
+            return
+        m = QMenu(self)
+        for f in features.by_group("tools"):
+            if f.ready:
+                a = m.addAction(icons.icon(f.icon, "muted"),
+                                f"{f.title}\t{f.shortcut.replace('Ctrl', 'Strg')}" if f.shortcut else f.title)
+                a.triggered.connect(lambda _=False, fid=f.id: self.open_tool(fid))
+        m.addSeparator()
+        modified = [it for it in items if it.is_modified()]
+        if modified:
+            m.addAction(icons.icon("arrow-counter-clockwise", "muted"),
+                        f"Änderungen verwerfen ({len(modified)})", lambda: self.session.revert(modified))
+        if len({it.dir for it in items}) == 1:
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            m.addAction(icons.icon("folder-open", "muted"), "Ordner im Dateimanager öffnen",
+                        lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(items[0].dir)))
+        m.exec(self.table.viewport().mapToGlobal(pos))
+
+    # ==================================================================
     # Rückgängig
     # ==================================================================
     def undo(self):
@@ -537,6 +613,16 @@ class MainWindow(QMainWindow):
                 return
             self.session.undo.pop()
             self._run_save(self.session.undo_jobs(step), step.label, record_undo=False)
+            return
+        if isinstance(step, RenameStep):
+            n = len(step.pairs)
+            r = QMessageBox.question(
+                self, "Umbenennen rückgängig machen?",
+                f"„{step.label}“ rückgängig machen?\n\n{n} Datei(en) bekommen wieder ihren alten Namen.")
+            if r != QMessageBox.StandardButton.Yes:
+                return
+            self.session.undo.pop()
+            self.run_rename([(new, old) for old, new in reversed(step.pairs)], step.label, record_undo=False)
 
     # ==================================================================
     # Ungespeicherte Änderungen
@@ -579,6 +665,9 @@ class MainWindow(QMainWindow):
     # Spätere Phasen
     # ==================================================================
     def run_feature(self, feature_id: str):
+        if feature_id in TOOL_DIALOGS:
+            self.open_tool(feature_id)
+            return
         handler = FEATURE_HANDLERS.get(feature_id)
         if handler:
             getattr(self, handler)()

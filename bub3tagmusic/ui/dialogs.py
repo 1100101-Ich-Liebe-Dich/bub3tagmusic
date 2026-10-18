@@ -201,6 +201,13 @@ SHORTCUTS = (
         ("Esc", "Getipptes verwerfen"),
         ("Strg+Shift+V", "Bild aus Zwischenablage als Cover"),
     )),
+    ("Werkzeuge", (
+        ("Alt+1", "Tags aus Dateiname"),
+        ("Alt+2", "Dateinamen aus Tags (umbenennen)"),
+        ("Alt+3", "Tracks nummerieren"),
+        ("Alt+4", "Groß-/Kleinschreibung"),
+        ("Alt+5", "Suchen & Ersetzen"),
+    )),
     ("Ansicht", (
         ("Strg+O", "Sammlung öffnen"),
         ("Strg+F", "Liste filtern"),

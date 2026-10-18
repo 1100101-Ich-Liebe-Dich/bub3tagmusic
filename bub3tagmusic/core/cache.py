@@ -88,6 +88,23 @@ class Cache:
         c.executemany("INSERT OR REPLACE INTO files(path, mtime, size, data) VALUES (?,?,?,?)", rows)
         c.commit()
 
+    def rename_paths(self, pairs: list[tuple[str, str]]) -> None:
+        """Nach dem Umbenennen: Einträge auf den neuen Pfad umziehen."""
+        c = self._conn()
+        for old, new in pairs:
+            row = c.execute("SELECT mtime, size, data FROM files WHERE path=?", (old,)).fetchone()
+            c.execute("DELETE FROM files WHERE path=?", (old,))
+            if row is None:
+                continue
+            try:
+                data = json.loads(row[2])
+            except ValueError:
+                continue
+            data["path"] = new
+            c.execute("INSERT OR REPLACE INTO files(path, mtime, size, data) VALUES (?,?,?,?)",
+                      (new, row[0], row[1], json.dumps(data, ensure_ascii=False)))
+        c.commit()
+
     def forget(self, paths: list[str]) -> None:
         c = self._conn()
         c.executemany("DELETE FROM files WHERE path=?", [(p,) for p in paths])

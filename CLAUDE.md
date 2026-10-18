@@ -44,8 +44,15 @@ nach jeder Sitzung aktuell halten.
 - Jede Änderung an Dateien läuft über **`ui/session.py`** → landet automatisch im Rückgängig-Verlauf.
 - Langsame Arbeit (Einlesen, Speichern, später Online) **immer** in `ui/workers.py`, nie im UI-Thread.
 - Neue Tag-Felder: `core/fields.py` + Zuordnung je Format in `core/tags.py`.
-- Spätere Funktionen stehen in **`features.py`**. Fertig → `ready=True` + Methode in
-  `FEATURE_HANDLERS` (`ui/mainwindow.py`). Menü + Tastenkürzel existieren schon.
+- Spätere Funktionen stehen in **`features.py`**. Fertig → `ready=True` und
+  - Werkzeug mit Vorschau: `ToolDialog`-Unterklasse in `ui/tools.py`, in `TOOL_DIALOGS` eintragen
+    (`build_options()` baut links die Optionen, `compute()` liefert eine `Preview`; für Tag-Änderungen
+    `field_rows()` benutzen, Häkchen mit `add_check(text, key, default, detail)`, Optionen landen
+    automatisch in `settings.tool_options`)
+  - sonst: Methode in `FEATURE_HANDLERS` (`ui/mainwindow.py`). Menü + Tastenkürzel existieren schon.
+- Werkzeug-Logik gehört nach `core/tools.py` bzw. `core/rename.py` (ohne Qt, mit Tests in `tests/test_tools.py`).
+- Änderungen pro Datei verschieden → `session.apply_changes([(item, {feld: wert})], label)` = ein Rückgängig-Schritt.
+- Umbenennen: `mainwindow.run_rename(pairs, label)` → `RenameWorker` → `session.finish_rename` (+ Cache-Umzug).
 - Online-Code: `online/` – Datentypen (`AlbumMatch`, `CoverCandidate`) und `RateLimiter` sind da.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
 - Massenänderungen (Umbenennen, Online-Übernahme) immer mit Vorschau.
@@ -62,7 +69,7 @@ nach jeder Sitzung aktuell halten.
 ## Vor jedem Hochladen
 
 ```bash
-tests/run_all.sh          # Kern (alle Formate) + Oberfläche durchklicken, ~1 Min.
+tests/run_all.sh          # Kern (alle Formate + Werkzeuge) + Oberfläche + Werkzeuge bedienen, ~2 Min.
 tests/run_all.sh --perf   # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
 make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 ```
@@ -93,6 +100,14 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - Nicht alle mitgebrachten Bibliotheken pauschal per `LD_LIBRARY_PATH` voranstellen – Systemversionen
   haben Vorrang (AppRun baut pro Start ein Temp-Verzeichnis mit Links nur auf die fehlenden).
 - Erststart-Fenstergröße muss auf 1366×768 passen (`MainWindow._fit_to_screen`).
+- **Comboboxen mit langem Text** sprengen schmale Spalten → `SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon`
+  + `setMinimumContentsLength(12)`; dazu `setMaximumWidth` am Inhalts-Widget.
+- **QSS lässt Pfeile von Combobox/Spinbox verschwinden** → `theme._arrow_files()` erzeugt SVG-Pfeile je Theme
+  im Cache; im QSS per `image: url(...)`.
+- **Häkchen-Texte brechen nicht um** → kurzer Text + Erklärung darunter (`ToolDialog.add_check(..., detail)`).
+- Fehlermeldungen von `re` sind englisch/technisch → in `core/tools.py` in verständliches Deutsch übersetzen.
+- AppImage nutzt Qt 6.9, die Entwicklung 6.12: Oberflächentests zusätzlich mit dem Python aus dem
+  AppImage laufen lassen (`dist/*.AppImage --appimage-extract`, dann `squashfs-root/usr/python/bin/python3 tests/ui_tools.py …`).
 - **Stylesheet schlägt `setFont()`**: `* { font-family … }` im QSS überschreibt Schriften aus dem Code.
   Besondere Schriften/Größen per `objectName` im QSS setzen (z. B. `QLabel#Wordmark`).
 - **Variable Fonts**: Qt sieht nur die Standard-Instanz. Feste Instanz mit

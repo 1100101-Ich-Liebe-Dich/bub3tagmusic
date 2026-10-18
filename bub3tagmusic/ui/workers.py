@@ -11,6 +11,7 @@ from PySide6.QtCore import QThread, Signal
 
 from ..core.cache import Cache
 from ..core.scanner import list_audio, load_records, scan_tree
+from ..core.rename import execute_renames
 from ..core.tags import COVER_KEEP, TagWriteError, read_cover, write_file
 from ..core.undo import SaveEntry
 
@@ -100,6 +101,24 @@ class SaveWorker(QThread):
         if fresh:
             try:
                 self.cache.put_many(fresh)
+            except Exception:
+                pass
+        self.done.emit(results)
+
+
+class RenameWorker(QThread):
+    done = Signal(list)   # [{old, new, error}]
+
+    def __init__(self, pairs: list[tuple[str, str]], cache: Cache, parent=None):
+        super().__init__(parent)
+        self.pairs, self.cache = pairs, cache
+
+    def run(self):
+        results = execute_renames(self.pairs)
+        ok = [(r["old"], r["new"]) for r in results if not r["error"]]
+        if ok:
+            try:
+                self.cache.rename_paths(ok)
             except Exception:
                 pass
         self.done.emit(results)

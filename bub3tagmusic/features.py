@@ -30,21 +30,21 @@ FEATURES: tuple[Feature, ...] = (
     Feature("tags_from_filename", "Tags aus Dateiname …", 2, "tools", "tag",
             "Füllt Titel, Track & Co. aus dem Dateinamen oder Ordnernamen, "
             "z. B. mit dem Muster %track% - %title%. Mit Vorschau vor dem Übernehmen.",
-            "Alt+1"),
+            "Alt+1", ready=True),
     Feature("filename_from_tags", "Dateinamen aus Tags …", 2, "tools", "swap",
             "Benennt Dateien nach einem Muster um, z. B. 01 - Titel.flac. "
-            "Erst Vorschau, dann umbenennen – rückgängig machbar.", "Alt+2"),
+            "Erst Vorschau, dann umbenennen – rückgängig machbar.", "Alt+2", ready=True),
     Feature("autonumber", "Tracks automatisch nummerieren", 2, "tools", "list-numbers",
             "Vergibt Tracknummern pro Ordner in der aktuellen Reihenfolge, "
-            "auf Wunsch mit Gesamtzahl (3/12) und Disc-Nummer.", "Alt+3"),
+            "auf Wunsch mit Gesamtzahl (3/12) und Disc-Nummer.", "Alt+3", ready=True),
     Feature("case", "Groß-/Kleinschreibung …", 2, "tools", "text-aa",
             "Macht aus 'DER TITEL' oder 'der titel' sauber 'Der Titel' – "
-            "für ausgewählte Felder.", "Alt+4"),
+            "für ausgewählte Felder.", "Alt+4", ready=True),
     Feature("replace", "Suchen & Ersetzen …", 2, "tools", "magnifying-glass",
             "Text in ausgewählten Feldern ersetzen, auf Wunsch mit regulären Ausdrücken.",
-            "Alt+5"),
+            "Alt+5", ready=True),
     Feature("cleanup", "Aufräumen …", 2, "tools", "lightning",
-            "Doppelte Leerzeichen, Leerzeichen am Rand und störende Sonderzeichen entfernen."),
+            "Doppelte Leerzeichen, Leerzeichen am Rand und störende Sonderzeichen entfernen.", ready=True),
 
     # --- Phase 3: Online ---------------------------------------------------
     Feature("musicbrainz", "Album suchen – MusicBrainz", 3, "online", "disc",
