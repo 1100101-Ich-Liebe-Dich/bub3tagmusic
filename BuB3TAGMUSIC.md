@@ -118,6 +118,13 @@ Musik/
 | App-Icon | Rettungsring in Bernstein/Erdgrün auf `#1C1F1C` – erinnert zugleich an eine Schallplatte |
 | Logo-Farbe | Bernstein `#E5A00D` (in Nachtwache/Seekarte/Graphit wie die Schrift) |
 
+### Künstler-Ordner (ab 1.0)
+
+Ordner ohne eigene Musik, in dem Alben liegen (nicht: reine CD1/CD2-Unterordner) = Künstler-Ordner. Rechts erscheint
+statt der Tag-Felder `ui/artistpanel.py`: Künstlerbild (`folder.jpg` in diesem Ordner) reinziehen/laden/einfügen/
+entfernen/online suchen (Ordnername als Künstlername, änderbar), Alben mit cover.jpg-Häkchen, „Alle Alben laden“.
+Ersetzte/entfernte Bilder → Papierkorb. Baum-Rechtsklick: „Künstlerbild für diesen Ordner suchen …“ für jeden Ordner.
+
 ### Kern-Arbeitsablauf: „Speichern & nächster Ordner“
 
 1. Album im Baum anklicken → Dateien laden und sind sofort alle ausgewählt
@@ -351,6 +358,8 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 9. Offene Punkte
 
+- [ ] #24 Windows-Version (nach 1.0) – Pfade plattformneutral, `.exe` per GitHub Actions
+- [ ] #25 macOS-Version (nach 1.0) – `.app`/`.dmg`, Signatur-Frage (Apple-Konto)
 - [ ] #18 Phase 1 an einer Kopie der echten Sammlung testen (Rückmeldung: was fehlt, was stört?)
 - [ ] #19 Welche Linux-Distribution wird genutzt? (für Feinschliff von `install.sh`)
 - [ ] #20 Design bestätigen: Bojen-Orange, Stencil-Logo, Rettungsring-Icon

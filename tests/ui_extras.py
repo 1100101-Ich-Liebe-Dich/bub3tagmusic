@@ -129,6 +129,7 @@ def main():
     pump(app, 0.6)
 
     test_filters(app, win, root, out)
+    test_artist_folder(app, win, root, out)
     test_export(app, win, work, out)
     test_actions(app, win, root, files, out)
     test_replaygain(app, win, out)
@@ -191,6 +192,52 @@ def test_filters(app, win, root, out):
     check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4 and win._search is None),
           "Ordner wählen beendet die Suche")
     pump(app, 0.4)
+
+
+def test_artist_folder(app, win, root, out):
+    print("Künstler-Ordner (folder.jpg)")
+    artist = os.path.join(root, "Kielwasser")
+    win.btn_recursive.setChecked(False)
+    check(wait(app, lambda: win._load_worker is None), "ohne Unterordner neu geladen")
+    pump(app, 0.3)
+    check(win.session.items == [] and win.right.currentWidget() is win.artist_panel,
+          "Künstler-Ordner ohne Musik → rechts das Künstler-Feld")
+    ap = win.artist_panel
+    check(ap.title.text() == "Kielwasser" and ap.artist_name() == "Kielwasser", "Ordnername = Künstlername")
+    check(ap.albums.count() == 2 and "0 von 2" in ap.albums_head.text(), f"Alben: {ap.albums_head.text()}")
+    check(not ap.existing_image() and not ap.btn_remove.isEnabled(), "noch kein folder.jpg")
+    win.grab().save(os.path.join(out, "x9_kuenstler_leer.png"))
+    ok = ap.set_image_bytes(cover_jpeg(600))
+    target = os.path.join(artist, "folder.jpg")
+    check(ok and os.path.exists(target), "folder.jpg direkt im Künstler-Ordner gespeichert")
+    check("600 × 600" in ap.image_info.text(), ap.image_info.text())
+    ap.set_image_bytes(cover_jpeg(800))                 # ersetzen (Rückfrage wird bejaht)
+    from PIL import Image
+    check(Image.open(target).size == (800, 800), "ersetzt – altes Bild im Papierkorb")
+    trash = os.path.join(os.environ["XDG_DATA_HOME"], "Trash", "files")
+    check(os.path.isdir(trash) and any(f.startswith("folder") for f in os.listdir(trash)), "alt liegt im Papierkorb")
+    win.grab().save(os.path.join(out, "x9_kuenstler.png"))
+    # Online-Suche: Künstlername aus dem (änderbaren) Feld, Ziel = dieser Ordner
+    ap.artist.setText("Kielwasser Band")
+    from bub3tagmusic.ui.online import ArtistImageDialog
+    d = ArtistImageDialog(win, [], "", folder=artist, artist=ap.artist_name())
+    check(d.target_dir == artist and d.artist.text() == "Kielwasser Band", "Online-Suche mit Ordner + Namen")
+    d.reject()
+    # Strg+J öffnet die Suche für den Ordner (ohne geladene Dateien)
+    opened = []
+    win.search_artist_image = lambda folder="": opened.append(folder or win.artist_folder())
+    win.open_online("artist_image")
+    check(opened == [artist], f"Strg+J im Künstler-Ordner: {opened}")
+    # Rechtsklick im Baum: auch für jeden anderen Ordner
+    win.tree.artistImageRequested.emit(os.path.join(artist, "2001 - Hochsee"))
+    check(opened[-1] == os.path.join(artist, "2001 - Hochsee"), "Baum-Menü: Künstlerbild für diesen Ordner")
+    del win.search_artist_image
+    # „Alle Alben laden“ → Unterordner an, normale Bearbeitung
+    ap.loadAlbumsRequested.emit(artist)
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4), "alle Alben geladen")
+    pump(app, 0.3)
+    check(win.right.currentWidget() is win.panel and win.btn_recursive.isChecked(), "zurück im Bearbeitungsfeld")
+    os.remove(target)
 
 
 def test_export(app, win, work, out):

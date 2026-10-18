@@ -2,12 +2,10 @@
 
 Tags und Releases kann nur der Repository-Besitzer anlegen. So geht's (5 Minuten):
 
-## 1. AppImage holen
+## 1. AppImage – passiert automatisch
 
-**Variante A – selbst bauen:** `git pull && make` → `dist/BuB3TAGMUSIC-1.0.0-x86_64.AppImage`
-
-**Variante B – von GitHub:** *Actions* → letzter grüner Lauf von „Tests“ → unten unter *Artifacts*
-„BuB3TAGMUSIC-AppImage“ herunterladen und entpacken (ZIP).
+Sobald das Release veröffentlicht ist, baut GitHub das AppImage aus genau diesem Stand, testet es und hängt es
+samt `SHA256SUMS.txt` an (*Actions → „Release – AppImage anhängen“*, dauert ein paar Minuten). Nichts hochladen.
 
 ## 2. Release anlegen
 
@@ -15,8 +13,7 @@ Tags und Releases kann nur der Repository-Besitzer anlegen. So geht's (5 Minuten
 2. **Choose a tag:** `v1.0.0` eintippen → *Create new tag: v1.0.0 on publish* (Ziel: `main`)
 3. **Release title:** `BuB3TAGMUSIC 1.0 – Werft frei!`
 4. **Beschreibung:** den Text unten (zwischen den Linien) hineinkopieren
-5. Das AppImage in das Feld *Attach binaries* ziehen
-6. **Publish release**
+5. **Publish release** – ein paar Minuten später hängt das AppImage automatisch dran
 
 ## 3. Einmalig: Vorschaubild für Links
 
@@ -49,7 +46,7 @@ mit Vorschau, und auch mit zehntausenden Dateien auf einem alten Rechner flott.
 
 ### 🚀 Starten – ohne Installation
 
-1. `BuB3TAGMUSIC-1.0.0-x86_64.AppImage` unten herunterladen
+1. `BuB3TAGMUSIC-1.0.0-x86_64.AppImage` unten unter *Assets* herunterladen
 2. Rechtsklick → *Eigenschaften* → *Als Programm ausführen* erlauben (oder `chmod +x BuB3TAGMUSIC-1.0.0-x86_64.AppImage`)
 3. Doppelklick – fertig. Im Programm: ⚙ → *Ins Startmenü eintragen*
 
@@ -59,6 +56,7 @@ Python, Qt, Schriften und die Hilfsprogramme `fpcalc` und `rsgain` sind schon dr
 ### ✨ Das steckt drin
 
 - **Ordner für Ordner:** Sammlungs-Baum mit Fertig-Status, *Speichern & nächster Ordner* (Strg+→)
+- **Künstler-Ordner:** Künstlerbild (`folder.jpg`) direkt im Ordner mit den Alben setzen oder online suchen
 - **Mehrfach-Bearbeitung:** ganzes Album oder ganzer Künstler auf einmal, `‹verschieden›` bleibt, wie es ist
 - **Cover & Künstlerbild:** einbetten, `cover.jpg` im Album-, `folder.jpg` im Künstler-Ordner, Drag & Drop
 - **Werkzeuge mit Live-Vorschau:** Tags aus Datei-/Ordnernamen, Dateinamen aus Tags, nummerieren, Schreibweise,

@@ -7,8 +7,8 @@ import os
 from PySide6.QtCore import QByteArray, Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                               QMenu, QMessageBox, QProgressBar, QPushButton, QSplitter, QToolButton,
-                               QVBoxLayout, QWidget)
+                               QMenu, QMessageBox, QProgressBar, QPushButton, QSplitter, QStackedWidget,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from .. import APP_NAME, PRESENTER, PRESENTER_URL, features
 from ..core import filters
@@ -18,6 +18,7 @@ from ..core.undo import ChainStep, EditStep, RenameStep, SaveStep
 from . import icons, theme
 from .dialogs import (AboutDialog, ComingSoonDialog, ErrorListDialog, SettingsDialog, ShortcutsDialog, Toast,
                       open_url)
+from .artistpanel import ArtistPanel, is_artist_folder
 from .editpanel import EditPanel
 from .filterbar import FilterBar
 from .filetable import FileTable
@@ -66,6 +67,11 @@ class MainWindow(QMainWindow):
         self.tree = FolderTree(self.cache)
         self.table = FileTable(self.session)
         self.panel = EditPanel(self.session, settings)
+        self.artist_panel = ArtistPanel(settings)         # Künstler-Ordner ohne eigene Musik
+        self.right = QStackedWidget()
+        self.right.setMinimumWidth(340)
+        self.right.addWidget(self.panel)
+        self.right.addWidget(self.artist_panel)
 
         self.table_area = QWidget(objectName="TableArea")
         tl = QVBoxLayout(self.table_area)
@@ -81,7 +87,7 @@ class MainWindow(QMainWindow):
         self.splitter.setHandleWidth(1)
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.table_area)
-        self.splitter.addWidget(self.panel)
+        self.splitter.addWidget(self.right)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 0)
@@ -104,6 +110,10 @@ class MainWindow(QMainWindow):
         self.panel.message.connect(self.toast.show_message)
         self.panel.featureRequested.connect(self.run_feature)
         self.panel.saveNextRequested.connect(self.save_and_next)
+        self.artist_panel.message.connect(self.toast.show_message)
+        self.artist_panel.featureRequested.connect(self.run_feature)
+        self.artist_panel.loadAlbumsRequested.connect(self._load_all_albums)
+        self.tree.artistImageRequested.connect(lambda p: self.search_artist_image(p))
         self.filterbar.changed.connect(self._quick_filters_changed)
         self.filterbar.collectionRequested.connect(self.search_collection)
         self.table.model_.modelReset.connect(self._update_status)
@@ -311,7 +321,8 @@ class MainWindow(QMainWindow):
         act("Ctrl+E", self._focus_title)
         act("Ctrl+,", self.open_settings)
         act("F1", lambda: ShortcutsDialog(self).exec())
-        act("Ctrl+Shift+V", lambda: self.panel.paste_cover_if_image() or
+        act("Ctrl+Shift+V", lambda: (self.artist_panel.paste_image() if self.right.currentWidget()
+                                     is self.artist_panel else self.panel.paste_cover_if_image()) or
             self.toast.show_message("In der Zwischenablage ist kein Bild"))
         for f in features.FEATURES:
             if f.shortcut:
@@ -376,9 +387,47 @@ class MainWindow(QMainWindow):
         self._load([], files=list(paths), label=label)
         return True
 
+    # ==================================================================
+    # Künstler-Ordner (Überordner ohne eigene Musik)
+    # ==================================================================
+    def artist_folder(self) -> str:
+        """Gewählter Ordner, wenn er ein Künstler-Ordner ist und keine Dateien geladen sind."""
+        if self.is_result_list or len(self._loaded_dirs) != 1 or self.session.items:
+            return ""
+        path = self._loaded_dirs[0]
+        return path if is_artist_folder(self.tree.node_for(path)) else ""
+
+    def _update_right_panel(self):
+        folder = self.artist_folder()
+        if folder:
+            self.artist_panel.set_folder(folder, self.tree.node_for(folder))
+            self.right.setCurrentWidget(self.artist_panel)
+        else:
+            self.right.setCurrentWidget(self.panel)
+
+    def _load_all_albums(self, folder: str):
+        if not self.btn_recursive.isChecked():
+            self.btn_recursive.setChecked(True)          # lädt den Ordner samt Alben neu
+        else:
+            self._load([folder], force=True)
+
+    def search_artist_image(self, folder: str = ""):
+        """Künstlerbild (folder.jpg) für einen Ordner suchen – Künstlername = Ordnername (änderbar)."""
+        from .online import ArtistImageDialog
+        if self._save_worker is not None:
+            return
+        folder = folder or self.artist_folder()
+        if not folder:
+            return
+        artist = self.artist_panel.artist_name() if folder == self.artist_panel.folder else ""
+        ArtistImageDialog(self, [], "", folder=folder, artist=artist or os.path.basename(folder)).exec()
+        if self.right.currentWidget() is self.artist_panel:
+            self.artist_panel.refresh()
+
     def _load(self, paths: list[str], force: bool = False, keep=None, search: tuple | None = None,
               files: list[str] | None = None, label: str = ""):
         self.panel.set_items([])
+        self.right.setCurrentWidget(self.panel)
         self._load_token += 1
         if self._load_worker is not None:
             self._load_worker.cancel()
@@ -426,6 +475,7 @@ class MainWindow(QMainWindow):
         self.lbl_progress.hide()
         self.session.set_records(recs)
         self._update_empty_text()
+        self._update_right_panel()
         if self._search is not None:
             self.toast.show_message(f"{len(recs):,} Treffer in der Sammlung".replace(",", ".") if recs
                                     else "Keine passende Datei in der Sammlung")
@@ -455,6 +505,10 @@ class MainWindow(QMainWindow):
         elif not self._loaded_dirs:
             self.table.set_empty_text("Wähle links einen Ordner",
                                       "Strg+Klick wählt mehrere · „Unterordner“ lädt alles darunter mit")
+        elif self.artist_folder():
+            self.table.set_empty_text("Künstler-Ordner – die Musik liegt in den Alben darunter",
+                                      "Rechts: Künstlerbild (folder.jpg) · Album links wählen · "
+                                      "„Unterordner“ (Strg+R) lädt alle Alben")
         else:
             hint = "" if self.settings.recursive else "Tipp: Mit „Unterordner“ (Strg+R) werden auch Unterordner geladen"
             self.table.set_empty_text("Hier liegen keine Musikdateien", hint)
@@ -631,6 +685,9 @@ class MainWindow(QMainWindow):
 
     def open_online(self, feature_id: str):
         if self._save_worker is not None:
+            return
+        if feature_id == "artist_image" and self.artist_folder():
+            self.search_artist_image()
             return
         self.panel.commit()
         items, scope = self.tool_items()
@@ -917,6 +974,7 @@ class MainWindow(QMainWindow):
             f'präsentiert von <a href="{PRESENTER_URL}" style="text-decoration:none; '
             f'color:{theme.tok("muted")}; font-weight:600">{PRESENTER}</a>')
         self.panel.refresh_icons()
+        self.artist_panel.refresh_icons()
         self.filterbar.refresh_icons()
         self.tree.view.viewport().update()
         self.table.viewport().update()

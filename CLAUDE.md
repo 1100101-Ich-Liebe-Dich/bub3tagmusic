@@ -62,6 +62,10 @@ nach jeder Sitzung aktuell halten.
   dann mitgeliefert (`$BUB3_BIN`, prüft ob es startet), dann PATH. Fehlt es: `install_hint(name)` anzeigen.
 - Tags + Umbenennen in einem Rutsch: `mainwindow.run_rename(pairs, label, chain=True)` → `ChainStep` (ein Strg+Z).
 - Dateien von außen geändert (rsgain …): danach `read_file` + `cache.put_many` + `session.refresh_records(recs)`.
+- Künstler-Ordner (keine Musik direkt, Alben darunter): `artistpanel.is_artist_folder(node)`; rechts ein
+  `QStackedWidget` (`win.right`) mit `win.panel` (Tags) und `win.artist_panel` (folder.jpg). Umschalten in
+  `mainwindow._update_right_panel()` nach jedem Laden. Online-Suche: `win.search_artist_image(ordner)` →
+  `ArtistImageDialog(win, [], "", folder=…, artist=…)`.
 - Ergebnislisten statt Ordner: `win.show_files(pfade, "Bezeichnung")` bzw. `win.search_collection()`;
   `win.is_result_list` → kein „nächster Ordner“.
 - Neue Felder im Datensatz (`read_file`) → `tags.RECORD_VERSION` erhöhen, dann liest der Cache alte Einträge neu.
@@ -166,6 +170,10 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - rsgain bricht bei EINER kaputten Datei das ganze Album ab (Exit 1, keine Ausgabe) → einzeln prüfen, dann ohne sie.
 - Fingerabdrücke nie jeder-gegen-jeden vergleichen (50.000² …): Index über exakt gleiche Teil-Abdrücke, dann genau.
 - `QFile.moveToTrash` braucht im Test ein eigenes `XDG_DATA_HOME`, sonst landet es im echten Papierkorb.
+- **Nie `pkill -f muster`**, wenn das Muster im eigenen Befehl steht – das killt die eigene Shell (Exit 144).
+  Hängende Tests: PIDs über `ps -eo pid,comm` + `/proc/PID/cmdline` suchen. Hänger finden:
+  `faulthandler.dump_traceback_later(25, exit=True)` – meist ein `exec()` eines Dialogs im Test.
+- Release-Assets baut `.github/workflows/release.yml` (bei „Publish release“) – nicht von hier hochladen.
 
 ## Noch nicht geprüft
 

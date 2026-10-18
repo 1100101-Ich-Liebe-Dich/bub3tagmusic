@@ -790,10 +790,13 @@ class ArtistImageDialog(ImageGridDialog):
     feature_id = "artist_image"
     sources = artistimages.SOURCES
 
-    def __init__(self, win, items, scope):
-        super().__init__(win, items, scope)
-        self.target_dir = artist_folder(items)
-        artist, _album = guess_search(items)
+    def __init__(self, win, items, scope, folder: str = "", artist: str = ""):
+        """folder/artist: direkt für einen Künstler-Ordner (ohne geladene Dateien) – der Ordnername
+        ist dann erst einmal der Künstlername."""
+        super().__init__(win, items, scope or (f"Künstler-Ordner „{os.path.basename(folder)}“" if folder else ""))
+        self.target_dir = folder or artist_folder(items)
+        if not artist:
+            artist, _album = guess_search(items) if items else ("", "")
         if self.target_dir and not artist:
             artist = os.path.basename(self.target_dir)
         self.artist = self.search_field("Künstler", artist)

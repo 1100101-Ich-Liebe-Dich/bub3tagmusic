@@ -1,0 +1,57 @@
+name: Release – AppImage anhängen
+
+# Sobald auf GitHub ein Release veröffentlicht wird (Releases → Draft a new release → Publish),
+# baut dieser Ablauf das AppImage aus genau diesem Stand, prüft es auf einem X-Bildschirm und
+# hängt es samt Prüfsumme an das Release. Von Hand muss nichts hochgeladen werden.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release-Tag (z. B. v1.0.0), an das das AppImage gehängt wird"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    name: AppImage bauen und anhängen
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Systempakete (ffmpeg, virtueller Bildschirm)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg xvfb libegl1 libgl1 libfontconfig1 libdbus-1-3 libglib2.0-0
+
+      - name: AppImage bauen (make)
+        run: make
+
+      - name: Selbsttest auf einem echten X-Bildschirm
+        run: |
+          pip install -q mutagen Pillow
+          python tests/make_testfiles.py /tmp/bub3data --collection 6
+          Xvfb :99 -screen 0 1366x768x24 &
+          sleep 2
+          out=$(DISPLAY=:99 APPIMAGE_EXTRACT_AND_RUN=1 dist/*.AppImage --selftest /tmp/bub3data/Musik 2>&1)
+          echo "$out"
+          echo "$out" | grep -q "SELFTEST OK"
+
+      - name: Prüfsumme
+        run: cd dist && sha256sum *.AppImage > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Ans Release hängen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/*.AppImage dist/SHA256SUMS.txt --clobber

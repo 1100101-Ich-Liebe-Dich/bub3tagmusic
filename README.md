@@ -50,13 +50,18 @@
 
 ## 🚀 Schnellstart
 
+**Fertige Datei:** unter [Releases](../../releases/latest) `BuB3TAGMUSIC-…-x86_64.AppImage` herunterladen,
+ausführbar machen (`chmod +x` oder Rechtsklick → Eigenschaften), Doppelklick – fertig.
+
+**Oder selbst bauen** – mit `make` oder einfach mit `sh build.sh`:
+
 ```bash
 sudo apt install make wget git      # einmalig (Fedora: dnf · Arch: pacman · openSUSE: zypper)
-make                                # baut dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
+make                                # oder: sh build.sh  →  dist/BuB3TAGMUSIC-<version>-x86_64.AppImage
 ./dist/BuB3TAGMUSIC-*-x86_64.AppImage ~/Musik
 ```
 
-Optional: `make install` trägt BuB3TAGMUSIC ins Startmenü ein (`make uninstall` entfernt es wieder) –
+Optional: `make install` (oder `sh build.sh --install`) trägt BuB3TAGMUSIC ins Startmenü ein –
 oder im Programm ⚙ → *Ins Startmenü eintragen*.
 
 **Läuft auf jedem 64-Bit-Linux ab etwa 2018:** Ubuntu 20.04+, Linux Mint 20+, Debian 10+, Fedora 29+,
@@ -82,6 +87,17 @@ openSUSE Leap 15.3+, Arch/Manjaro – unter X11 und Wayland. Python, Qt und alle
 
 So arbeitest du dich durch zehntausende Dateien, ohne den Überblick zu verlieren: Der Baum zeigt, welche Alben fertig sind
 und wie viel von der Sammlung schon geschafft ist.
+
+### 🧑‍🎤 Künstler-Ordner & folder.jpg
+
+<img src="docs/screenshot-kuenstler.png" alt="Künstler-Ordner mit Künstlerbild" width="100%">
+
+Klickst du links einen **Künstler-Ordner** an – also einen Ordner ohne eigene Musik, in dem die Alben liegen –, zeigt
+die rechte Seite das **Künstlerbild** (`folder.jpg` in genau diesem Ordner): reinziehen, laden, einfügen oder
+**online suchen**. Der Ordnername ist schon als Künstlername eingetragen – passt er nicht, einfach ändern.
+Darunter siehst du alle Alben mit Häkchen, ob sie schon ihr `cover.jpg` haben, und kannst mit einem Klick alle Alben
+zum Bearbeiten laden. Ein ersetztes Künstlerbild landet im Papierkorb. Auch per Rechtsklick auf jeden Ordner im Baum:
+*Künstlerbild für diesen Ordner suchen*.
 
 ### 🛠️ Werkzeuge – immer mit Live-Vorschau
 

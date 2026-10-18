@@ -138,6 +138,19 @@ def main():
     win.session.revert()
     pump()
 
+    # 1b) Künstler-Ordner: folder.jpg direkt im Ordner mit den Alben
+    artist_dir = os.path.dirname(with_cover)
+    win.artist_panel.folder = ""
+    load([artist_dir], recursive=False)
+    win.artist_panel.set_image_bytes(artist_portrait(), ask=False)
+    for a in albums:
+        if os.path.dirname(a) == artist_dir and not os.path.exists(os.path.join(a, "cover.jpg")):
+            shutil.copyfile(os.path.join(with_cover, "cover.jpg"), os.path.join(a, "cover.jpg"))
+            break
+    win.artist_panel.refresh()
+    pump(0.4)
+    save(win.grab(), "screenshot-kuenstler.png")
+
     # 2) Helles Theme
     win.apply_theme("bub_light")
     pump(0.4)
@@ -245,6 +258,29 @@ def main():
 
 
 # ----------------------------------------------------------------------
+def artist_portrait() -> bytes:
+    """Ein freundliches Platzhalter-„Bandfoto“: Bernstein-Licht, Erdgrün, Silhouetten."""
+    import io
+
+    from PIL import Image, ImageDraw, ImageFilter
+    w = h = 900
+    im = Image.new("RGB", (w, h), (28, 31, 28))
+    d = ImageDraw.Draw(im)
+    for r in range(620, 0, -20):                               # Bühnenlicht
+        t = r / 620
+        d.ellipse((450 - r, 300 - r, 450 + r, 300 + r),
+                  fill=(int(229 * (1 - t) + 28 * t), int(160 * (1 - t) + 31 * t), int(13 * (1 - t) + 28 * t)))
+    im = im.filter(ImageFilter.GaussianBlur(30))
+    d = ImageDraw.Draw(im)
+    for x, s in ((250, 1.0), (450, 1.15), (650, 1.0)):         # drei Musiker
+        d.ellipse((x - 55 * s, 420 - 60 * s, x + 55 * s, 420 + 50 * s), fill=(23, 26, 23))
+        d.rounded_rectangle((x - 120 * s, 480, x + 120 * s, 950), radius=int(90 * s), fill=(23, 26, 23))
+    d.rectangle((0, 820, w, h), fill=(122, 139, 118))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=90)
+    return buf.getvalue()
+
+
 def themes_collage(shots: dict):
     from PySide6.QtCore import QRect, Qt
     from PySide6.QtGui import QColor, QImage, QPainter

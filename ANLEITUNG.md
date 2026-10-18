@@ -44,6 +44,8 @@ cd ~/bub3tagmusic
 make
 ```
 
+Ohne `make` geht es genauso mit dem Skript: `sh build.sh` (mit `sh build.sh --install` gleich ins Startmenü).
+
 Fertig ist es, wenn unten steht:
 
 ```

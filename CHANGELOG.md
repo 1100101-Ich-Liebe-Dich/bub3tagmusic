@@ -17,6 +17,13 @@ BuB3TAGMUSIC 1.0 – alle vier geplanten Phasen sind fertig, getestet und dokume
 - Eine Datei, keine Installation: `make` baut das AppImage – inklusive fpcalc und rsgain
 
 ### Neu seit 0.9.0
+- **Künstler-Ordner:** Wird links ein Ordner ohne eigene Musik gewählt, in dem die Alben liegen, zeigt die rechte
+  Seite das Künstlerbild (`folder.jpg` in diesem Ordner) – reinziehen, laden, einfügen, entfernen oder online suchen
+  (Strg+J). Der Ordnername ist als Künstlername vorbelegt und änderbar. Dazu alle Alben mit cover.jpg-Häkchen und
+  „Alle Alben laden“. Ein ersetztes Bild kommt in den Papierkorb.
+- Rechtsklick auf einen Ordner im Baum: „Künstlerbild für diesen Ordner suchen …“
+- `sh build.sh` baut die Datei auch ohne `make`
+- Bei jedem veröffentlichten Release baut GitHub das AppImage selbst, prüft es und hängt es samt Prüfsumme an
 - GitHub-Seite neu: Banner, Bildergalerie aller Funktionen, Schnellstart, Fragen & Antworten
 - Bilder für die Seite lassen sich jederzeit neu erzeugen: `python3 docs/make_images.py`
 - Fehlervorlage fragt nach der Version und dem Selbsttest

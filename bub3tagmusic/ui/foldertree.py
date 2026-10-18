@@ -85,6 +85,7 @@ class _Delegate(QStyledItemDelegate):
 
 class FolderTree(QWidget):
     foldersSelected = Signal(list)       # gewählte Ordner (Pfade)
+    artistImageRequested = Signal(str)   # Künstlerbild (folder.jpg) für diesen Ordner suchen
     rootChanged = Signal(str)
     progressChanged = Signal(int, int)   # fertig, gesamt (Alben)
 
@@ -245,6 +246,10 @@ class FolderTree(QWidget):
         self.progressChanged.emit(done, total)
 
     # --- Status ------------------------------------------------------------------
+    def node_for(self, path: str):
+        it = self._items.get(path)
+        return it.data(NODE_ROLE) if it is not None else None
+
     def albums_in(self, paths: list[str]) -> list[str]:
         """Alle Album-Ordner in/unter den angegebenen Ordnern."""
         out = []
@@ -340,6 +345,8 @@ class FolderTree(QWidget):
             menu.addAction(icons.icon("folder-open"), "Im Dateimanager öffnen",
                            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(paths[0])))
             menu.addAction(icons.icon("house-line"), "Als Sammlung öffnen", lambda: self.set_root(paths[0], []))
+            menu.addAction(icons.icon("user-circle"), "Künstlerbild für diesen Ordner suchen …",
+                           lambda: self.artistImageRequested.emit(paths[0]))
         menu.addSeparator()
         menu.addAction("Alles aufklappen", self.view.expandAll)
         menu.addAction("Alles zuklappen", lambda: (self.view.collapseAll(),
