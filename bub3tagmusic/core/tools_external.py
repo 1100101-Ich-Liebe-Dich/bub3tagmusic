@@ -2,7 +2,7 @@
 
 Gesucht wird in dieser Reihenfolge:
   1. Umgebungsvariable BUB3_FPCALC / BUB3_RSGAIN (zum Testen oder für eigene Builds)
-  2. mitgeliefert im AppImage ($APPDIR/usr/bin)
+  2. mitgeliefert im AppImage ($BUB3_BIN bzw. $APPDIR/usr/bin) – wenn es dort startet
   3. im System (PATH)
 
 Fehlt ein Programm, gibt install_hint() eine passende Anleitung für die
@@ -43,15 +43,31 @@ def _runnable(path: str) -> bool:
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
+_works: dict[str, bool] = {}
+
+
+def _starts(path: str, name: str) -> bool:
+    """Mitgeliefertes Programm einmal kurz starten – auf sehr alten Systemen (glibc < 2.30)
+    läuft z. B. das mitgelieferte rsgain nicht, dann zählt das vom System."""
+    if path not in _works:
+        try:
+            r = subprocess.run([path, "-version" if name == "fpcalc" else "--version"], capture_output=True,
+                               timeout=10, stdin=subprocess.DEVNULL)
+            _works[path] = r.returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            _works[path] = False
+    return _works[path]
+
+
 def find_tool(name: str) -> str:
     env = os.environ.get(f"BUB3_{name.upper()}")
     if env:
         return env if _runnable(env) else ""
-    appdir = os.environ.get("APPDIR")
-    if appdir:
-        cand = os.path.join(appdir, "usr", "bin", name)
-        if _runnable(cand):
-            return cand
+    for base in (os.environ.get("BUB3_BIN"), os.path.join(os.environ.get("APPDIR") or "/-", "usr", "bin")):
+        if base:
+            cand = os.path.join(base, name)
+            if _runnable(cand) and _starts(cand, name):
+                return cand
     return shutil.which(name) or ""
 
 

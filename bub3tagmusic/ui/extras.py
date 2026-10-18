@@ -694,8 +694,14 @@ def _actions_dialog(win, items, scope):
     return ActionsDialog(win, items, scope)
 
 
+def _acoustid_dialog(win, items, scope):
+    from .acoustid import AcoustIDDialog
+    return AcoustIDDialog(win, items, scope)
+
+
 EXTRA_DIALOGS = {
     "duplicates": DuplicatesDialog,
     "actions": _actions_dialog,
     "replaygain": ReplayGainDialog,
+    "acoustid": _acoustid_dialog,
 }

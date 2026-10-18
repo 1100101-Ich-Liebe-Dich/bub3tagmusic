@@ -89,6 +89,46 @@ mkdir -p "$APPDIR/usr/share/doc/bub3tagmusic"
 cp -r packaging/libs/copyright "$APPDIR/usr/share/doc/bub3tagmusic/xcb-libs"
 cp bub3tagmusic/resources/fonts/OFL-*.txt "$APPDIR/usr/share/doc/bub3tagmusic/"
 
+# --- Hilfsprogramme ---------------------------------------------------------------------
+# fpcalc (Fingerabdruck: Erkennen, Duplikate) und rsgain (ReplayGain) – beide als fertige,
+# eigenständige Programme der Hersteller. Prüfsumme muss stimmen. Ohne Internet oder mit
+# BUB3_NO_HELPERS=1 geht es ohne weiter; dann nutzt BuB3TAGMUSIC die Programme des Systems.
+say "Hilfsprogramme (fpcalc, rsgain)"
+mkdir -p "$APPDIR/usr/bin" "$TOOLS/helpers"
+helper() {  # name url sha256
+  local name="$1" url="$2" sha="$3" file tmp bin
+  file="$TOOLS/helpers/$(basename "$url")"
+  if [ ! -f "$file" ] || ! echo "$sha  $file" | sha256sum -c --status 2>/dev/null; then
+    fetch "$file" "$url" || { echo "$name: nicht geladen – geht ohne weiter"; rm -f "$file"; return 0; }
+  fi
+  if ! echo "$sha  $file" | sha256sum -c --status 2>/dev/null; then
+    echo "$name: Prüfsumme stimmt nicht – lasse es weg"; rm -f "$file"; return 0
+  fi
+  tmp="$(mktemp -d)"
+  tar -xf "$file" -C "$tmp"
+  bin="$(find "$tmp" -type f -name "$name" | head -1)"
+  install -m 755 "$bin" "$APPDIR/usr/bin/$name"
+  rm -rf "$tmp"
+  echo "$name: $(du -h "$APPDIR/usr/bin/$name" | cut -f1)"
+}
+if [ -z "${BUB3_NO_HELPERS:-}" ] && command -v sha256sum >/dev/null; then
+  helper fpcalc \
+    https://github.com/acoustid/chromaprint/releases/download/v1.5.1/chromaprint-fpcalc-1.5.1-linux-x86_64.tar.gz \
+    4d7433a7f778e5946d7225230681cbcd634e153316ecac87c538c33ac32387a5
+  helper rsgain \
+    https://github.com/complexlogic/rsgain/releases/download/v3.8/rsgain-3.8-Linux.tar.xz \
+    4939de3b2022a50edc0751343b10a791ea8c1c9ca6505012f21413bf8de365a0
+  cat > "$APPDIR/usr/share/doc/bub3tagmusic/HILFSPROGRAMME.txt" <<'TXT'
+Mitgelieferte Hilfsprogramme (unverändert, wie von den Herstellern veröffentlicht):
+
+fpcalc 1.5.1 – Chromaprint, https://acoustid.org/chromaprint
+  Lizenz: LGPL 2.1 (enthält FFmpeg, LGPL). Quelltext: https://github.com/acoustid/chromaprint
+
+rsgain 3.8 – https://github.com/complexlogic/rsgain
+  Lizenz: BSD 2-Clause (enthält FFmpeg, libebur128, TagLib). Quelltext: siehe Link.
+TXT
+fi
+
 # --- Verschlanken + vorkompilieren ---------------------------------------------------
 say "Verschlanken"
 "$PY" packaging/prune.py "$APPDIR"

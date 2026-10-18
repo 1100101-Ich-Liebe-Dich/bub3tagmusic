@@ -5,8 +5,7 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
 ![BuB3TAGMUSIC](docs/screenshot-dark.png)
 
-Stand: **Version 0.3.0 – Phase 3 (Online)**. Die Funktionen der Phase 4 sind
-im Menü „Extras“ schon als Platzhalter zu sehen.
+Stand: **Version 0.4.0 – Phase 4 (Extras)**. Alle geplanten Phasen sind umgesetzt.
 
 ---
 
@@ -58,7 +57,7 @@ und einen Künstler- oder den Sammlungsordner anklicken.
 **Rückgängig (Strg+Z)** nimmt Bearbeitungen zurück – und auch schon Gespeichertes:
 Vor jedem Speichern merkt sich das Programm die alten Werte (die letzten 20 Speichervorgänge).
 
-### Werkzeuge (Menü „Werkzeuge“, Alt+1 … Alt+5 oder Rechtsklick in der Liste)
+### Werkzeuge (Menü „Werkzeuge“, Alt+1 … Alt+6 oder Rechtsklick in der Liste)
 
 Alle Werkzeuge arbeiten auf der Auswahl (oder auf allen Dateien der Liste, wenn nichts ausgewählt ist)
 und zeigen **vorher eine Live-Vorschau**: geänderte Werte gelb, Probleme rot.
@@ -93,6 +92,27 @@ Werkzeug in einem Schritt zurück. Umbenennen passiert sofort – Strg+Z benennt
 Alles außer Discogs funktioniert ohne Anmeldung. Für Discogs einen kostenlosen Token unter
 *Einstellungen → Online* eintragen (discogs.com → Settings → Developers).
 
+### Schnellfilter (über der Liste)
+
+Chips **Ohne Cover · Cover < 500 px · Ohne Jahr · Fehlende Tags · Ungespeichert · Lesefehler** – mehrere
+gleichzeitig möglich, mit Anzahl. **Ganze Sammlung** sucht dieselben Filter (und den Suchtext) in der ganzen
+Sammlung und holt die Treffer in die Liste – z. B. „alle ohne Cover“ und dann gleich *Cover suchen*.
+Ein-/ausblenden über *Extras → Erweiterte Filter*.
+
+### Extras (Menü „Extras“)
+
+| Funktion | Was sie macht |
+|---|---|
+| **Aktionen** (Alt+7) | Mehrere Schritte als Aktion speichern und auf einmal ausführen: Aufräumen, Schreibweise, Ersetzen, Feld setzen (z. B. Albuminterpret = `%artist%`), Tags aus Dateiname, Nummerieren, Umbenennen. Mit Vorschau; Strg+Z nimmt alles in einem Schritt zurück. Beispiel: „Album fertig machen“. |
+| **Unbekannte Dateien erkennen** (Strg+Shift+L) | Erkennt Dateien ohne Tags am Klang (Fingerabdruck + AcoustID) und schlägt Titel, Interpret, Album, Jahr, Track vor. Braucht einen kostenlosen AcoustID-Key (*Einstellungen → Online*). |
+| **ReplayGain berechnen** | Misst die Lautheit und schreibt ReplayGain-Tags (Track + Album, Album = Ordner) oder entfernt sie. Die Musik selbst bleibt unverändert. Spalten „RG Track“/„RG Album“ per Rechtsklick auf den Spaltenkopf. |
+| **Duplikate finden** | In der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach Klang (auch ohne Tags). Beste Qualität ist markiert; gelöscht wird nur, was du anhakst (in den Papierkorb). |
+| **Liste exportieren** (Strg+Shift+E) | Sichtbare Spalten als CSV (für LibreOffice/Excel) oder als schöne HTML-Seite zum Weitergeben und Drucken. |
+
+Die Hilfsprogramme `fpcalc` (Fingerabdruck) und `rsgain` (ReplayGain) bringt das mit `make` gebaute
+AppImage mit. Wer aus dem Quellcode startet, installiert sie über die Paketverwaltung – das Programm
+zeigt bei Bedarf den passenden Befehl.
+
 ### Tastenkürzel
 
 | Kürzel | Funktion |
@@ -108,12 +128,15 @@ Alles außer Discogs funktioniert ohne Anmeldung. Für Discogs einen kostenlosen
 | Strg+F | Liste filtern |
 | Strg+Shift+V | Bild aus der Zwischenablage als Cover |
 | Alt+1 … Alt+6 | Werkzeuge (Tags aus Dateiname, Umbenennen, Nummerieren, Schreibweise, Ersetzen, Ordner) |
+| Alt+7 | Aktionen |
 | Strg+L / Strg+K / Strg+J | Album / Cover / Künstlerbild online suchen |
+| Strg+Shift+L | Unbekannte Dateien erkennen (AcoustID) |
+| Strg+Shift+E | Liste exportieren |
 | F5 | Neu einlesen |
 | Strg+, | Einstellungen |
 | F1 | Alle Tastenkürzel |
 
-Rechtsklick auf die Spaltenköpfe blendet Spalten ein/aus (Albuminterpret, Komponist, Kommentar, Ordner …).
+Rechtsklick auf die Spaltenköpfe blendet Spalten ein/aus (Albuminterpret, Komponist, Kommentar, Ordner, ReplayGain …).
 Klick auf einen Spaltenkopf sortiert, ein dritter Klick stellt die Ordner-Reihenfolge wieder her.
 
 ---
@@ -145,17 +168,24 @@ bub3tagmusic/
 │   ├── patterns.py     Muster %artist% - %title% (beide Richtungen, mit Ordnerebenen)
 │   ├── tools.py        Werkzeug-Logik: nummerieren, Schreibweise, ersetzen, aufräumen
 │   ├── rename.py       Umbenennen: Plan + Prüfung + sicheres Ausführen (zweistufig)
+│   ├── filters.py      Schnellfilter
+│   ├── export.py       CSV / HTML
+│   ├── actions.py      Aktionen (Schrittketten, actions.json)
+│   ├── duplicates.py   Duplikate nach Tags / Klang
+│   ├── fingerprint.py  fpcalc, kompakte Form für AcoustID, Vergleich
+│   ├── replaygain.py   rsgain aufrufen und auswerten
+│   ├── tools_external.py  Hilfsprogramme finden, Installationshinweis je Distribution
 │   └── settings.py     Einstellungen (JSON)
 ├── online/             ohne Qt
 │   ├── base.py         AlbumMatch, CoverCandidate, RateLimiter, Ähnlichkeit
 │   ├── http.py         urllib, Wartezeiten, Zertifikate, Speicher, austauschbar für Tests
 │   ├── musicbrainz.py, discogs.py, coversearch.py, artistimages.py
 │   ├── matching.py     Dateien ↔ Album-Tracks zuordnen
-│   └── acoustid.py     Phase 4
+│   └── acoustid.py     Erkennen per Fingerabdruck (AcoustID)
 ├── ui/
 │   ├── mainwindow.py   Hauptfenster, Speichern, Rückgängig, Navigation
 │   ├── session.py      alle Bearbeitungen laufen hier durch (→ Rückgängig)
-│   ├── workers.py      Hintergrund: Baum scannen, laden, speichern
+│   ├── workers.py      Hintergrund: Baum scannen, laden, speichern, Task (Fortschritt + Abbrechen)
 │   ├── foldertree.py   Ordnerbaum mit Fertig-Status
 │   ├── filetable.py    schnelle Tabelle (Sortieren/Filtern im Modell)
 │   ├── editpanel.py    Bearbeitungsfeld + Cover-Aktionen
@@ -164,11 +194,16 @@ bub3tagmusic/
 │   ├── tools.py        Werkzeug-Dialoge mit Live-Vorschau (ToolDialog + 6 Werkzeuge)
 │   ├── widgets.py      Bausteine: Muster-Feld, Feld-Chips, Fließ-Layout
 │   ├── online.py       Album-, Cover- und Künstlerbild-Suche
+│   ├── filterbar.py    Schnellfilter-Leiste
+│   ├── export.py       Export-Dialog
+│   ├── actions.py      Aktionen-Fenster + Schritt-Editor
+│   ├── extras.py       Duplikate, ReplayGain (EXTRA_DIALOGS)
+│   ├── acoustid.py     Unbekannte Dateien erkennen
 │   ├── theme.py        Farben „Nachtwache“ (dunkel) und „Seekarte“ (hell)
 │   └── icons.py        Phosphor-Icons
-└── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon
+└── resources/          Schriften (Inter, Big Shoulders Stencil), App-Icon, Logo-Schrift für HTML-Export
 packaging/
-├── build_appimage.sh   baut das AppImage (eigenes Python 3.12, Qt 6.9, verschlankt)
+├── build_appimage.sh   baut das AppImage (eigenes Python 3.12, Qt 6.9, fpcalc, rsgain, verschlankt)
 ├── requirements-appimage.txt   feste Versionen fürs AppImage (läuft ab glibc 2.28)
 ├── prune.py            wirft Ungenutztes raus (Qt-Bibliotheken per ldd ermittelt)
 ├── AppRun              Starter im AppImage, reicht fehlende xcb-Bibliotheken nach
@@ -176,13 +211,15 @@ packaging/
 ```
 
 **Neue Funktion aus dem Fahrplan fertig?** In `features.py` `ready=True` setzen und
-– für ein Werkzeug mit Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen,
+– für ein Werkzeug mit Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen
+(Online: `ONLINE_DIALOGS`, eigene Fenster: `EXTRA_DIALOGS` in `ui/extras.py`),
 sonst die Methode in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel gibt es dann schon.
 
 ### Tests
 
 ```bash
-tests/run_all.sh           # alles: Formate, Werkzeuge, Online (aufgezeichnet), Oberfläche (braucht ffmpeg)
+tests/run_all.sh           # alles: Formate, Werkzeuge, Online (aufgezeichnet), Extras, Oberfläche
+                           # (braucht ffmpeg; fpcalc + rsgain für die Extras-Teile, sonst übersprungen)
 tests/run_all.sh --perf    # zusätzlich Leistung mit 1.000 Alben / 50.000 Listeneinträgen
 python3 tests/make_testfiles.py ZIEL --collection 100   # Test-Sammlung zum Ausprobieren erzeugen
 ```
@@ -193,3 +230,4 @@ Die Online-Tests spielen echte, aufgezeichnete Antworten ab (`tests/fixtures/onl
 Arbeitsnotizen und Regeln fürs Weiterentwickeln: `CLAUDE.md`. Änderungen: `CHANGELOG.md`.
 
 Lizenzen der mitgelieferten Schriften: `bub3tagmusic/resources/fonts/OFL-*.txt` (SIL Open Font License).
+Im AppImage: `fpcalc` (Chromaprint, LGPL 2.1) und `rsgain` (BSD 2-Clause), siehe `usr/share/doc/bub3tagmusic/`.

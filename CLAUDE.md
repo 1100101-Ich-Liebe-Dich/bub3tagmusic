@@ -55,6 +55,17 @@ nach jeder Sitzung aktuell halten.
 - Umbenennen: `mainwindow.run_rename(pairs, label)` → `RenameWorker` → `session.finish_rename` (+ Cache-Umzug).
 - Online-Code: `online/` (ohne Qt). Alle Abrufe über `online/http.py` (`get_json`, `get_image`) – nie direkt
   urllib. Jeder Dienst hat einen eigenen `RateLimiter`; MusicBrainz ≤ 1/s, EINE Suche + EINE Trackliste pro Album.
+- Extras-Fenster (Phase 4): `ui/extras.py` → `EXTRA_DIALOGS` (Duplikate, ReplayGain; Aktionen und Erkennen
+  werden dort nur verlinkt). Rahmen `ExtraDialog`; lange Arbeit per `Task` (workers.py: Fortschritt + Abbrechen,
+  `fn(..., progress=, cancelled=)`). Aktionen/Erkennen sind `ToolDialog`s (`ui/actions.py`, `ui/acoustid.py`).
+- Externe Programme (fpcalc, rsgain) nur über `core/tools_external.find_tool()` – sucht `BUB3_FPCALC`/`BUB3_RSGAIN`,
+  dann mitgeliefert (`$BUB3_BIN`, prüft ob es startet), dann PATH. Fehlt es: `install_hint(name)` anzeigen.
+- Tags + Umbenennen in einem Rutsch: `mainwindow.run_rename(pairs, label, chain=True)` → `ChainStep` (ein Strg+Z).
+- Dateien von außen geändert (rsgain …): danach `read_file` + `cache.put_many` + `session.refresh_records(recs)`.
+- Ergebnislisten statt Ordner: `win.show_files(pfade, "Bezeichnung")` bzw. `win.search_collection()`;
+  `win.is_result_list` → kein „nächster Ordner“.
+- Neue Felder im Datensatz (`read_file`) → `tags.RECORD_VERSION` erhöhen, dann liest der Cache alte Einträge neu.
+- Neue Spalten in `filetable.COLUMNS` bei bestehenden Einstellungen ausgeblendet lassen → `NEW_HIDDEN`.
 - Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
   `ImageLoader` (beide in `ui/workers.py`). Album-Daten + Cover gemeinsam: `session.apply_changes(..., cover=CoverData)`.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
@@ -78,10 +89,15 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 ```
 
 - **Musikdienste sind von der Arbeitsumgebung aus gesperrt** (MusicBrainz, CAA, iTunes, Deezer, Discogs,
-  TheAudioDB). Echte Antworten zeichnet GitHub auf: `tests/fixtures/online/RECORD` ändern → pushen → Workflow
+  TheAudioDB, AcoustID). Echte Antworten zeichnet GitHub auf: `tests/fixtures/online/RECORD` ändern → pushen → Workflow
   „Testdaten aufzeichnen“ abwarten → `git pull`. Die Zusammenfassung steht als Hinweise (::notice::) im Lauf und ist
   über `gh api repos/…/check-runs/<job-id>/annotations` lesbar (Logs selbst sind nicht abrufbar).
   Tests: `tests/test_online.py`, `tests/ui_online.py` (fehlende große Bilder ersetzt der Test durch ein JPEG).
+  AcoustID: Key aus GitHub-Secret `ACOUSTID_KEY`, sonst Beispiel-Key der Doku; in den Aufnahmen steht immer
+  `client=TESTKEY`. MusicBrainz antwortet nach vielen Aufnahmen kurz mit 503 → der Recorder wartet und wiederholt.
+- Phase-4-Tests: `tests/test_extras.py` (Kern) und `tests/ui_extras.py` (eigene kleine Sammlung mit Melodien –
+  Sinustöne geben keinen Fingerabdruck). fpcalc/rsgain hier: `apt-get install -y libchromaprint-tools rsgain`;
+  ohne sie testen: `BUB3_FPCALC=/nix BUB3_RSGAIN=/nix` (Teile werden übersprungen bzw. Hinweis geprüft).
 - Echter X-Bildschirm zum Testen: `apt-get install -y xvfb` funktioniert in der Arbeitsumgebung,
   dann `Xvfb :77 -screen 0 1366x768x24 &` und `DISPLAY=:77 …`. Screenshot: `PIL.ImageGrab.grab(xdisplay=":77")`.
 - Fehlende Systembibliotheken simulieren: Dateien aus `/usr/lib/x86_64-linux-gnu` kurz wegschieben +
@@ -134,7 +150,16 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - Nach Text-/Stiländerung an Statusleisten-Labels/Buttons `adjustSize()`/`updateGeometry()`, sonst abgeschnitten.
 - Cover: `CoverData.original` behält das Bild in voller Größe für `cover.jpg`; eingebettet wird verkleinert.
 
+- **QLineEdit hat schon eine Qt-Eigenschaft `modified`** (setText() setzt sie still zurück). Eigene
+  QSS-Eigenschaften nie so nennen – im Bearbeitungsfeld heißt sie `edited`, sonst bleibt der gelbe Rahmen stehen.
+- `os.access(pfad, X_OK)` ist auch für Ordner wahr → Programme mit `os.path.isfile` + X_OK prüfen.
+- rsgain bricht bei EINER kaputten Datei das ganze Album ab (Exit 1, keine Ausgabe) → einzeln prüfen, dann ohne sie.
+- Fingerabdrücke nie jeder-gegen-jeden vergleichen (50.000² …): Index über exakt gleiche Teil-Abdrücke, dann genau.
+- `QFile.moveToTrash` braucht im Test ein eigenes `XDG_DATA_HOME`, sonst landet es im echten Papierkorb.
+
 ## Noch nicht geprüft
 
 - APE- und DSF-Dateien (ffmpeg kann keine erzeugen) – gleicher Code wie WavPack bzw. MP3.
 - Echtes Verhalten auf alter Hardware und mit echten großen MP3-Sammlungen (Rückmeldung abwarten).
+- AcoustID mit echtem Key und echter Musik (die Aufnahme nutzt den Doku-Key + Track-ID-Abfrage).
+- Mitgeliefertes rsgain braucht glibc 2.30 – auf Debian 10 nimmt das Programm dann das vom System (falls da).

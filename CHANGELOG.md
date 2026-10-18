@@ -2,6 +2,28 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [0.4.0] – 2026-10-18 – Phase 4: Extras
+
+### Neu
+- **Schnellfilter** über der Liste: Ohne Cover, Cover < 500 px, Ohne Jahr, Fehlende Tags, Ungespeichert,
+  Lesefehler – kombinierbar, mit Zählern. **Ganze Sammlung** sucht dieselben Filter in der ganzen Sammlung.
+- **Liste exportieren** (Strg+Shift+E) als CSV (UTF-8) oder eigenständige HTML-Seite im BuB3TAGMUSIC-Look.
+- **Duplikate finden** nach Interpret + Titel oder nach Klang (Fingerabdruck) – in der Liste oder der ganzen
+  Sammlung; beste Qualität markiert; nur Angehaktes wandert in den Papierkorb, eine Datei je Gruppe bleibt.
+- **Aktionen** (Alt+7): Schrittketten (Aufräumen, Schreibweise, Ersetzen, Feld setzen, Tags aus Dateiname,
+  Nummerieren, Umbenennen) mit Vorschau; Strg+Z nimmt alles in einem Schritt zurück – auch das Umbenennen.
+- **ReplayGain** über rsgain: Track + Album, nur Track oder entfernen; Spalten „RG Track“/„RG Album“.
+- **Unbekannte Dateien erkennen** (Strg+Shift+L) per Fingerabdruck und AcoustID (kostenloser Key).
+- `make` packt die Hilfsprogramme `fpcalc` und `rsgain` gleich ins AppImage.
+
+### Behoben
+- Gelber Rahmen im Bearbeitungsfeld blieb manchmal stehen, obwohl nichts mehr geändert war
+  (z. B. nach Rückgängig oder Speichern).
+
+### Technik
+- Zwischenspeicher Version 2: Fingerabdrücke werden gemerkt; Tags werden einmalig neu gelesen
+  (wegen der ReplayGain-Werte).
+
 ## [0.3.0] – 2026-10-18 – Phase 3: Online
 
 ### Neu

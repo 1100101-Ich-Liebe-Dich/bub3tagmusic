@@ -149,6 +149,11 @@ def _selftest(app, win, folder: str, german: bool) -> int:
             else:
                 ok = False
                 info.append("Album laden: Zeitüberschreitung")
+    from .core.tools_external import find_tool, tool_version
+    for tool in ("fpcalc", "rsgain"):
+        path = find_tool(tool)
+        where = "mitgeliefert" if path.startswith(os.environ.get("BUB3_BIN") or "/-/") else "System"
+        info.append(f"{tool} {tool_version(tool)} ({where})" if path else f"{tool} fehlt")
     wait(lambda: False, 0.5)
     print("SELFTEST " + ("OK" if ok else "FEHLER") + " – " + ", ".join(info))
     win.session.revert()

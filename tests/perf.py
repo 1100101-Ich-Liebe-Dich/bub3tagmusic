@@ -42,6 +42,7 @@ def main():
     from bub3tagmusic.ui.mainwindow import MainWindow
     from bub3tagmusic.ui.filetable import COLUMN_INDEX
     win = MainWindow(Settings())
+    win.resize(1366, 768)          # kleinster Bildschirm, für den BuB3TAGMUSIC gebaut ist
     win.show()
     recs = load_records(paths, cache)
     big = []

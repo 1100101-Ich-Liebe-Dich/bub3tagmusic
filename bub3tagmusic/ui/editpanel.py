@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 from collections import OrderedDict
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QApplication, QComboBox, QCompleter, QFileDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMenu, QMessageBox, QPushButton,
@@ -56,6 +56,12 @@ class FieldEdit(QLineEdit):
 
     def refresh_icons(self):
         self._clear.setIcon(icons.icon("x", "faint", "text"))
+
+    # Feste Mindestbreite: Das ×-Symbol (ein-/ausgeblendet) würde sie sonst ändern, das Fenster
+    # teilt neu auf und die Liste wird neu vermessen – bei 50.000 Zeilen spürbar langsam.
+    def minimumSizeHint(self):
+        h = super().minimumSizeHint()
+        return QSize(60, h.height())
 
     def show_value(self, value: str, mixed: bool, modified: bool):
         if self.dirty and self.hasFocus():
@@ -146,6 +152,9 @@ class EditPanel(QWidget):
         self.cover_info.setProperty("role", "faint")
         self.folder_info = QLabel("")
         self.folder_info.setProperty("role", "faint")
+        for lbl in (self.cover_info, self.folder_info):     # lange Hinweise umbrechen statt das Feld zu sprengen
+            lbl.setWordWrap(True)
+            lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         side.addWidget(self.cover_state)
         side.addWidget(self.cover_info)
         side.addWidget(self.folder_info)
@@ -440,7 +449,7 @@ class EditPanel(QWidget):
             self.cover_info.setText(self._describe(first_with))
         else:
             self.cover_state.setText("Kein Cover")
-            self.cover_info.setText("Reinziehen – oder Strg+K sucht online")
+            self.cover_info.setText("Reinziehen oder Strg+K (online)")
         self.cover.set_cover(pm, badge, role)
 
         # Ordnerbild (cover.jpg) prüfen

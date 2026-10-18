@@ -5,7 +5,7 @@ präsentiert von www.BAUENUNDBOOTEN.de
 
 APP_NAME = "BuB3TAGMUSIC"
 APP_ID = "bub3tagmusic"
-APP_VERSION = "0.3.0"
-APP_PHASE = 3
+APP_VERSION = "0.4.0"
+APP_PHASE = 4
 PRESENTER = "www.BAUENUNDBOOTEN.de"
 PRESENTER_URL = "https://www.BAUENUNDBOOTEN.de"

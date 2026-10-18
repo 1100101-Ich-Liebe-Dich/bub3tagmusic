@@ -3,7 +3,8 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version 0.3.0 – **Phase 3 fertig: Album-, Cover- und Künstlerbild-Suche online** (18.10.2026).
+> **Aktueller Stand:** Version 0.4.0 – **Phase 4 fertig: Aktionen, Erkennen, ReplayGain, Duplikate, Export,
+> Schnellfilter** (18.10.2026). Damit sind alle geplanten Phasen umgesetzt – jetzt kommt der Praxistest.
 > Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
@@ -200,15 +201,33 @@ Rückgängig-Schritt. Erreichbar über Menü „Werkzeuge“, Alt+1 … Alt+5 un
 GitHub-Workflow „Testdaten aufzeichnen“ echte Antworten auf (`tests/record_online.py` → `tests/fixtures/online/`),
 und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/RECORD` ändern und hochladen.
 
-### Phase 4: Für Fortgeschrittene
+### Phase 4: Für Fortgeschrittene ✅ fertig (0.4.0)
 
-- [ ] #11 Aktionsketten speichern und mit einem Klick ausführen
-- [ ] #12 Erkennung unbekannter Dateien per Fingerabdruck (AcoustID, kostenloser Key)
-- [ ] #13 ReplayGain berechnen (über das externe Programm rsgain)
-- [ ] #14 Duplikate finden
-- [ ] #15 Export als CSV / HTML
-- [ ] #16 Erweiterte Filter („alle ohne Cover“, „alle ohne Jahr“ …) – einfacher Textfilter gibt es schon
+- [x] #16 **Schnellfilter** über der Liste: Ohne Cover · Cover < 500 px · Ohne Jahr · Fehlende Tags ·
+  Ungespeichert · Lesefehler – kombinierbar, mit Zählern; **„Ganze Sammlung“** sucht mit denselben
+  Filtern (und dem Suchtext) in der ganzen Sammlung (aus dem Zwischenspeicher, nur Neues wird gelesen).
+  Ein-/ausblenden: Extras → Erweiterte Filter
+- [x] #15 **Liste exportieren** (Strg+Shift+E): sichtbare Spalten in ihrer Reihenfolge, Sortierung und
+  Filter wie in der Liste; CSV (UTF-8, Semikolon/Komma/Tab) oder eine eigenständige HTML-Seite im
+  BuB3TAGMUSIC-Look (sortierbar, Suchfeld, hell/dunkel, druckbar)
+- [x] #14 **Duplikate finden**: in der Liste oder der ganzen Sammlung, nach Interpret + Titel (Akzente,
+  Satzzeichen egal; Länge ± einstellbar; Klammerzusätze optional ignorieren) und/oder nach **Klang**
+  (Fingerabdruck, auch ohne Tags). Gruppen mit „beste Qualität“; nichts wird automatisch gelöscht –
+  angehakte Dateien wandern auf Wunsch in den Papierkorb (eine pro Gruppe bleibt immer)
+- [x] #11 **Aktionen** (Alt+7): Ketten aus Aufräumen, Schreibweise, Ersetzen, Feld setzen (mit Platzhaltern
+  wie `%artist%`), Tags aus Dateiname, Nummerieren und Umbenennen; gespeichert in
+  `~/.config/bub3tagmusic/actions.json`; Beispiel-Aktionen; Vorschau; **ein** Rückgängig-Schritt – auch
+  mit Umbenennen
+- [x] #13 **ReplayGain** über `rsgain`: Track + Album (Album = Ordner), nur Track oder entfernen; −18/−23/−14
+  LUFS, Übersteuern verhindern; Fortschritt, Abbrechen, Fehlerliste; Spalten „RG Track“/„RG Album“
+- [x] #12 **Unbekannte Dateien erkennen** (Strg+Shift+L): Fingerabdruck mit `fpcalc`, Abfrage bei AcoustID
+  (≤ 3/s), passendste Veröffentlichung (Album aus den Tags > Studioalbum > frühestes Jahr), Vorschau mit
+  Treffer-Prozent, nur sichere Treffer übernehmen. Braucht den kostenlosen AcoustID-Key (#23)
 - [x] #17 AppImage bauen – *vorgezogen in 0.1.2*: `make`, automatisch auf GitHub bei jedem Hochladen, Selbsttest auf X-Bildschirm
+
+**Hilfsprogramme:** `make` packt `fpcalc` 1.5.1 und `rsgain` 3.8 (fertige Programme der Hersteller,
+Prüfsumme geprüft) ins AppImage – nichts extra zu installieren. Ohne AppImage nutzt BuB3TAGMUSIC die
+Programme des Systems und zeigt sonst eine Installationsanleitung passend zur Distribution.
 
 ---
 
@@ -239,17 +258,27 @@ BuB3TAGMUSIC/
     │   ├── patterns.py       Muster %artist% … in beide Richtungen, mit Ordnerebenen
     │   ├── tools.py          Werkzeug-Logik (Phase 2)
     │   ├── rename.py         Umbenennen: Plan, Prüfung, zweistufig ausführen
+    │   ├── filters.py        Schnellfilter (Phase 4)
+    │   ├── export.py         CSV / HTML (Phase 4)
+    │   ├── actions.py        Aktionen: Schritte, Ausführen, actions.json (Phase 4)
+    │   ├── duplicates.py     Duplikate nach Tags / Klang (Phase 4)
+    │   ├── fingerprint.py    fpcalc, kompakte Form, Vergleich (Phase 4)
+    │   ├── replaygain.py     rsgain aufrufen und auswerten (Phase 4)
+    │   ├── tools_external.py Hilfsprogramme finden + Installationshinweis je Distribution
     │   └── settings.py       Einstellungen (JSON)
     ├── online/               http (Limiter, Zertifikate), musicbrainz, discogs, coversearch,
-    │                         artistimages, matching (Datei ↔ Track), acoustid (Phase 4)
+    │                         artistimages, matching (Datei ↔ Track), acoustid (Erkennen)
     └── ui/                   Oberfläche (mainwindow, session, workers, foldertree,
                               filetable, editpanel, coverwidget, dialogs, theme, icons,
-                              tools = Werkzeug-Dialoge, widgets = Bausteine)
+                              tools = Werkzeug-Dialoge, online = Online-Dialoge,
+                              filterbar, export, actions, extras (Duplikate, ReplayGain),
+                              acoustid, widgets = Bausteine)
 ```
 
 **Neue Funktion anschließen:** in `features.py` `ready=True` setzen und – bei einem Werkzeug mit
-Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen, sonst die Methode
-in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel existieren schon.
+Vorschau – eine `ToolDialog`-Unterklasse in `ui/tools.py` unter `TOOL_DIALOGS` eintragen; Online-Dialoge
+unter `ONLINE_DIALOGS` (`ui/online.py`), eigene Extras-Fenster unter `EXTRA_DIALOGS` (`ui/extras.py`),
+sonst die Methode in `ui/mainwindow.py` unter `FEATURE_HANDLERS`. Menüeintrag und Tastenkürzel existieren schon.
 
 ---
 
@@ -321,7 +350,8 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 - [ ] #19 Welche Linux-Distribution wird genutzt? (für Feinschliff von `install.sh`)
 - [ ] #20 Design bestätigen: Bojen-Orange, Stencil-Logo, Rettungsring-Icon
 - [ ] #21 Discogs-Account + Token anlegen (übernimmt BAUENUNDBOOTEN zum Testen)
-- [ ] #23 AcoustID-Key (später, Phase 4)
+- [ ] #23 AcoustID-Key anlegen (acoustid.org/new-application) und in Einstellungen → Online eintragen –
+      dann „Unbekannte Dateien erkennen“ ausprobieren
 - [ ] #22 APE- und DSF-Dateien zum Testen (falls in der Sammlung vorhanden)
 - [x] Ordner umbenennen – umgesetzt als eigenes Werkzeug (Alt+6), Fertig-Status wandert mit
 - [x] Gleichnamige Begleitdateien (.lrc, .txt, .srt …) wandern beim Umbenennen mit
@@ -330,6 +360,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 10. Nächster Schritt
 
-1. Phase 3 mit `make` bauen und an einer **Kopie** testen – Album-Suche, Cover, Künstlerbild (braucht Internet)
-2. Discogs-Token eintragen (#21) und Discogs ausprobieren
-3. Phase 4: Aktionen (#11), AcoustID (#12), ReplayGain (#13), Duplikate (#14), Export (#15), Filter (#16)
+1. 0.4.0 mit `make` bauen und an einer **Kopie** testen – vor allem Aktionen, Duplikate (Papierkorb!) und ReplayGain
+2. AcoustID-Key eintragen (#23) und „Unbekannte Dateien erkennen“ an ein paar Dateien ohne Tags ausprobieren
+3. Rückmeldungen aus dem Praxistest (#18) – danach Feinschliff nach Wunsch (alle Phasen sind umgesetzt)

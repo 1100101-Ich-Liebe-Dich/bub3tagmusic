@@ -19,6 +19,8 @@ Das Bauen dauert beim ersten Mal ein paar Minuten (Downloads), danach etwa 20 Se
 | openSUSE | `sudo zypper install make wget git` |
 
 Mehr braucht es nicht – Python, Qt und alles andere lädt der Bauvorgang selbst.
+Auch die Hilfsprogramme für die Extras – `fpcalc` (Fingerabdruck: Erkennen, Duplikate) und `rsgain`
+(ReplayGain) – lädt `make` gleich mit und packt sie ins AppImage. Es muss also nichts extra installiert werden.
 
 ## 2. Code holen
 

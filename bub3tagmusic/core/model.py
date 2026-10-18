@@ -53,9 +53,11 @@ class FileItem:
         return {k: v for k, v in self.tags.items() if v != self.orig.get(k, "")}
 
     def is_modified(self) -> bool:
-        return self.cover_action is not COVER_KEEP or any(
-            v != self.orig.get(k, "") for k, v in self.tags.items()
-        )
+        if self.cover_action is not COVER_KEEP:
+            return True
+        if self.tags == self.orig:          # der häufigste Fall – Vergleich in C, sehr schnell
+            return False
+        return any(v != self.orig.get(k, "") for k, v in self.tags.items())
 
     def is_field_modified(self, key: str) -> bool:
         return self.tags.get(key, "") != self.orig.get(key, "")

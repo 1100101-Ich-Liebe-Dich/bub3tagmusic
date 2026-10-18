@@ -208,6 +208,7 @@ SHORTCUTS = (
         ("Alt+4", "Groß-/Kleinschreibung"),
         ("Alt+5", "Suchen & Ersetzen"),
         ("Alt+6", "Ordner umbenennen"),
+        ("Alt+7", "Aktionen (mehrere Schritte auf einmal)"),
     )),
     ("Ansicht", (
         ("Strg+O", "Sammlung öffnen"),
@@ -216,6 +217,8 @@ SHORTCUTS = (
         ("Strg+L", "Album online suchen (MusicBrainz / Discogs)"),
         ("Strg+K", "Cover online suchen"),
         ("Strg+J", "Künstlerbild online suchen"),
+        ("Strg+Shift+L", "Unbekannte Dateien erkennen (AcoustID)"),
+        ("Strg+Shift+E", "Liste exportieren (CSV / HTML)"),
         ("Strg+,", "Einstellungen"),
         ("F1", "Diese Übersicht"),
     )),

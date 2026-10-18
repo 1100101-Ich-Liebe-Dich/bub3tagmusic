@@ -43,6 +43,7 @@ fi
 
 export PYTHONNOUSERSITE=1
 export BUB3_APPIMAGE=1
+export BUB3_BIN="$HERE/usr/bin"      # mitgelieferte Hilfsprogramme (fpcalc, rsgain)
 "$HERE/usr/python/bin/python3" -I -m bub3tagmusic "$@"
 status=$?
 [ -n "$LIBDIR" ] && rm -rf "$LIBDIR"

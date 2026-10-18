@@ -132,6 +132,7 @@ def main():
     test_export(app, win, work, out)
     test_actions(app, win, root, files, out)
     test_replaygain(app, win, out)
+    test_acoustid(app, win, root, out)
     test_duplicates(app, win, root, files, out)
 
     win.session.revert()
@@ -327,6 +328,79 @@ def test_replaygain(app, win, out):
     pump(app, 0.3)
     check(not any(it.rec.get("rg") for it in win.session.items), "keine ReplayGain-Werte mehr")
     d.reject()
+
+
+def test_acoustid(app, win, root, out):
+    print("Erkennen (AcoustID)")
+    import dataclasses
+    import json
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from online_fixtures import FIXTURES, use_fixtures
+    from bub3tagmusic.online import acoustid
+    from bub3tagmusic.ui.extras import EXTRA_DIALOGS
+    use_fixtures()
+    info_path = os.path.join(FIXTURES, "acoustid.json")
+    info = json.load(open(info_path)) if os.path.exists(info_path) else {}
+    calls = []
+
+    def fake_lookup(fp, duration, key, album=""):
+        calls.append((len(fp), round(duration), key))
+        if info.get("trackid"):
+            return [dataclasses.replace(m, score=0.95) for m in acoustid.lookup_track(info["trackid"], "TESTKEY")]
+        return [acoustid.AcoustMatch(0.95, "r", "Hells Bells", "AC/DC", "Back in Black", "AC/DC", "1980", 1, 10)]
+    real = acoustid.lookup
+    acoustid.lookup = fake_lookup
+    win.tree.select_paths([os.path.join(root, "Unsortiert")])
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 2), "Ordner ohne Tags geladen")
+    pump(app, 0.3)
+    win.table.selectAll()
+    pump(app)
+    items, scope = win.tool_items()
+    win.settings.acoustid_key = ""
+    d = EXTRA_DIALOGS["acoustid"](win, items, scope)
+    d.show()
+    pump(app, 0.4)
+    check(len(d.targets()) == 1, "nur die Datei ohne Titel (kaputte Datei zählt nicht)")
+    if not find_tool("fpcalc"):
+        check(not d.start_btn.isEnabled(), "ohne fpcalc: Start gesperrt, Hinweis da")
+        d.reject()
+        acoustid.lookup = real
+        return
+    d.start()
+    check("Key" in d.message.text(), f"ohne Key: Hinweis ({d.message.text()})")
+    d.key.setText("TESTKEY")
+    d._store_key()
+    check(win.settings.acoustid_key == "TESTKEY", "Key wird in den Einstellungen gemerkt")
+    d.start()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning(), 60), "Erkennen fertig")
+    pump(app, 0.5)
+    check(calls and calls[0][2] == "TESTKEY" and calls[0][0] > 100, f"Fingerabdruck + Key an AcoustID: {calls[:1]}")
+    p = d.model.preview
+    check(p.apply_count == 1 and "erkannt (95 %)" in p.rows[0].status, f"Vorschau: {p.summary} / {p.rows[0].status}")
+    d.grab().save(os.path.join(out, "x8_erkennen.png"))
+    d._apply()
+    it = next(i for i in win.session.items if i.name == "track07.mp3")
+    check(it.tags["title"] == "Hells Bells" and it.tags["artist"] == "AC/DC", f"übernommen: {it.tags['title']}")
+    check(win.session.modified_count() == 1, "gelb markiert, noch nicht gespeichert")
+    win.undo()
+    check(win.session.modified_count() == 0, "Strg+Z nimmt es zurück")
+    # zweiter Durchlauf: Fingerabdruck kommt aus dem Zwischenspeicher
+    d = EXTRA_DIALOGS["acoustid"](win, items, scope)
+    import bub3tagmusic.ui.acoustid as UA
+    real_fp = UA.fingerprint
+    UA.fingerprint = lambda *a, **k: (_ for _ in ()).throw(AssertionError("fpcalc sollte nicht laufen"))
+    d.start()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning(), 60), "zweites Mal fertig")
+    pump(app, 0.3)
+    check(d.model.preview.apply_count == 1, "Fingerabdruck aus dem Zwischenspeicher")
+    UA.fingerprint = real_fp
+    d.reject()
+    acoustid.lookup = real
+    from bub3tagmusic.online import http
+    http.set_transport(None)
+    win.tree.select_paths([os.path.join(root, "Kielwasser")])
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4), "zurück zum Künstler")
+    pump(app, 0.3)
 
 
 def test_duplicates(app, win, root, files, out):

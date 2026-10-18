@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from online_fixtures import available, use_fixtures  # noqa: E402
 
-from bub3tagmusic.online import artistimages, coversearch, discogs, http, matching, musicbrainz  # noqa: E402
+from bub3tagmusic.online import acoustid, artistimages, coversearch, discogs, http, matching, musicbrainz  # noqa: E402
 from bub3tagmusic.online.base import OnlineError, seconds, similarity  # noqa: E402
 
 FAILS = []
@@ -119,6 +119,63 @@ def main():
         FAILS.append("404 nicht erkannt")
     except http.NotFound:
         eq(True, True, "404 → NotFound")
+
+    # --- AcoustID (echte Antworten, Key in der Aufnahme = TESTKEY) ---------------------
+    import json
+    fx_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
+    info_path = os.path.join(fx_dir, "online", "acoustid.json")
+    if os.path.exists(info_path):
+        info = json.load(open(info_path))
+        if info.get("trackid"):
+            res = acoustid.lookup_track(info["trackid"], "TESTKEY", "Back in Black")
+            m = res[0]
+            eq((m.title, m.artist), ("Hells Bells", "AC/DC"), "AcoustID: Titel + Interpret")
+            eq(bool(m.album and m.year and m.track and m.track_total), True,
+               f"AcoustID: Album/Jahr/Track ({m.album}, {m.year}, {m.track}/{m.track_total}, {m.kind})")
+            t = m.tags()
+            eq(t["track"], f"{m.track}/{m.track_total}", "AcoustID: Track mit Gesamtzahl")
+            eq(m.others >= 1, True, f"AcoustID: weitere Veröffentlichungen ({m.others})")
+        fp = json.load(open(os.path.join(fx_dir, "fingerprint.json")))
+        if info.get("fingerprint_lookup") == "ok":
+            eq(acoustid.lookup(fp["compressed"], fp["duration"], "TESTKEY"), [],
+               "AcoustID: echter Fingerabdruck-Lookup angenommen (Testklang → keine Treffer)")
+        err_path = os.path.join(fx_dir, "online", "acoustid_error.json")
+        if os.path.exists(err_path):
+            body = open(err_path, "rb").read()
+            http.set_transport(lambda url, headers: (400, body))
+            try:
+                acoustid.lookup(fp["compressed"], fp["duration"], "falsch")
+                FAILS.append("falscher Key nicht erkannt")
+            except OnlineError as exc:
+                eq(str(exc), "AcoustID-Key ungültig – in Einstellungen → Online prüfen", "AcoustID: falscher Key")
+            use_fixtures(misses)
+        try:
+            acoustid.lookup("x", 10, "")
+            FAILS.append("fehlender Key nicht erkannt")
+        except OnlineError as exc:
+            eq(str(exc).startswith("AcoustID-Key fehlt"), True, "AcoustID: Key fehlt")
+    # Aufbau der Antwort (falls die Aufnahme keinen Treffer hatte): Beispiel nach echter Struktur
+    sample = {"status": "ok", "results": [{"score": 0.93, "id": "t", "recordings": [{
+        "id": "r", "title": "Westerland", "artists": [{"name": "Die Ärzte"}],
+        "releasegroups": [
+            {"title": "Das ist nicht die ganze Wahrheit…", "type": "Album", "secondarytypes": [], "artists": [
+                {"name": "Die Ärzte"}], "releases": [{"id": "a", "title": "Das ist nicht die ganze Wahrheit…",
+                                                     "date": {"year": 1988}, "medium_count": 1, "mediums": [
+                                                         {"position": 1, "track_count": 14,
+                                                          "tracks": [{"position": 5}]}]}]},
+            {"title": "Westerland", "type": "Single", "releases": [{"id": "b", "date": {"year": 1988},
+                                                                   "medium_count": 1, "mediums": [
+                                                                       {"position": 1, "track_count": 2,
+                                                                        "tracks": [{"position": 1}]}]}]},
+            {"title": "Ein Schritt", "type": "Album", "secondarytypes": ["Compilation"], "releases": [
+                {"id": "c", "date": {"year": 2001}, "medium_count": 2, "mediums": [
+                    {"position": 2, "track_count": 10, "tracks": [{"position": 3}]}]}]},
+        ]}]}]}
+    m = acoustid.parse(sample)[0]
+    eq((m.album, m.year, m.track, m.track_total, m.kind), ("Das ist nicht die ganze Wahrheit…", "1988", 5, 14, "Album"),
+       "AcoustID: reguläres Studioalbum vor Single/Sampler")
+    m = acoustid.parse(sample, current_album="Ein Schritt")[0]
+    eq((m.album, m.tags().get("disc")), ("Ein Schritt", "2/2"), "AcoustID: Album aus den Tags hat Vorrang (mit Disc)")
 
     def offline(url, headers):
         raise urllib.error.URLError("Name or service not known")
