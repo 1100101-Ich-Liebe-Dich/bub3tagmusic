@@ -36,7 +36,7 @@
 | Stärke | Was das heißt |
 |---|---|
 | 📂 **Ordner für Ordner** | Links deine Sammlung als Baum (Künstler → Alben) mit Fortschritt. Album anklicken, bearbeiten, **Strg+→** speichert, hakt ab und springt zum nächsten offenen Album. |
-| ✏️ **Viele Dateien auf einmal** | Alle Dateien eines Albums – oder mit „Unterordner“ einen ganzen Künstler – gleichzeitig bearbeiten. Unterschiedliche Werte zeigen `‹verschieden›` und bleiben, wie sie sind. |
+| ✏️ **Viele Dateien auf einmal** | Alle Dateien eines Albums – oder mit „Unterordner“ einen ganzen Künstler – gleichzeitig bearbeiten. Unterschiedliche Werte zeigen `‹verschieden›` und bleiben, wie sie sind – oder du wählst per Pfeil einen davon für alle. |
 | 🖼️ **Cover & Künstlerbild** | Einbetten, `cover.jpg` im Album-Ordner, `folder.jpg` im Künstler-Ordner – per Drag & Drop, aus dem Ordner oder online gesucht. |
 | 🌐 **Online** | MusicBrainz, Discogs & Deezer (eine Suche pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
 | 🎤 **Songtext, Label, Original-Jahr** | Songtexte eintippen oder aus `.lrc`/`.txt` übernehmen – auch für ein ganzes Album auf einmal. |
@@ -233,6 +233,7 @@ verkleinert (einstellbar), `cover.jpg` im Ordner bleibt in voller Größe.
 | Strg+O | Sammlung öffnen |
 | Strg+A | Alle Dateien auswählen |
 | Strg+E | Zum Feld „Titel“ |
+| Alt+↓ | Im Feld mit ‹verschieden›: vorhandene Werte zur Auswahl |
 | Strg+F | Liste filtern |
 | F2 | Zelle in der Liste bearbeiten |
 | Strg+Shift+V | Bild aus der Zwischenablage als Cover |

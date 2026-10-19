@@ -196,6 +196,7 @@ SHORTCUTS = (
     ("Auswahl & Bearbeiten", (
         ("Strg+A", "Alle Dateien in der Liste auswählen"),
         ("Strg+E", "Zum Feld Titel springen"),
+        ("Alt+↓", "Bei ‹verschieden›: vorhandene Werte zur Auswahl"),
         ("F2", "Zelle in der Liste bearbeiten"),
         ("Enter", "Feld übernehmen"),
         ("Esc", "Getipptes verwerfen"),

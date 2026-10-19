@@ -2,6 +2,14 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.1] – 2026-10-19 – Aus ‹verschieden› wählen
+
+### Neu
+- Steht ein Feld auf `‹verschieden›` (z. B. mehrere Interpreten in einem Album), zeigt es einen kleinen **Pfeil**.
+  Ein Klick (oder **Alt+↓**) listet die vorhandenen Werte – die häufigsten zuerst, mit Anzahl. Die Wahl gilt für alle
+  gewählten Dateien (gelb, Strg+S speichert, Strg+Z nimmt zurück). Wird nichts gewählt, bleibt alles, wie es ist.
+  Gilt für alle Felder außer Track; beim Songtext gibt es weiterhin das Songtext-Fenster.
+
 ## [1.1.0] – 2026-10-19 – Songtext, Label, Original-Jahr, Deezer
 
 ### Neu

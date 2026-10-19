@@ -130,6 +130,7 @@ def main():
 
     test_filters(app, win, root, out)
     test_new_fields(app, win, root, out)
+    test_choices(app, win, root, out)
     test_artist_folder(app, win, root, out)
     test_export(app, win, work, out)
     test_actions(app, win, root, files, out)
@@ -296,6 +297,51 @@ def test_new_fields(app, win, root, out):
     win.tree.select_paths([os.path.join(root, "Kielwasser")])
     check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4), "zurück zum Künstler")
     pump(app, 0.3)
+
+
+def test_choices(app, win, root, out):
+    print("‹verschieden› – aus vorhandenen Werten wählen (1.1.1)")
+    win.table.selectAll()
+    pump(app, 0.3)
+    panel = win.panel
+    album = panel.fields["album"]
+    check(album.mixed and album._pick.isVisible(), "Pfeil bei ‹verschieden› sichtbar")
+    check(not panel.fields["title"]._pick.isVisible() or panel.fields["title"].mixed, "Pfeil nur bei ‹verschieden›")
+    check(not panel.fields["track"]._pick.isVisible(), "kein Pfeil bei Track")
+    check(panel.fields["genre"]._pick.isVisible() is False or panel.fields["genre"].mixed, "Genre wie die anderen")
+    menu = panel.choice_menu(album)
+    texts = [a.text() for a in menu.actions() if not a.isSeparator()]
+    check(texts[1:3] == ["Hochsee\t3×", "Best Of\t1×"], f"Werte nach Häufigkeit: {texts}")
+    aa = panel.choice_menu(panel.fields["albumartist"])
+    check(any("ohne Wert" in a.text() for a in aa.actions()), "Hinweis auf Dateien ohne Wert")
+    before = [it.tags["album"] for it in win.session.items]
+    menu.close()                                          # nichts gewählt → nichts passiert
+    pump(app, 0.1)
+    check([it.tags["album"] for it in win.session.items] == before and win.session.modified_count() == 0,
+          "Menü schließen ändert nichts")
+    pick = next(a for a in menu.actions() if a.text().startswith("Hochsee"))
+    pick.trigger()
+    pump(app, 0.2)
+    check(all(it.tags["album"] == "Hochsee" for it in win.session.items), "Hochsee für alle 4 gesetzt")
+    check(not album.mixed and album.text() == "Hochsee" and not album._pick.isVisible(), "Feld zeigt den Wert")
+    check(win.session.modified_count() == 1, f"nur die eine Datei wird gelb ({win.session.modified_count()})")
+    win.undo()
+    pump(app, 0.2)
+    check([it.tags["album"] for it in win.session.items] == before and album.mixed, "Strg+Z stellt alles wieder her")
+    win.grab().save(os.path.join(out, "x0_auswahl.png"))
+    # Alt+↓ öffnet das Menü (hier abgefangen, damit der Test nicht wartet)
+    shown = []
+    orig = panel._show_choices
+    panel._show_choices = lambda fe: shown.append(fe.key)
+    album.choicesRequested.disconnect()
+    album.choicesRequested.connect(panel._show_choices)
+    from PySide6.QtCore import QEvent
+    from PySide6.QtGui import QKeyEvent          # (QtTest fehlt im AppImage)
+    album.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Down, Qt.KeyboardModifier.AltModifier))
+    check(shown == ["album"], "Alt+↓ öffnet die Auswahl")
+    album.choicesRequested.disconnect()
+    panel._show_choices = orig
+    album.choicesRequested.connect(panel._show_choices)
 
 
 def test_artist_folder(app, win, root, out):

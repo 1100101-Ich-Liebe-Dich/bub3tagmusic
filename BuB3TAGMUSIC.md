@@ -3,7 +3,8 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version **1.1.0** (19.10.2026): Songtext, Label, Original-Jahr und Album-Suche bei Deezer.
+> **Aktueller Stand:** Version **1.1.1** (19.10.2026): Songtext, Label, Original-Jahr, Album-Suche bei Deezer;
+> 1.1.1: bei `‹verschieden›` per Pfeil einen der vorhandenen Werte für alle wählen.
 > 1.0.0 ist veröffentlicht (Release auf GitHub). Release 1.1: Anleitung + Text in `docs/RELEASE-1.1.md`.
 > Nächster Schritt: Praxis mit der echten Sammlung, Rückmeldungen sammeln.
 >
@@ -134,6 +135,7 @@ Ersetzte/entfernte Bilder → Papierkorb. Baum-Rechtsklick: „Künstlerbild fü
 
 - Strg+Klick im Baum für mehrere Ordner, oder Schalter **Unterordner** (Strg+R) für alles darunter
 - Felder, die man nicht anfasst, bleiben unverändert
+- Bei `‹verschieden›` zeigt ein Pfeil im Feld (oder Alt+↓) die vorhandenen Werte – einer davon gilt dann für alle (nicht bei Track)
 
 ---
 
@@ -244,6 +246,9 @@ und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/REC
   Zeile; MusicBrainz liefert beide (Original-Jahr = erste Veröffentlichung der Release-Group), Discogs/Deezer das Label
 - [x] **Album suchen – Deezer**: dritte Quelle, ohne Anmeldung, eine Suche + Album + Trackliste;
   „Ohne Remaster-Zusätze“ (Standard an) kürzt „(Remastered 2011)“, „(Deluxe Edition)“, „(2019 Mix)“
+
+- [x] **1.1.1:** `‹verschieden›` → Pfeil im Feld (oder Alt+↓) zeigt die vorhandenen Werte (häufigste zuerst, mit
+  Anzahl); die Wahl gilt für alle gewählten Dateien, ohne Wahl ändert sich nichts. Nicht bei Track.
 
 **Hilfsprogramme:** `make` packt `fpcalc` 1.5.1 und `rsgain` 3.8 (fertige Programme der Hersteller,
 Prüfsumme geprüft) ins AppImage – nichts extra zu installieren. Ohne AppImage nutzt BuB3TAGMUSIC die

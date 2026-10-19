@@ -6,14 +6,16 @@ Mehrfachauswahl:
   * Wer etwas einträgt, ändert das Feld für ALLE gewählten Dateien.
   * Felder, die man nicht anfasst, bleiben unverändert.
   * Das × im Feld leert das Feld für alle gewählten Dateien.
+  * Der Pfeil bei ‹verschieden› (oder Alt+↓) bietet die vorhandenen Werte an – die Wahl gilt für alle.
+    Wird nichts gewählt, bleibt alles, wie es ist. (Nicht bei Track – eine Nummer für alle ergibt keinen Sinn.)
 """
 
 from __future__ import annotations
 
 import os
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QPoint, QSize, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QApplication, QComboBox, QCompleter, QFileDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMenu, QMessageBox, QPushButton,
@@ -39,14 +41,17 @@ class FieldEdit(QLineEdit):
 
     commitRequested = Signal(object)
     clearRequested = Signal(object)
+    choicesRequested = Signal(object)      # Pfeil bei ‹verschieden›: vorhandene Werte zur Auswahl
 
-    def __init__(self, key: str, clearable: bool = True, parent=None):
+    def __init__(self, key: str, clearable: bool = True, parent=None, choosable: bool = True):
         super().__init__(parent)
         self.key = key
         self.clearable = clearable
+        self.choosable = choosable
         self.mixed = False
         self.dirty = False
         self._shown = ""
+        self._tip = ""
         self.textEdited.connect(self._on_edit)
         self.editingFinished.connect(lambda: self.dirty and self.commitRequested.emit(self))
         self._clear = QAction(icons.icon("x", "faint", "text"), "Feld leeren", self)
@@ -54,9 +59,15 @@ class FieldEdit(QLineEdit):
         self._clear.triggered.connect(lambda: self.clearRequested.emit(self))
         self.addAction(self._clear, QLineEdit.ActionPosition.TrailingPosition)
         self._clear.setVisible(False)
+        self._pick = QAction(icons.icon("caret-circle-down", "muted", "accent"), "Aus vorhandenen Werten wählen", self)
+        self._pick.setToolTip("Aus den vorhandenen Werten wählen (Alt+↓) – gilt dann für alle gewählten Dateien")
+        self._pick.triggered.connect(lambda: self.choicesRequested.emit(self))
+        self.addAction(self._pick, QLineEdit.ActionPosition.TrailingPosition)
+        self._pick.setVisible(False)
 
     def refresh_icons(self):
         self._clear.setIcon(icons.icon("x", "faint", "text"))
+        self._pick.setIcon(icons.icon("caret-circle-down", "muted", "accent"))
 
     # Feste Mindestbreite: Das ×-Symbol (ein-/ausgeblendet) würde sie sonst ändern, das Fenster
     # teilt neu auf und die Liste wird neu vermessen – bei 50.000 Zeilen spürbar langsam.
@@ -71,8 +82,14 @@ class FieldEdit(QLineEdit):
         self.setText(value)
         if not self.hasFocus():
             self.setCursorPosition(0)        # lange Werte vom Anfang her zeigen, nicht das Ende
-        self.setPlaceholderText((MIXED if self.clearable else MIXED_SHORT) if mixed else "")
+        pick = self.choosable and mixed
+        # schmale Felder (Jahr …): dort ist der Pfeil selbst das Zeichen für „verschieden“
+        short = "" if pick else MIXED_SHORT
+        self.setPlaceholderText((MIXED if self.clearable else short) if mixed else "")
         self._clear.setVisible(self.clearable and (bool(value) or mixed))
+        self._pick.setVisible(pick)
+        if not self.clearable:
+            self.setToolTip(self._tip + ("\nVerschiedene Werte – der Pfeil zeigt sie" if pick else ""))
         # Eigener Name „edited“: QLineEdit hat schon eine Eigenschaft „modified“, die setText() still
         # zurücksetzt – dann blieb der gelbe Rahmen stehen, obwohl nichts mehr geändert war.
         if self.property("edited") != modified:
@@ -86,6 +103,10 @@ class FieldEdit(QLineEdit):
         self._clear.setVisible(self.clearable and (bool(text) or self.mixed))
 
     def keyPressEvent(self, e):
+        if (e.key() == Qt.Key.Key_Down and e.modifiers() & Qt.KeyboardModifier.AltModifier
+                and self._pick.isVisible()):
+            self.choicesRequested.emit(self)
+            return
         if e.key() == Qt.Key.Key_Escape and self.dirty:
             self.dirty = False
             self.setText(self._shown)
@@ -206,10 +227,11 @@ class EditPanel(QWidget):
         nums = QHBoxLayout()
         nums.setSpacing(6)
         for key, width in (("year", 52), ("track", 56), ("disc", 44)):
-            fe = self._make_field(key, clearable=False)
+            fe = self._make_field(key, clearable=False, choosable=key != "track")
             fe.setMinimumWidth(width)
-            fe.setToolTip({"year": "Jahr, z. B. 1999", "track": "Track, z. B. 3 oder 3/12",
-                           "disc": "Disc, z. B. 1 oder 1/2"}[key])
+            fe._tip = {"year": "Jahr, z. B. 1999", "track": "Track, z. B. 3 oder 3/12",
+                       "disc": "Disc, z. B. 1 oder 1/2"}[key]
+            fe.setToolTip(fe._tip)
             if key != "year":
                 small = self._label(FIELD_BY_KEY[key].label)
                 nums.addSpacing(4)
@@ -253,7 +275,8 @@ class EditPanel(QWidget):
         fe = self._make_field("originalyear", clearable=False)
         fe.setMinimumWidth(52)
         fe.setMaximumWidth(62)
-        fe.setToolTip("Jahr der Erstveröffentlichung – bei Neuauflagen und Remasters älter als „Jahr“")
+        fe._tip = "Jahr der Erstveröffentlichung – bei Neuauflagen und Remasters älter als „Jahr“"
+        fe.setToolTip(fe._tip)
         lab.addWidget(fe, 0)
         grid.addLayout(lab, row, 1)
         row += 1
@@ -318,8 +341,8 @@ class EditPanel(QWidget):
             b.clicked.connect(slot)
         return b
 
-    def _make_field(self, key: str, clearable: bool = True) -> FieldEdit:
-        fe = FieldEdit(key, clearable)
+    def _make_field(self, key: str, clearable: bool = True, choosable: bool = True) -> FieldEdit:
+        fe = FieldEdit(key, clearable, choosable=choosable)
         self._wire(fe)
         self.fields[key] = fe
         return fe
@@ -327,6 +350,7 @@ class EditPanel(QWidget):
     def _wire(self, fe: FieldEdit):
         fe.commitRequested.connect(self._commit)
         fe.clearRequested.connect(self._clear_field)
+        fe.choicesRequested.connect(self._show_choices)
         fe.returnPressed.connect(lambda fe=fe: (self._commit(fe), fe.selectAll()))
 
     def _add_field(self, grid: QGridLayout, row: int, key: str):
@@ -406,6 +430,46 @@ class EditPanel(QWidget):
         if fe.mixed and value == "" and not force:
             return  # nichts eingetragen – verschiedene Werte bleiben
         self.session.apply_fields(self.items, {fe.key: value})
+
+    # --- ‹verschieden›: aus den vorhandenen Werten wählen ----------------------------------------
+    MAX_CHOICES = 30
+
+    def choice_menu(self, fe: FieldEdit) -> QMenu:
+        """Menü mit den vorhandenen Werten (häufigste zuerst). Erst beim Klick gezählt – kostet sonst nichts."""
+        counts = Counter(it.tags.get(fe.key, "") for it in self.items)
+        empty = counts.pop("", 0)
+        menu = QMenu(fe)
+        menu.setObjectName("ChoiceMenu")
+        head = menu.addAction(f"{FIELD_BY_KEY[fe.key].label} für alle {len(self.items)} Dateien:")
+        head.setEnabled(False)
+        width = max(220, fe.width() + 120)
+        fm = menu.fontMetrics()
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0].casefold()))
+        for value, n in ordered[:self.MAX_CHOICES]:
+            shown = fm.elidedText(value.replace("\n", " / "), Qt.TextElideMode.ElideRight, width).replace("&", "&&")
+            act = menu.addAction(f"{shown}\t{n}×")
+            act.setToolTip(value)
+            act.triggered.connect(lambda _=False, v=value: self._choose(fe, v))
+        rest = len(ordered) - self.MAX_CHOICES
+        if rest > 0 or empty:
+            menu.addSeparator()
+        if rest > 0:
+            menu.addAction(f"… und {rest} weitere Werte – zum Eintippen ins Feld schreiben").setEnabled(False)
+        if empty:
+            menu.addAction(f"{empty} Datei(en) ohne Wert – mit × leeren").setEnabled(False)
+        return menu
+
+    def _show_choices(self, fe: FieldEdit):
+        if not self.items or not fe.mixed:
+            return
+        self.choice_menu(fe).exec(fe.mapToGlobal(QPoint(0, fe.height() + 2)))
+
+    def _choose(self, fe: FieldEdit, value: str):
+        if not self.items:
+            return
+        fe.dirty = False
+        n = self.session.apply_fields(self.items, {fe.key: value})
+        self.message.emit(f"{FIELD_BY_KEY[fe.key].label} „{value[:40]}“ für {n} Datei(en) – Strg+S speichert")
 
     def _clear_field(self, fe: FieldEdit):
         if not self.items:

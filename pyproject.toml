@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bub3tagmusic"
-version = "1.1.0"
+version = "1.1.1"
 description = "Moderner, schneller Musik-Tagger für Linux – präsentiert von www.BAUENUNDBOOTEN.de"
 readme = "README.md"
 requires-python = ">=3.10"
