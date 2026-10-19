@@ -2,6 +2,31 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.0] – 2026-10-19 – Songtext, Label, Original-Jahr, Deezer
+
+### Neu
+- **Songtext** für alle Formate (MP3 USLT, FLAC/OGG/Opus LYRICS, M4A, WMA, APE/WavPack). Im Bearbeitungsfeld eine
+  kompakte Zeile („8 Zeilen · Leinen los …“), ein Klick öffnet das Songtext-Fenster: eintippen, einfügen, aus
+  `.lrc`/`.txt` laden (Zeitmarken wie `[01:23.45]` werden entfernt). Liegt neben den Liedern eine gleichnamige
+  `.lrc`/`.txt`, übernimmt **„Aus Begleitdateien“** die Songtexte für alle gewählten Dateien auf einmal.
+- **Label** (Plattenfirma) und **Original-Jahr** (Erstveröffentlichung) – im Bearbeitungsfeld in einer Zeile.
+  Auch die Schreibweisen von Picard und Mp3tag werden gelesen (TORY/TXXX, ORIGINALYEAR, ORGANIZATION …) und beim
+  Ändern ohne Reste ersetzt.
+- **Album suchen – Deezer:** dritte Quelle neben MusicBrainz und Discogs, ohne Anmeldung. Stark bei neuer und
+  deutscher Musik, Cover in 1000 px, Label. Hinweis im Fenster: Das Jahr ist bei Deezer oft das der Neuauflage.
+- Album suchen übernimmt jetzt auch **Label** und (bei MusicBrainz) das **Original-Jahr**. Neuer Schalter
+  **„Ohne Remaster-Zusätze“** (an): „Titel (Remastered 2011)“ → „Titel“, „Album (Deluxe Edition)“ → „Album“ –
+  Live, Remix, Acoustic usw. bleiben stehen. Spalten für Felder, die eine Quelle nicht kennt, werden ausgeblendet.
+- Neue Listenspalten Label, Orig.-Jahr, Songtext (anfangs ausgeblendet – Rechtsklick auf die Spaltenköpfe).
+- Suchen & Ersetzen kennt Label, Original-Jahr und Songtext; Schreibweise und Aufräumen kennen das Label;
+  Muster kennen `%label%` und `%originalyear%`.
+
+### Geändert
+- Lange Werte im Bearbeitungsfeld zeigen den Anfang statt das Ende.
+- Bearbeitungsfeld etwas kompakter – auch bei 1366×768 passen alle Felder ohne Blättern.
+- Der Listenfilter durchsucht keine Songtexte (sonst findet „liebe“ jedes Lied, das davon singt).
+- „1 Track“ statt „1 Tracks“ in den Suchergebnissen.
+
 ## [1.0.0] – 2026-10-19 – Erste stabile Version
 
 BuB3TAGMUSIC 1.0 – alle vier geplanten Phasen sind fertig, getestet und dokumentiert.

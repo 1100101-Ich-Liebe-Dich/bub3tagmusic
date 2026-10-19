@@ -71,7 +71,7 @@ class AlbumMatch:
     @property
     def details(self) -> str:
         parts = [self.year, self.country, self.label, self.formats,
-                 f"{self.track_total} Tracks" if self.track_total else ""]
+                 f"{self.track_total} Track{'s' if self.track_total != 1 else ''}" if self.track_total else ""]
         return " · ".join(p for p in parts if p)
 
 
@@ -105,9 +105,10 @@ def normalize(text: str) -> str:
 
 
 # Zusätze von Neuauflagen: „(Remastered 2011)“, „ - 2011 Remaster“, „[Deluxe Edition]“ …
-# Bewusst NICHT: Live, Acoustic, Remix, Demo, Single Version – das gehört zum Titel.
+# „(2019 Mix)“ (Neuabmischung mit Jahr) ebenso. Bewusst NICHT: Live, Acoustic, Remix, „Club Mix“, Demo,
+# Single Version – das gehört zum Titel.
 _EDITION_WORDS = (r"remaster(?:ed)?|deluxe|expanded|anniversary|bonus\s+tracks?|special\s+edition|"
-                  r"collector'?s\s+edition|legacy\s+edition|super\s+deluxe")
+                  r"collector'?s\s+edition|legacy\s+edition|super\s+deluxe|\d{4}\s+(?:stereo\s+|mono\s+)?mix")
 _EDITION_BRACKET = re.compile(r"\s*[\(\[][^\(\)\[\]]*\b(?:" + _EDITION_WORDS + r")\b[^\(\)\[\]]*[\)\]]\s*$",
                               re.IGNORECASE)
 _EDITION_DASH = re.compile(r"\s+[-–]\s+[^-–]*\b(?:" + _EDITION_WORDS + r")\b[^-–]*$", re.IGNORECASE)

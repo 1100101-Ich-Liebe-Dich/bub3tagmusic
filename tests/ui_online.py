@@ -139,10 +139,46 @@ def main():
     it = win.session.items[0]
     check((it.tags["title"], it.tags["track"], it.tags["year"]) == ("Hells Bells", "1/10", "1980"),
           f"Tags: {it.tags['title']} / {it.tags['track']} / {it.tags['year']}")
+    check(bool(it.tags["label"]) and it.tags["originalyear"] == "1980",
+          f"Label + Original-Jahr von MusicBrainz: {it.tags['label']!r} / {it.tags['originalyear']!r}")
     check(win.session.modified_count() == 10, "alles gelb, noch nicht gespeichert")
     win.undo()
     pump(app)
     check(win.session.items[0].tags["title"] == "Track 1", "Strg+Z nimmt Album-Daten in einem Schritt zurück")
+    check(win.session.items[0].tags["label"] == "", "Label wieder leer")
+
+    # --- Album suchen (Deezer, 1.1) ----------------------------------------------------------------
+    requested.clear()
+    d = O.AlbumSearchDialog(win, items, scope, "Deezer")
+    d.show()
+    check(wait(app, lambda: d.results.count() > 0), f"Deezer-Treffer: {d.results.count()}")
+    check(sum(1 for u in requested if "api.deezer.com/search/album" in u) == 1, "genau EINE Suche bei Deezer")
+    check(d.results.item(0).data(0x0100).album == "Back In Black", "bester Treffer = das Original")
+    check(wait(app, lambda: d._current is not None and d.model.preview.apply_count > 0), "Deezer-Trackliste geladen")
+    pump(app, 0.5)
+    cols = d.model.preview.columns
+    check("Label" in cols and "Original-Jahr" not in cols, f"Spalten: {cols}")
+    row0 = d.model.rows[0].cells
+    check(row0[cols.index("Titel")][0] == "Hells Bells" and row0[cols.index("Label")][0] == "Columbia",
+          f"Track 1 + Label: {row0[cols.index('Titel')][0]} / {row0[cols.index('Label')][0]}")
+    check("Neuauflage" in d.d_details.text(), "Hinweis: Jahr oft von der Neuauflage")
+    d.field_chips["year"].setChecked(False)          # Jahr von Deezer lieber nicht (2014 = Remaster)
+    pump(app, 0.2)
+    check("Jahr" not in d.model.preview.columns, "Jahr abgewählt")
+    d.grab().save(os.path.join(out, "o1b_deezer.png"))
+    d._apply()
+    check(wait(app, lambda: not d.isVisible()), "Deezer übernommen")
+    it = win.session.items[0]
+    check((it.tags["title"], it.tags["label"], it.tags["year"]) == ("Hells Bells", "Columbia", ""),
+          f"Deezer-Tags: {it.tags['title']} / {it.tags['label']} / Jahr {it.tags['year']!r}")
+    win.undo()
+    pump(app)
+    check(win.session.items[0].tags["label"] == "", "Strg+Z nimmt Deezer-Daten zurück")
+    d = O.AlbumSearchDialog(win, items, scope, "Deezer")
+    check(d.field_chips["year"].isChecked() is False, "Feldauswahl wird gemerkt")
+    d.field_chips["year"].setChecked(True)
+    d.store_options()
+    d.reject()
 
     # --- Discogs ohne Token ------------------------------------------------------------------------
     d = O.AlbumSearchDialog(win, items, scope, "Discogs")

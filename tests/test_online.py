@@ -262,7 +262,8 @@ def test_deezer_structure():
     for raw, want in (("Wish You Were Here (2011 Remaster)", "Wish You Were Here"),
                       ("Money - 2011 Remastered Version", "Money"), ("Song (Live at Wembley)", "Song (Live at Wembley)"),
                       ("Shine On (Pts. 1-5) - 2011 Remaster", "Shine On (Pts. 1-5)"), ("Bonus (Remix)", "Bonus (Remix)"),
-                      ("Album (Deluxe Edition) [Remastered]", "Album")):
+                      ("Album (Deluxe Edition) [Remastered]", "Album"), ("Come Together (2019 Mix)", "Come Together"),
+                      ("Song (Club Mix)", "Song (Club Mix)"), ("Abbey Road (Super Deluxe Edition)", "Abbey Road")):
         eq(strip_edition(raw), want, f"Zusatz: {raw}")
     http.clear_cache()
 
@@ -274,19 +275,23 @@ def test_deezer_recorded():
         print("   (Deezer-Alben noch nicht aufgezeichnet – übersprungen)")
         return
     res = deezer.search_albums("AC/DC", "Back in Black")
-    eq(bool(res) and res[0].albumartist == "AC/DC", True, f"Deezer: AC/DC gefunden ({res[:1]})")
+    eq((res[0].album, res[0].albumartist, res[0].formats), ("Back In Black", "AC/DC", "Album"),
+       "Deezer: Original-Album vor Coverversionen")
     a = deezer.get_album(res[0].source_id)
-    eq((len(a.tracks) >= 10, a.tracks[0].position, bool(a.label), bool(a.year)), (True, 1, True, True),
-       f"Deezer: Back in Black ({len(a.tracks)} Tracks, Label {a.label!r}, Jahr {a.year})")
-    eq(a.tracks[0].length > 100, True, "Deezer: Längen in Sekunden")
+    eq((len(a.tracks), a.tracks[0].title, a.tracks[0].position, a.tracks[0].track_total, a.label),
+       (10, "Hells Bells", 1, 10, "Columbia"), f"Deezer: Back in Black ({a.year})")
+    eq(a.tracks[0].length > 300, True, "Deezer: Längen in Sekunden")
+    wall = deezer.get_album(deezer.search_albums("Pink Floyd", "The Wall")[0].source_id)
+    eq((len(wall.tracks), wall.disc_total, wall.tracks[13].disc, wall.tracks[13].position), (26, 2, 2, 1),
+       "Deezer: The Wall mit 2 Discs")
     for artist, album in DEEZER_ALBUMS:
         res = deezer.search_albums(artist, album)
-        eq(bool(res), True, f"Deezer: {artist} – {album} gefunden")
-        if res:
-            full = deezer.get_album(res[0].source_id)
-            eq(len(full.tracks) >= 17, True, f"Deezer: {full.album} hat {len(full.tracks)} Tracks")
-    aerzte = deezer.search_albums("Die Ärzte", "Die Bestie in Menschengestalt")
-    eq(bool(aerzte) and "Bestie" in aerzte[0].album, True, "Deezer: Umlaute (Die Ärzte)")
+        full = deezer.get_album(res[0].source_id)
+        t = matching.tags_for(full, 0, {"title", "album"}, clean=True)
+        eq((t["album"], t["title"]), ("Abbey Road", "Come Together"), f"Deezer: {full.album} – Zusätze gekürzt")
+    aerzte = deezer.get_album(deezer.search_albums("Die Ärzte", "Die Bestie in Menschengestalt")[0].source_id)
+    eq((aerzte.albumartist, len(aerzte.tracks), aerzte.label, aerzte.year), ("Die Ärzte", 19, "Hot Action Records", "1993"),
+       "Deezer: Die Ärzte (Umlaute, Label, Jahr)")
 
 
 if __name__ == "__main__":

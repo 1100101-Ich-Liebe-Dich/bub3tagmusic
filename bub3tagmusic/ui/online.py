@@ -511,10 +511,12 @@ class AlbumSearchDialog(OnlineDialog):
         files = [matching.FileInfo(it.tags.get("track", ""), it.tags.get("disc", ""), it.rec.get("length", 0.0))
                  for it in self.items]
         assigned, used = matching.assign(files, m, self.mode.currentData())
+        # Felder, die diese Quelle für dieses Album nicht kennt, gar nicht erst als Spalte zeigen
+        provided = {"year": m.year, "genre": m.genre, "label": m.label, "originalyear": m.original_year}
         columns = [k for k in ("track", "disc", "title", "artist", "album", "year", "genre", "label",
                                "originalyear") if
                    (k in fields or (k == "disc" and "track" in fields and m.disc_total > 1)
-                    or (k == "album" and "album" in fields))]
+                    or (k == "album" and "album" in fields)) and provided.get(k, True)]
         rows, changes, problems = [], [], 0
         for it, a in zip(self.items, assigned):
             if a.track_index is None:

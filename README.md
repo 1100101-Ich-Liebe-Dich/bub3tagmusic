@@ -38,7 +38,8 @@
 | 📂 **Ordner für Ordner** | Links deine Sammlung als Baum (Künstler → Alben) mit Fortschritt. Album anklicken, bearbeiten, **Strg+→** speichert, hakt ab und springt zum nächsten offenen Album. |
 | ✏️ **Viele Dateien auf einmal** | Alle Dateien eines Albums – oder mit „Unterordner“ einen ganzen Künstler – gleichzeitig bearbeiten. Unterschiedliche Werte zeigen `‹verschieden›` und bleiben, wie sie sind. |
 | 🖼️ **Cover & Künstlerbild** | Einbetten, `cover.jpg` im Album-Ordner, `folder.jpg` im Künstler-Ordner – per Drag & Drop, aus dem Ordner oder online gesucht. |
-| 🌐 **Online** | MusicBrainz & Discogs (eine Anfrage pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
+| 🌐 **Online** | MusicBrainz, Discogs & Deezer (eine Suche pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
+| 🎤 **Songtext, Label, Original-Jahr** | Songtexte eintippen oder aus `.lrc`/`.txt` übernehmen – auch für ein ganzes Album auf einmal. |
 | 🛠️ **Werkzeuge** | Tags ↔ Dateinamen, nummerieren, Schreibweise, Suchen & Ersetzen, aufräumen, Ordner umbenennen – und alles zusammen als **Aktion**. |
 | ⚡ **Schnell, auch auf alter Hardware** | 12.000 Dateien in unter 2 Sekunden eingelesen, danach aus dem Zwischenspeicher in Sekundenbruchteilen. 50.000 Einträge in der Liste sind kein Problem. |
 | 📦 **Keine Installation** | `make` baut eine einzige ausführbare Datei (AppImage) – mit allem drin, sogar den Hilfsprogrammen. |
@@ -88,6 +89,17 @@ openSUSE Leap 15.3+, Arch/Manjaro – unter X11 und Wayland. Python, Qt und alle
 So arbeitest du dich durch zehntausende Dateien, ohne den Überblick zu verlieren: Der Baum zeigt, welche Alben fertig sind
 und wie viel von der Sammlung schon geschafft ist.
 
+### 🎤 Songtext, Label & Original-Jahr
+
+<img src="docs/screenshot-songtext.png" alt="Songtext-Fenster und Bearbeitungsfeld mit Label und Original-Jahr" width="100%">
+
+Unter den üblichen Feldern stehen **Label** (Plattenfirma), **Original-Jahr** (Erstveröffentlichung – bei Remasters
+älter als „Jahr“) und der **Songtext**. Der Songtext ist im Bearbeitungsfeld nur eine Zeile („8 Zeilen · Leinen los …“);
+ein Klick öffnet das Songtext-Fenster zum Lesen, Eintippen oder Einfügen. **Aus Datei laden** nimmt `.lrc` und `.txt` –
+Zeitmarken wie `[01:23.45]` werden dabei entfernt. Liegen neben den Liedern gleichnamige Songtext-Dateien
+(`01 - Titel.lrc`), übernimmt **Aus Begleitdateien** alle auf einmal, jede Datei ihren eigenen Text.
+Schreibweisen anderer Programme (Picard, Mp3tag) werden erkannt.
+
 ### 🧑‍🎤 Künstler-Ordner & folder.jpg
 
 <img src="docs/screenshot-kuenstler.png" alt="Künstler-Ordner mit Künstlerbild" width="100%">
@@ -129,7 +141,7 @@ Beispiel-Aktionen sind schon dabei.
 
 | Funktion | Was sie macht |
 |---|---|
-| **Album suchen** (Strg+L) | **MusicBrainz** oder **Discogs** – genau *eine* Anfrage pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auf Wunsch samt Cover. |
+| **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs** oder **Deezer** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. |
 | **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px) und Deezer als Bildergitter. Einbetten und/oder `cover.jpg`. |
 | **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB → `folder.jpg` im Künstler-Ordner. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
@@ -279,9 +291,18 @@ Die Namen sind unter *Einstellungen → Cover* änderbar. Einzelne Alben und Tra
 <details>
 <summary><b>Brauche ich Zugangsdaten für die Online-Funktionen?</b></summary>
 
-Für MusicBrainz, Cover-Suche und Künstlerbilder nicht. Discogs braucht einen kostenlosen Token
+Für MusicBrainz, Deezer, Cover-Suche und Künstlerbilder nicht. Discogs braucht einen kostenlosen Token
 (discogs.com → Settings → Developers), „Unbekannte Dateien erkennen“ einen kostenlosen AcoustID-Key
 (acoustid.org/new-application). Beides unter *Einstellungen → Online* eintragen.
+</details>
+
+<details>
+<summary><b>MusicBrainz, Discogs oder Deezer – welche Quelle nehme ich?</b></summary>
+
+**MusicBrainz** zuerst: sehr genau, kennt das **Original-Jahr** und Genres. **Deezer**, wenn MusicBrainz nichts findet –
+stark bei neuer und deutscher Musik, große Cover, Label; das Jahr ist dort aber oft das der Neuauflage (dann „Jahr“
+einfach abwählen). **Discogs** für Vinyl, Raritäten und Sampler. Im Fenster wechselst du die Quelle mit einem Klick –
+die Suche bleibt stehen.
 </details>
 
 <details>
@@ -310,7 +331,7 @@ bub3tagmusic/
 ├── features.py       alle Funktionen als Daten → baut die Menüs
 ├── core/             ohne Qt: Tags (mutagen), Cache (SQLite), Muster, Werkzeuge, Umbenennen,
 │                     Filter, Export, Aktionen, Duplikate, Fingerabdruck, ReplayGain
-├── online/           ohne Qt: http (Limiter, Zertifikate), MusicBrainz, Discogs, Cover, Künstlerbilder, AcoustID
+├── online/           ohne Qt: http (Limiter, Zertifikate), MusicBrainz, Discogs, Deezer, Cover, Künstlerbilder, AcoustID
 └── ui/               Oberfläche: Hauptfenster, Session (Rückgängig), Hintergrund-Arbeiter, Dialoge, Themes
 packaging/            AppImage-Bau (eigenes Python 3.12, Qt 6.9, fpcalc, rsgain, verschlankt)
 tests/                Kern-, Oberflächen-, Online- (aufgezeichnet) und Leistungstests

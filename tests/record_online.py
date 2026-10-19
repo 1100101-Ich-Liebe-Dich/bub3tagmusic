@@ -33,10 +33,19 @@ TEST_KEY = "TESTKEY"
 
 
 def recorder(url, headers):
+    import time
     req = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30, context=http._context()) as resp:
-            status, body = resp.status, resp.read()
+        for attempt in range(4):              # MusicBrainz antwortet nach vielen Anfragen kurz mit 503
+            try:
+                with urllib.request.urlopen(req, timeout=30, context=http._context()) as resp:
+                    status, body = resp.status, resp.read()
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code != 503 or attempt == 3:
+                    raise
+                note(f"503 von {url[:60]} … warte {5 * (attempt + 1)} s")
+                time.sleep(5 * (attempt + 1))
     except urllib.error.HTTPError as exc:
         body = exc.read() if "acoustid" in url else b""
         if body:
@@ -101,7 +110,11 @@ def record_acoustid():
     except OnlineError as exc:
         note(f"AcoustID falscher Key → {exc}")
         info["bad_key_message"] = str(exc)
-    with open(os.path.join(FIXTURES, "acoustid.json"), "w", encoding="utf-8") as fh:
+    path = os.path.join(FIXTURES, "acoustid.json")
+    if "matches" not in info and os.path.exists(path) and "matches" in json.load(open(path, encoding="utf-8")):
+        note("AcoustID diesmal ohne Treffer – die letzte gute Aufnahme bleibt")
+        return
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(info, fh, indent=1, ensure_ascii=False)
 
 
@@ -188,7 +201,17 @@ def main():
 
     record_acoustid()
 
-    with open(os.path.join(FIXTURES, "index.json"), "w", encoding="utf-8") as fh:
+    # Was diesmal nicht geklappt hat (z. B. MusicBrainz 503), aus der letzten Aufnahme behalten
+    old_path = os.path.join(FIXTURES, "index.json")
+    if os.path.exists(old_path):
+        kept = 0
+        for url, name in json.load(open(old_path, encoding="utf-8")).items():
+            if url not in index and os.path.exists(os.path.join(FIXTURES, name)):
+                index[url] = name
+                kept += 1
+        if kept:
+            note(f"{kept} Antworten aus der letzten Aufnahme behalten")
+    with open(old_path, "w", encoding="utf-8") as fh:
         json.dump(index, fh, indent=1, ensure_ascii=False, sort_keys=True)
     with open(os.path.join(FIXTURES, "summary.txt"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(notes) + "\n")

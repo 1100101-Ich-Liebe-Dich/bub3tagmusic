@@ -69,6 +69,8 @@ class FieldEdit(QLineEdit):
             return
         self.mixed, self.dirty, self._shown = mixed, False, value
         self.setText(value)
+        if not self.hasFocus():
+            self.setCursorPosition(0)        # lange Werte vom Anfang her zeigen, nicht das Ende
         self.setPlaceholderText((MIXED if self.clearable else MIXED_SHORT) if mixed else "")
         self._clear.setVisible(self.clearable and (bool(value) or mixed))
         # Eigener Name „edited“: QLineEdit hat schon eine Eigenschaft „modified“, die setText() still
@@ -245,13 +247,14 @@ class EditPanel(QWidget):
         lab.setSpacing(6)
         fe = self._make_field("label")
         fe.setToolTip("Plattenfirma, z. B. Harvest oder Sony Music")
-        lab.addWidget(fe, 5)
+        lab.addWidget(fe, 1)
         lab.addSpacing(4)
         lab.addWidget(self._label("Orig.-Jahr"))
         fe = self._make_field("originalyear", clearable=False)
         fe.setMinimumWidth(52)
+        fe.setMaximumWidth(62)
         fe.setToolTip("Jahr der Erstveröffentlichung – bei Neuauflagen und Remasters älter als „Jahr“")
-        lab.addWidget(fe, 2)
+        lab.addWidget(fe, 0)
         grid.addLayout(lab, row, 1)
         row += 1
 

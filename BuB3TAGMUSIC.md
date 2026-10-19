@@ -3,10 +3,9 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version **1.0.0** – erste stabile Version (19.10.2026): alle Phasen fertig, Standard-Theme
-> in den Farben von www.BAUENUNDBOOTEN.de, GitHub-Seite für die Veröffentlichung aufbereitet.
-> Veröffentlichen: siehe `docs/RELEASE-1.0.md`.
-> Nächster Schritt: Phase 1 an einer Kopie der echten Sammlung testen, dann Phase 2.
+> **Aktueller Stand:** Version **1.1.0** (19.10.2026): Songtext, Label, Original-Jahr und Album-Suche bei Deezer.
+> 1.0.0 ist veröffentlicht (Release auf GitHub). Release 1.1: Anleitung + Text in `docs/RELEASE-1.1.md`.
+> Nächster Schritt: Praxis mit der echten Sammlung, Rückmeldungen sammeln.
 >
 > Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
 > Die Nummern `#n` im Fahrplan sind die zugehörigen GitHub-Aufgaben (mit Abnahmekriterien).
@@ -237,6 +236,15 @@ und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/REC
   Treffer-Prozent, nur sichere Treffer übernehmen. Braucht den kostenlosen AcoustID-Key (#23)
 - [x] #17 AppImage bauen – *vorgezogen in 0.1.2*: `make`, automatisch auf GitHub bei jedem Hochladen, Selbsttest auf X-Bildschirm
 
+### Version 1.1 ✅ fertig (1.1.0)
+
+- [x] #26 **Songtext**: alle Formate; Zeile im Bearbeitungsfeld + eigenes Fenster (eintippen, einfügen, `.lrc`/`.txt`
+  laden, Zeitmarken entfernen); „Aus Begleitdateien“ füllt viele Dateien auf einmal aus gleichnamigen `.lrc`/`.txt`
+- [x] #27 **Label + Original-Jahr**: alle Formate (inkl. Picard-/Mp3tag-Schreibweisen), im Bearbeitungsfeld in einer
+  Zeile; MusicBrainz liefert beide (Original-Jahr = erste Veröffentlichung der Release-Group), Discogs/Deezer das Label
+- [x] **Album suchen – Deezer**: dritte Quelle, ohne Anmeldung, eine Suche + Album + Trackliste;
+  „Ohne Remaster-Zusätze“ (Standard an) kürzt „(Remastered 2011)“, „(Deluxe Edition)“, „(2019 Mix)“
+
 **Hilfsprogramme:** `make` packt `fpcalc` 1.5.1 und `rsgain` 3.8 (fertige Programme der Hersteller,
 Prüfsumme geprüft) ins AppImage – nichts extra zu installieren. Ohne AppImage nutzt BuB3TAGMUSIC die
 Programme des Systems und zeigt sonst eine Installationsanleitung passend zur Distribution.
@@ -358,8 +366,8 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 
 ## 9. Offene Punkte
 
-- [ ] #26 Songtext-Feld (1.1)
-- [ ] #27 Label (Plattenfirma) und Original-Jahr (1.1)
+- [x] #26 Songtext-Feld (1.1)
+- [x] #27 Label (Plattenfirma) und Original-Jahr (1.1)
 - [ ] #24 Windows-Version (nach 1.0) – Pfade plattformneutral, `.exe` per GitHub Actions
 - [ ] #25 macOS-Version (nach 1.0) – `.app`/`.dmg`, Signatur-Frage (Apple-Konto)
 - [ ] #18 Phase 1 an einer Kopie der echten Sammlung testen (Rückmeldung: was fehlt, was stört?)
@@ -379,5 +387,6 @@ Einstellungen: `~/.config/bub3tagmusic/settings.json` · Cache: `~/.cache/bub3ta
 1. Letzter Praxistest mit 1.0.0 (an einer **Kopie**) – AcoustID-Key (#23) und Discogs-Token (#21) dabei ausprobieren
 2. Veröffentlichen: Anleitung und fertiger Text in `docs/RELEASE-1.0.md`
 3. Danach: Rückmeldungen sammeln (Issues), Feinschliff nach Wunsch
-4. **1.1** (nach ein paar Tagen Praxis): gefundene Fehler + #26 Songtext + #27 Label/Original-Jahr.
+4. **1.1.0** fertig: #26 Songtext + #27 Label/Original-Jahr + Album suchen bei Deezer.
    Bewusst nicht gewünscht: MusicBrainz-IDs, Sortier-Namen, Tags entfernen, Playlists, Update-Hinweis.
+5. Danach: Fehler aus der Praxis direkt beheben (1.1.x)

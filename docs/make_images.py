@@ -138,6 +138,9 @@ def main():
     win.session.revert()
     pump()
 
+    # 1a) Songtext, Label, Original-Jahr (1.1): Hauptfenster + Songtext-Fenster darüber
+    songtext_shot(win, pump)
+
     # 1b) Künstler-Ordner: folder.jpg direkt im Ordner mit den Alben
     artist_dir = os.path.dirname(with_cover)
     win.artist_panel.folder = ""
@@ -258,6 +261,53 @@ def main():
 
 
 # ----------------------------------------------------------------------
+DEMO_LYRICS = """Leinen los im Morgengrau,
+der Hafen schläft, das Wasser blau.
+Die Möwen schreien übers Deck,
+und alles Schwere bleibt hier weg.
+
+Kurs Nord, der Wind steht gut,
+im Bauch ein bisschen Übermut.
+Wir fahren, bis das Land verschwimmt –
+und keiner fragt, wohin es führt."""
+
+
+def songtext_shot(win, pump):
+    from PySide6.QtCore import QRectF
+    from PySide6.QtGui import QColor, QPainter, QPainterPath
+
+    from bub3tagmusic.ui.lyrics import LyricsDialog
+    it = win.session.items[0]
+    win.table.selectRow(win.table.model_.row_of(it))
+    pump(0.3)
+    win.session.apply_fields([it], {"label": "Werftklang Records", "originalyear": "1987", "lyrics": DEMO_LYRICS},
+                             "Demo")
+    pump(0.4)
+    base = win.grab().toImage()
+    dlg = LyricsDialog([it], DEMO_LYRICS, False, win)
+    dlg.resize(520, 600)
+    dlg.show()
+    pump(0.4)
+    pic = dlg.grab().toImage()
+    dlg.close()
+    p = QPainter(base)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.fillRect(base.rect(), QColor(0, 0, 0, 90))                     # wie ein Fenster im Vordergrund
+    x, y = (base.width() - pic.width()) // 2 - 120, (base.height() - pic.height()) // 2 + 20
+    for i in range(14, 0, -2):                                        # weicher Schatten
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(x - i, y - i + 6, pic.width() + 2 * i, pic.height() + 2 * i), 14 + i, 14 + i)
+        p.fillPath(path, QColor(0, 0, 0, 14))
+    clip = QPainterPath()
+    clip.addRoundedRect(QRectF(x, y, pic.width(), pic.height()), 12, 12)
+    p.setClipPath(clip)
+    p.drawImage(x, y, pic)
+    p.end()
+    save(base, "screenshot-songtext.png")
+    win.session.revert()
+    pump()
+
+
 def artist_portrait() -> bytes:
     """Ein freundliches Platzhalter-„Bandfoto“: Bernstein-Licht, Erdgrün, Silhouetten."""
     import io
