@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QDia
 
 from ..core import actions as A
 from ..core import tools
-from ..core.fields import FIELD_BY_KEY, FIELD_KEYS
+from ..core.fields import FIELD_BY_KEY, FIELD_KEYS, PATTERN_KEYS
 from ..core.rename import CONFLICT, INVALID, MISSING, OK, SAME, STATUS_TEXT, plan_renames
 from ..core.settings import config_dir
 from . import icons
@@ -140,7 +140,7 @@ class StepDialog(QDialog):
         self._check("Groß-/Kleinschreibung beachten", "case")
         self._check("Nur ganze Wörter", "whole")
         self._check("Regulärer Ausdruck ($1 für Gruppen)", "regex")
-        self._fields(list(tools.TEXT_FIELDS) + ["year", "track", "disc"])
+        self._fields(list(tools.TEXT_FIELDS) + ["year", "originalyear", "track", "disc", "lyrics"])
 
     def _build_set_field(self):
         self.form.addWidget(section("Feld"))
@@ -162,7 +162,7 @@ class StepDialog(QDialog):
         self._check("Nur wenn das Feld leer ist", "only_empty")
 
     def _build_tags_from_filename(self):
-        self._pattern("Muster", tools.PATTERN_PRESETS, [*FIELD_KEYS, "dummy"])
+        self._pattern("Muster", tools.PATTERN_PRESETS, [*PATTERN_KEYS, "dummy"])
         self.form.addWidget(hint("„/“ trennt Ordnerebenen, %dummy% überspringt einen Teil."))
         self._check("Führende Nullen bei Track und Disc entfernen", "strip_zeros")
         self._check("Unterstriche als Leerzeichen lesen", "underscores")
@@ -185,7 +185,7 @@ class StepDialog(QDialog):
 
     def _build_rename(self):
         from .tools import RENAME_PRESETS
-        self._pattern("Muster für den Dateinamen", RENAME_PRESETS, list(FIELD_KEYS))
+        self._pattern("Muster für den Dateinamen", RENAME_PRESETS, list(PATTERN_KEYS))
         self.form.addWidget(hint("Läuft immer als letzter Schritt und nutzt die fertigen Tags. Endung bleibt."))
         row = QHBoxLayout()
         row.addWidget(QLabel("Tracknummer auffüllen auf"))

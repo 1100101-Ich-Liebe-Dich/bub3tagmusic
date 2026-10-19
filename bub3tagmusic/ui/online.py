@@ -22,7 +22,7 @@ from .. import features
 from ..core.covers import find_folder_image, prepare_for_embedding, save_image_file
 from ..core.fields import FIELD_BY_KEY
 from ..core.model import FileItem
-from ..online import artistimages, coversearch, discogs, matching, musicbrainz
+from ..online import artistimages, coversearch, deezer, discogs, matching, musicbrainz
 from ..online.base import AlbumMatch, CoverCandidate
 from ..online.http import get_image
 from . import icons, theme
@@ -258,7 +258,15 @@ class _ResultDelegate(QStyledItemDelegate):
 ALBUM_FIELDS = (
     ("title", "Titel"), ("artist", "Interpret"), ("album", "Album + Albuminterpret"),
     ("year", "Jahr"), ("track", "Track/Disc"), ("genre", "Genre"),
+    ("label", "Label"), ("originalyear", "Original-Jahr"),
 )
+ALBUM_FIELDS_VERSION = 2          # 2 = Label + Original-Jahr (1.1) – bei alten Einstellungen einmal dazunehmen
+ALBUM_SOURCES = ("MusicBrainz", "Discogs", "Deezer")
+SOURCE_HINTS = {
+    "Deezer": "Bei Deezer ist das Jahr oft das der Neuauflage – Original-Jahr kennt nur MusicBrainz",
+    "Discogs": "",
+    "MusicBrainz": "",
+}
 
 
 class AlbumSearchDialog(OnlineDialog):
@@ -278,7 +286,7 @@ class AlbumSearchDialog(OnlineDialog):
         self.artist = self.search_field("Interpret", artist)
         self.album = self.search_field("Album", album)
         self.src = {}
-        for name in ("MusicBrainz", "Discogs"):
+        for name in ALBUM_SOURCES:
             c = chip(name, checkable=True)
             c.setChecked(name == source)
             c.clicked.connect(lambda _=False, n=name: self._set_source(n))
@@ -342,6 +350,9 @@ class AlbumSearchDialog(OnlineDialog):
         flow = FlowLayout(fields_box, spacing=6)
         self.field_chips = {}
         chosen = set(self.opts.get("fields", [k for k, _ in ALBUM_FIELDS]))
+        if self.opts.get("fields_v", 1) < ALBUM_FIELDS_VERSION:
+            chosen |= {"label", "originalyear"}
+            self.opts["fields_v"] = ALBUM_FIELDS_VERSION
         for key, label in ALBUM_FIELDS:
             c = chip(label, checkable=True)
             c.setChecked(key in chosen)
@@ -352,6 +363,12 @@ class AlbumSearchDialog(OnlineDialog):
         self.cover_chip.setChecked(self.opts.get("cover", True))
         self.cover_chip.toggled.connect(self._fields_changed)
         flow.addWidget(self.cover_chip)
+        self.clean_chip = chip("Ohne Remaster-Zusätze", checkable=True,
+                               tooltip="„Titel (Remastered 2011)“ → „Titel“, „Album (Deluxe Edition)“ → „Album“.\n"
+                                       "Live, Remix, Acoustic usw. bleiben stehen.")
+        self.clean_chip.setChecked(self.opts.get("clean", True))
+        self.clean_chip.toggled.connect(self._fields_changed)
+        flow.addWidget(self.clean_chip)
         rl.addWidget(fields_box)
 
         self.model = PreviewModel(self)
@@ -395,6 +412,8 @@ class AlbumSearchDialog(OnlineDialog):
         self.set_status(f"Suche bei {self.source} …")
         if self.source == "Discogs":
             fn, args = discogs.search_albums, (artist, album, self.settings.discogs_token)
+        elif self.source == "Deezer":
+            fn, args = deezer.search_albums, (artist, album)
         else:
             fn, args = musicbrainz.search_albums, (artist, album, self.settings.musicbrainz_contact)
         self.run(fn, *args, done=self._results)
@@ -435,6 +454,8 @@ class AlbumSearchDialog(OnlineDialog):
         self._show_details(m, loading=True)
         if m.source == "Discogs":
             fn, args = discogs.get_album, (m.source_id, self.settings.discogs_token)
+        elif m.source == "Deezer":
+            fn, args = deezer.get_album, (m.source_id,)
         else:
             fn, args = musicbrainz.get_album, (m.source_id, self.settings.musicbrainz_contact)
         self.run(fn, *args, done=lambda full, k=key, r=row: self._loaded(k, r, full))
@@ -461,7 +482,10 @@ class AlbumSearchDialog(OnlineDialog):
         details = m.details
         if m.genre:
             details += f" · {m.genre}"
-        self.d_details.setText(details + ("" if not loading else "\nTrackliste wird geladen …"))
+        if m.original_year and m.original_year != m.year:
+            details += f" · erstmals {m.original_year}"
+        note = SOURCE_HINTS.get(m.source, "") if not loading else "Trackliste wird geladen …"
+        self.d_details.setText(details + (f"\n{note}" if note else ""))
         self.cover.setPixmap(rounded_pixmap(None, 112))
         if m.cover_url:
             self.run(get_image, m.cover_url, done=lambda data, mm=m: self._detail_cover(mm, data),
@@ -476,6 +500,7 @@ class AlbumSearchDialog(OnlineDialog):
     def _fields_changed(self):
         self.opts["fields"] = [k for k, c in self.field_chips.items() if c.isChecked()]
         self.opts["cover"] = self.cover_chip.isChecked()
+        self.opts["clean"] = self.clean_chip.isChecked()
         self.refresh_preview()
 
     def refresh_preview(self):
@@ -486,7 +511,8 @@ class AlbumSearchDialog(OnlineDialog):
         files = [matching.FileInfo(it.tags.get("track", ""), it.tags.get("disc", ""), it.rec.get("length", 0.0))
                  for it in self.items]
         assigned, used = matching.assign(files, m, self.mode.currentData())
-        columns = [k for k in ("track", "disc", "title", "artist", "album", "year", "genre") if
+        columns = [k for k in ("track", "disc", "title", "artist", "album", "year", "genre", "label",
+                               "originalyear") if
                    (k in fields or (k == "disc" and "track" in fields and m.disc_total > 1)
                     or (k == "album" and "album" in fields))]
         rows, changes, problems = [], [], 0
@@ -496,7 +522,7 @@ class AlbumSearchDialog(OnlineDialog):
                 rows.append(PreviewRow(it.name, [(it.tags.get(k, ""), None) for k in columns],
                                        "kein passender Track", ERROR, it.path))
                 continue
-            new = matching.tags_for(m, a.track_index, fields)
+            new = matching.tags_for(m, a.track_index, fields, clean=self.clean_chip.isChecked())
             diff = {k: v for k, v in new.items() if it.tags.get(k, "") != v}
             cells = [(diff[k], it.tags.get(k, "")) if k in diff else (new.get(k, it.tags.get(k, "")), None)
                      for k in columns]
@@ -527,7 +553,7 @@ class AlbumSearchDialog(OnlineDialog):
         self.apply_btn.setText(f"Übernehmen ({n})" if n else "Übernehmen")
 
     WIDTHS = {"Datei": 190, "Track": 58, "Disc": 50, "Titel": 190, "Interpret": 130, "Album": 140,
-              "Albuminterpret": 130, "Jahr": 54, "Genre": 110}
+              "Albuminterpret": 130, "Jahr": 54, "Genre": 110, "Label": 120, "Original-Jahr": 92}
 
     def _fit(self):
         hh = self.view.horizontalHeader()
@@ -879,6 +905,7 @@ def artist_folder(items: list[FileItem]) -> str:
 ONLINE_DIALOGS = {
     "musicbrainz": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "MusicBrainz"),
     "discogs": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Discogs"),
+    "deezer": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Deezer"),
     "cover_search": CoverSearchDialog,
     "artist_image": ArtistImageDialog,
 }

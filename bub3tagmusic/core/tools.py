@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from .fields import split_number
 from .patterns import tags_from_path
 
-TEXT_FIELDS = ("title", "artist", "albumartist", "album", "genre", "composer", "comment")
+TEXT_FIELDS = ("title", "artist", "albumartist", "album", "genre", "composer", "comment", "label")
 NUMBER_FIELDS = ("track", "disc", "year")
 
 

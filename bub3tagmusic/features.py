@@ -56,6 +56,9 @@ FEATURES: tuple[Feature, ...] = (
     Feature("discogs", "Album suchen – Discogs", 3, "online", "disc",
             "Zweite Quelle für Album-Daten. Braucht einen kostenlosen Discogs-Token "
             "(Einstellungen → Online).", ready=True),
+    Feature("deezer", "Album suchen – Deezer", 3, "online", "disc",
+            "Dritte Quelle, ohne Anmeldung: stark bei neuer und deutscher Musik, große Cover, Label. "
+            "Das Jahr ist oft das der Neuauflage.", ready=True),
     Feature("cover_search", "Cover suchen …", 3, "online", "image-square",
             "Sucht bei Cover Art Archive, iTunes und Deezer. Treffer als Bildergitter "
             "mit Auflösung; speichern als cover.jpg und/oder einbetten.", "Ctrl+K", ready=True),

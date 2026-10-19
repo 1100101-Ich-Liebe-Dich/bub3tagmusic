@@ -27,6 +27,7 @@ from ..core.settings import Settings
 from ..core.tags import COVER_REMOVE, read_cover
 from . import icons
 from .coverwidget import CoverPreview, CoverView, image_bytes_from_mime
+from .lyrics import LyricsField, open_lyrics
 from .session import Session
 
 MIXED = "‹verschieden›"
@@ -122,7 +123,7 @@ class EditPanel(QWidget):
         outer.addWidget(scroll, 1)
 
         lay = QVBoxLayout(inner)
-        lay.setContentsMargins(16, 14, 16, 16)
+        lay.setContentsMargins(16, 12, 16, 16)
         lay.setSpacing(0)
 
         # --- Kopf: was ist ausgewählt --------------------------------------------------
@@ -134,7 +135,7 @@ class EditPanel(QWidget):
         lay.addWidget(self.title)
         lay.addSpacing(2)
         lay.addWidget(self.subtitle)
-        lay.addSpacing(14)
+        lay.addSpacing(10)
 
         # --- Cover ----------------------------------------------------------------------
         cover_row = QHBoxLayout()
@@ -181,16 +182,16 @@ class EditPanel(QWidget):
             side.addWidget(b)
         cover_row.addLayout(side, 1)
         lay.addLayout(cover_row)
-        lay.addSpacing(18)
+        lay.addSpacing(12)
 
         # --- Felder ---------------------------------------------------------------------
         sec = QLabel("Tags")
         sec.setProperty("role", "section")
         lay.addWidget(sec)
-        lay.addSpacing(8)
+        lay.addSpacing(6)
         grid = QGridLayout()
         grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(7)
+        grid.setVerticalSpacing(5)
         grid.setColumnStretch(1, 1)
         row = 0
         for key in ("title", "artist", "albumartist", "album"):
@@ -235,9 +236,35 @@ class EditPanel(QWidget):
         grid.addWidget(self.genre_box, row, 1)
         row += 1
 
-        for key in ("composer", "comment"):
-            self._add_field(grid, row, key)
-            row += 1
+        self._add_field(grid, row, "composer")
+        row += 1
+
+        # Label + Original-Jahr in einer Zeile (1.1)
+        grid.addWidget(self._label("Label"), row, 0)
+        lab = QHBoxLayout()
+        lab.setSpacing(6)
+        fe = self._make_field("label")
+        fe.setToolTip("Plattenfirma, z. B. Harvest oder Sony Music")
+        lab.addWidget(fe, 5)
+        lab.addSpacing(4)
+        lab.addWidget(self._label("Orig.-Jahr"))
+        fe = self._make_field("originalyear", clearable=False)
+        fe.setMinimumWidth(52)
+        fe.setToolTip("Jahr der Erstveröffentlichung – bei Neuauflagen und Remasters älter als „Jahr“")
+        lab.addWidget(fe, 2)
+        grid.addLayout(lab, row, 1)
+        row += 1
+
+        self._add_field(grid, row, "comment")
+        row += 1
+
+        # Songtext: kompakte Zeile, Klick öffnet das Fenster
+        grid.addWidget(self._label("Songtext"), row, 0)
+        self.lyrics = LyricsField()
+        self.lyrics.openRequested.connect(self._open_lyrics)
+        self.fields["lyrics"] = self.lyrics
+        grid.addWidget(self.lyrics, row, 1)
+        row += 1
         lay.addLayout(grid)
         lay.addSpacing(12)
 
@@ -384,6 +411,14 @@ class EditPanel(QWidget):
         fe.setText("")
         self.session.apply_fields(self.items, {fe.key: ""}, f"{FIELD_BY_KEY[fe.key].label} geleert")
         self.message.emit(f"{FIELD_BY_KEY[fe.key].label} wird bei {len(self.items)} Datei(en) geleert")
+
+    def _open_lyrics(self):
+        if not self.items:
+            return
+        self.commit()
+        msg = open_lyrics(self, self.items, self.lyrics.value, self.lyrics.mixed, self.session)
+        if msg:
+            self.message.emit(msg)
 
     # --- Cover anzeigen -------------------------------------------------------------------------
     def _show_cover_none(self):

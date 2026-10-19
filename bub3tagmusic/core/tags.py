@@ -23,9 +23,9 @@ from mutagen.apev2 import BINARY, APEValue, APEv2File
 from mutagen.asf import ASF, ASFByteArrayAttribute
 from mutagen.dsf import DSF
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import APIC, COMM, ID3, Frames
+from mutagen.id3 import APIC, COMM, ID3, TDOR, TORY, USLT, Frames
 from mutagen.mp3 import MP3
-from mutagen.mp4 import MP4, MP4Cover
+from mutagen.mp4 import MP4, MP4Cover, MP4FreeForm
 from mutagen.oggflac import OggFLAC
 from mutagen.oggopus import OggOpus
 from mutagen.oggvorbis import OggVorbis
@@ -68,7 +68,10 @@ class ID3Handler:
     TEXT = {
         "title": "TIT2", "artist": "TPE1", "albumartist": "TPE2", "album": "TALB",
         "year": "TDRC", "track": "TRCK", "disc": "TPOS", "composer": "TCOM",
+        "label": "TPUB",
     }
+    # Original-Jahr: TDOR (v2.4), TORY (v2.3), Picard schreibt zusätzlich TXXX:originalyear
+    ORIGINAL = ("TDOR", "TORY")
 
     def ensure_tags(self, f):
         if f.tags is None:
@@ -93,7 +96,27 @@ class ID3Handler:
         if fr is not None:
             out["genre"] = _join(fr.genres)
         out["comment"] = _join(self._comment_frame(t).text) if self._comment_frame(t) else ""
+        for fid in self.ORIGINAL:
+            fr = t.get(fid)
+            if fr is not None and _join(fr.text):
+                out["originalyear"] = _join(fr.text)
+                break
+        else:
+            fr = self._txxx(t, "originalyear")
+            if fr is not None:
+                out["originalyear"] = _join(fr.text)
+        lyr = self._lyrics_frame(t)
+        out["lyrics"] = (lyr.text or "").strip("\x00") if lyr is not None else ""
         return out
+
+    @staticmethod
+    def _txxx(t, desc: str):
+        return next((fr for fr in t.getall("TXXX") if fr.desc.lower() == desc), None)
+
+    @staticmethod
+    def _lyrics_frame(t):
+        frames = t.getall("USLT")
+        return next((fr for fr in frames if fr.desc == ""), frames[0] if frames else None)
 
     @staticmethod
     def _comment_frame(t):
@@ -114,6 +137,24 @@ class ID3Handler:
                         del t[fr.HashKey]
                 if value:
                     t.add(COMM(encoding=3, lang="eng", desc="", text=[value]))
+                continue
+            if key == "lyrics":
+                old = self._lyrics_frame(t)
+                lang = getattr(old, "lang", "") or "eng"
+                for fr in list(t.getall("USLT")):
+                    if fr.desc == "" or fr is old:
+                        del t[fr.HashKey]
+                if value:
+                    t.add(USLT(encoding=3, lang=lang, desc="", text=value))
+                continue
+            if key == "originalyear":
+                for fid in self.ORIGINAL:
+                    t.delall(fid)
+                for fr in list(t.getall("TXXX")):
+                    if fr.desc.lower() == "originalyear":
+                        del t[fr.HashKey]
+                if value:          # beim Speichern als v2.3 wird daraus TORY (save)
+                    t.add(TDOR(encoding=3, text=[value]))
                 continue
             fid = "TCON" if key == "genre" else self.TEXT[key]
             t.delall(fid)
@@ -145,6 +186,12 @@ class ID3Handler:
 
     def save(self, f, opts: dict) -> None:
         version = 3 if int(opts.get("id3_version", 3)) == 3 else 4
+        if version == 3 and f.tags is not None and "TDOR" in f.tags:
+            # mutagen lässt TDOR (nur v2.4) sonst in v2.3 stehen – dort heißt es TORY (nur das Jahr)
+            year = str(f.tags["TDOR"].text[0])[:4] if f.tags["TDOR"].text else ""
+            f.tags.delall("TDOR")
+            if year:
+                f.tags.add(TORY(encoding=3, text=[year]))
         if isinstance(f, MP3):
             v1 = {"remove": 0, "keep": 1, "write": 2}.get(opts.get("id3v1", "keep"), 1)
             f.save(v2_version=version, v1=v1)
@@ -170,7 +217,12 @@ class VorbisHandler:
         "genre": ("GENRE",),
         "composer": ("COMPOSER",),
         "comment": ("COMMENT", "DESCRIPTION"),
+        "label": ("LABEL", "ORGANIZATION", "PUBLISHER"),
+        "originalyear": ("ORIGINALDATE", "ORIGINALYEAR"),
+        "lyrics": ("LYRICS", "UNSYNCEDLYRICS", "UNSYNCED LYRICS"),
     }
+    # Diese Felder stehen oft doppelt da (Picard: ORIGINALDATE + ORIGINALYEAR) – alle ersetzen
+    REPLACE_ALL = {"originalyear"}
     NUMBERS = {
         "track": ("TRACKNUMBER", ("TRACKTOTAL", "TOTALTRACKS")),
         "disc": ("DISCNUMBER", ("DISCTOTAL", "TOTALDISCS")),
@@ -227,7 +279,8 @@ class VorbisHandler:
             names = self.SIMPLE[key]
             # Primärnamen und den Namen, aus dem gelesen wurde, ersetzen
             source = next((nm for nm in names if nm in t), None)
-            for name in {names[0], source} - {None}:
+            drop = set(names) if key in self.REPLACE_ALL else {names[0], source} - {None}
+            for name in drop:
                 if name in t:
                     del t[name]
             if value:
@@ -311,8 +364,19 @@ class MP4Handler:
     TEXT = {
         "title": "\xa9nam", "artist": "\xa9ART", "albumartist": "aART", "album": "\xa9alb",
         "year": "\xa9day", "genre": "\xa9gen", "composer": "\xa9wrt", "comment": "\xa9cmt",
+        "lyrics": "\xa9lyr",
     }
     NUMBERS = {"track": "trkn", "disc": "disk"}
+    # Freie Felder (wie Picard/Mp3tag): erster Name wird geschrieben, alle werden gelesen und ersetzt
+    FREEFORM = {
+        "label": ("----:com.apple.iTunes:LABEL", "----:com.apple.iTunes:publisher"),
+        "originalyear": ("----:com.apple.iTunes:ORIGINALDATE", "----:com.apple.iTunes:ORIGINALYEAR",
+                         "----:com.apple.iTunes:originalyear"),
+    }
+
+    @staticmethod
+    def _free_text(values) -> str:
+        return _join(bytes(v).decode("utf-8", "replace") for v in values or [])
 
     def ensure_tags(self, f):
         if f.tags is None:
@@ -339,6 +403,11 @@ class MP4Handler:
             if atom in t and t[atom]:
                 n, total = (tuple(t[atom][0]) + (0, 0))[:2]
                 out[key] = join_number(str(n) if n else "", str(total) if total else "")
+        for key, atoms in self.FREEFORM.items():
+            for atom in atoms:
+                if atom in t and self._free_text(t[atom]):
+                    out[key] = self._free_text(t[atom])
+                    break
         return out
 
     def write(self, f, changes: dict) -> None:
@@ -358,6 +427,14 @@ class MP4Handler:
                 except ValueError:
                     label = "Track" if key == "track" else "Disc"
                     raise TagWriteError(f"{label} muss bei M4A eine Zahl sein (z. B. 3 oder 3/12).")
+                continue
+            if key in self.FREEFORM:
+                atoms = self.FREEFORM[key]
+                for atom in atoms:
+                    if atom in t:
+                        del t[atom]
+                if value:
+                    t[atoms[0]] = [MP4FreeForm(value.encode("utf-8"))]
                 continue
             atom = self.TEXT[key]
             if atom in t:
@@ -397,7 +474,8 @@ class ASFHandler:
         "title": "Title", "artist": "Author", "albumartist": "WM/AlbumArtist",
         "album": "WM/AlbumTitle", "year": "WM/Year", "track": "WM/TrackNumber",
         "disc": "WM/PartOfSet", "genre": "WM/Genre", "composer": "WM/Composer",
-        "comment": "Description",
+        "comment": "Description", "label": "WM/Publisher", "originalyear": "WM/OriginalReleaseYear",
+        "lyrics": "WM/Lyrics",
     }
 
     def ensure_tags(self, f):
@@ -499,7 +577,11 @@ class APEHandler:
         "title": ("Title",), "artist": ("Artist",), "albumartist": ("Album Artist", "AlbumArtist"),
         "album": ("Album",), "year": ("Year",), "track": ("Track",), "disc": ("Disc",),
         "genre": ("Genre",), "composer": ("Composer",), "comment": ("Comment",),
+        "label": ("Label", "Publisher"),
+        "originalyear": ("OriginalYear", "Original Year", "OriginalDate", "Original Date"),
+        "lyrics": ("Lyrics", "UnsyncedLyrics", "Unsynced Lyrics"),
     }
+    REPLACE_ALL = {"originalyear"}
     COVER_KEY = "Cover Art (Front)"
 
     def ensure_tags(self, f):
@@ -532,7 +614,8 @@ class APEHandler:
             value = value.strip()
             names = self.TEXT[key]
             source = next((nm for nm in names if nm in t), None)
-            for name in {names[0], source} - {None}:
+            drop = set(names) if key in self.REPLACE_ALL else {names[0], source} - {None}
+            for name in drop:
                 if name in t:
                     del t[name]
             if value:
@@ -609,7 +692,7 @@ def _open(path: str):
 
 
 # Version des Datensatz-Aufbaus: ältere Einträge im Zwischenspeicher werden neu gelesen
-RECORD_VERSION = 2       # 2 = mit ReplayGain-Werten (Phase 4)
+RECORD_VERSION = 3       # 2 = mit ReplayGain-Werten (Phase 4), 3 = Label, Original-Jahr, Songtext (1.1)
 
 
 def _rg_text(value) -> str:
@@ -681,6 +764,9 @@ def read_file(path: str) -> dict:
         rec["format"] = FORMAT_NAMES.get(type(f).__name__, rec["format"])
         rec["tagtype"] = h.tagtype(f)
         rec["tags"] = h.read(f)
+        lyr = rec["tags"].get("lyrics")
+        if lyr and "\r" in lyr:        # einheitliche Zeilenenden, sonst gilt der Songtext gleich als geändert
+            rec["tags"]["lyrics"] = lyr.replace("\r\n", "\n").replace("\r", "\n")
         info = getattr(f, "info", None)
         if info is not None:
             rec["length"] = float(getattr(info, "length", 0) or 0)

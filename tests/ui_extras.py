@@ -129,6 +129,7 @@ def main():
     pump(app, 0.6)
 
     test_filters(app, win, root, out)
+    test_new_fields(app, win, root, out)
     test_artist_folder(app, win, root, out)
     test_export(app, win, work, out)
     test_actions(app, win, root, files, out)
@@ -192,6 +193,109 @@ def test_filters(app, win, root, out):
     check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4 and win._search is None),
           "Ordner wählen beendet die Suche")
     pump(app, 0.4)
+
+
+def test_new_fields(app, win, root, out):
+    print("Label, Original-Jahr, Songtext (1.1)")
+    from bub3tagmusic.core.tags import read_file
+    from bub3tagmusic.ui import lyrics as ui_lyrics
+    from bub3tagmusic.ui.filetable import COLUMN_INDEX
+    album = os.path.join(root, "Kielwasser", "2001 - Hochsee")
+    win.tree.select_paths([album])
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 3), "Album geladen")
+    pump(app, 0.3)
+    panel = win.panel
+    # Label + Original-Jahr für alle drei
+    win.table.selectAll()
+    pump(app, 0.2)
+    for key, value in (("label", "Harvest"), ("originalyear", "1975")):
+        fe = panel.fields[key]
+        fe.setText(value)
+        fe.textEdited.emit(value)
+        fe.editingFinished.emit()
+        pump(app, 0.1)
+    check(all(it.tags["label"] == "Harvest" and it.tags["originalyear"] == "1975" for it in win.session.items),
+          "Label + Original-Jahr für alle gesetzt")
+    check(panel.lyrics.text().startswith("Kein Songtext"), f"Songtext-Zeile leer: {panel.lyrics.text()!r}")
+
+    # Begleitdatei neben „01 - Am Kai.flac“
+    lrc = os.path.join(album, "01 - Am Kai.lrc")
+    with open(lrc, "w", encoding="utf-8") as fh:
+        fh.write("[ar:Kielwasser]\n[ti:Am Kai]\n[00:01.00]Das Schiff liegt still\n[00:04.50]am Kai im Nebel\n"
+                 "\n[00:09.00]Möwen über'm Deck\n")
+    first = next(it for it in win.session.items if it.name.startswith("01"))
+    row = win.table.model_.row_of(first)
+    win.table.selectRow(row)
+    pump(app, 0.2)
+
+    def run_dialog(actions):
+        orig = ui_lyrics.LyricsDialog.exec
+
+        def fake(dlg):
+            dlg.show()
+            pump(app, 0.2)
+            r = actions(dlg)
+            return dlg.result() if r is None else r
+        ui_lyrics.LyricsDialog.exec = fake
+        try:
+            panel.lyrics.click()
+            pump(app, 0.2)
+        finally:
+            ui_lyrics.LyricsDialog.exec = orig
+
+    def from_lrc(dlg):
+        check(hasattr(dlg, "btn_found") and "01 - Am Kai.lrc" in dlg.btn_found.text(),
+              f"Begleitdatei erkannt: {getattr(dlg, 'btn_found', None) and dlg.btn_found.text()}")
+        dlg.btn_found.click()
+        check(dlg.edit.toPlainText() == "Das Schiff liegt still\nam Kai im Nebel\n\nMöwen über'm Deck",
+              f"Zeitmarken entfernt: {dlg.edit.toPlainText()!r}")
+        dlg.grab().save(os.path.join(out, "x0_songtext.png"))
+        dlg.ok.click()
+    run_dialog(from_lrc)
+    check(first.tags["lyrics"].startswith("Das Schiff"), "Songtext übernommen (gelb)")
+    check(panel.lyrics.text().startswith("3 Zeilen"), f"Songtext-Zeile: {panel.lyrics.text()!r}")
+    check(win.table.model_.index(row, COLUMN_INDEX["lyrics"]).data() == "3 Zeilen", "Spalte Songtext")
+    win.grab().save(os.path.join(out, "x0_felder.png"))
+
+    # Abbrechen ändert nichts
+    run_dialog(lambda dlg: (dlg.edit.setPlainText("anders"), dlg.reject()) and None)
+    check(first.tags["lyrics"].startswith("Das Schiff"), "Abbrechen lässt den Songtext")
+
+    # Mehrere Dateien mit verschiedenen Songtexten: festlegen für alle
+    win.table.selectAll()
+    pump(app, 0.2)
+    check(panel.lyrics.mixed, "Auswahl: verschiedene Songtexte")
+
+    def for_all(dlg):
+        check(dlg.edit.toPlainText() == "", "verschieden → leeres Feld")
+        check("1 von 3" in dlg.btn_found.text(), f"Begleitdateien zählen: {dlg.btn_found.text()}")
+        dlg.edit.setPlainText("Instrumental\r\n")
+        dlg.ok.click()
+    run_dialog(for_all)
+    check(all(it.tags["lyrics"] == "Instrumental" for it in win.session.items), "Songtext für alle (bereinigt)")
+    win.undo()
+    pump(app, 0.2)
+    check(first.tags["lyrics"].startswith("Das Schiff") and win.session.items[1].tags["lyrics"] == "",
+          "Strg+Z: jeder wieder mit seinem Songtext")
+
+    # Suchen & Ersetzen kennt die neuen Felder, der Dateiname-Platzhalter %lyrics% nicht
+    from bub3tagmusic.ui.tools import TOOL_DIALOGS
+    d = TOOL_DIALOGS["replace"](win, win.session.items, "Test")
+    check("lyrics" in d.fields._chips and "label" in d.fields._chips, "Ersetzen: Songtext + Label wählbar")
+    d.close()
+
+    # Speichern und von der Platte lesen
+    win.save()
+    check(wait(app, lambda: win._save_worker is None and win.session.modified_count() == 0), "gespeichert")
+    rec = read_file(first.path)["tags"]
+    check(rec["label"] == "Harvest" and rec["originalyear"] == "1975" and rec["lyrics"].endswith("über'm Deck"),
+          f"auf der Platte: {rec['label']!r} {rec['originalyear']!r} {rec['lyrics'][:20]!r}")
+    mp3 = read_file(os.path.join(album, "02 - Nebelhorn.mp3"))["tags"]
+    check(mp3["label"] == "Harvest" and mp3["originalyear"] == "1975", "MP3 (ID3v2.3): Label + Original-Jahr")
+    os.remove(lrc)
+    win.tree.select_paths([os.path.join(root, "Kielwasser")])
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 4), "zurück zum Künstler")
+    pump(app, 0.3)
 
 
 def test_artist_folder(app, win, root, out):

@@ -14,8 +14,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from online_fixtures import available, use_fixtures  # noqa: E402
 
-from bub3tagmusic.online import acoustid, artistimages, coversearch, discogs, http, matching, musicbrainz  # noqa: E402
-from bub3tagmusic.online.base import OnlineError, seconds, similarity  # noqa: E402
+from bub3tagmusic.online import (acoustid, artistimages, coversearch, deezer, discogs, http, matching,  # noqa: E402
+                                 musicbrainz)
+from bub3tagmusic.online.base import OnlineError, seconds, similarity, strip_edition  # noqa: E402
 
 FAILS = []
 
@@ -47,6 +48,8 @@ def main():
     eq((full.tracks[13].disc, full.tracks[13].position, full.tracks[13].track_total), (2, 1, 13),
        "erster Track von Disc 2 = 2/1, 13 auf der Disc")
     eq(full.genre, "Progressive Rock", "Genre aus MusicBrainz")
+    eq(full.original_year, "1979", "Original-Jahr aus der Release-Group")
+    eq(bool(full.label), True, f"Label aus MusicBrainz ({full.label})")
     eq(full.tracks[0].length > 100, True, f"Länge in Sekunden ({full.tracks[0].length:.0f})")
     eq(bool(full.cover_full_url), True, "Cover vorhanden")
     aerzte = musicbrainz.search_albums("Die Ärzte", "Die Bestie in Menschengestalt")
@@ -177,6 +180,10 @@ def main():
     m = acoustid.parse(sample, current_album="Ein Schritt")[0]
     eq((m.album, m.tags().get("disc")), ("Ein Schritt", "2/2"), "AcoustID: Album aus den Tags hat Vorrang (mit Disc)")
 
+    test_deezer_structure()
+    use_fixtures(misses)
+    test_deezer_recorded()
+
     def offline(url, headers):
         raise urllib.error.URLError("Name or service not known")
     http.set_transport(offline)
@@ -193,6 +200,93 @@ def main():
     print()
     print("ALLES OK" if not FAILS else f"{len(FAILS)} Fehler")
     return 1 if FAILS else 0
+
+
+def test_deezer_structure():
+    """Deezer-Antworten nach echter Struktur (ohne Aufnahme): Suche, Album, Trackliste, Fehler."""
+    import json
+    search = {"data": [
+        {"id": 1, "title": "Abbey Road (Remastered)", "nb_tracks": 17, "record_type": "album",
+         "cover_medium": "https://cdn/x/250x250.jpg", "cover_xl": "https://cdn/x/1000x1000.jpg",
+         "artist": {"name": "The Beatles"}},
+        {"id": 2, "title": "Abbey Road Medley", "nb_tracks": 1, "record_type": "single", "artist": {"name": "Tribute"}},
+    ], "total": 2}
+    album = {"id": 1, "title": "Abbey Road (Remastered)", "label": "EMI Catalogue", "release_date": "2015-12-24",
+             "record_type": "album", "genres": {"data": [{"id": 152, "name": "Rock"}]},
+             "artist": {"name": "The Beatles"}, "cover_medium": "https://cdn/x/250x250.jpg",
+             "cover_xl": "https://cdn/x/1000x1000.jpg",
+             "tracks": {"data": [{"title": "Come Together (Remastered 2009)", "duration": 259,
+                                  "artist": {"name": "The Beatles"}}]}}
+    tracks = {"data": [
+        {"title": "Come Together (Remastered 2009)", "duration": 259, "track_position": 1, "disk_number": 1,
+         "artist": {"name": "The Beatles"}},
+        {"title": "Something - Remastered 2009", "duration": 182, "track_position": 2, "disk_number": 1,
+         "artist": {"name": "The Beatles"}},
+        {"title": "Bonus Take", "duration": 100, "track_position": 1, "disk_number": 3, "artist": {"name": ""}},
+    ], "total": 3}
+    calls = []
+
+    def fake(url, headers):
+        calls.append(url)
+        if "/search/album" in url:
+            return 200, json.dumps(search).encode()
+        if url.startswith("https://api.deezer.com/album/1/tracks"):
+            return 200, json.dumps(tracks).encode()
+        if url.startswith("https://api.deezer.com/album/1"):
+            return 200, json.dumps(album).encode()
+        if url.startswith("https://api.deezer.com/album/9"):
+            return 200, json.dumps({"error": {"type": "DataException", "message": "no data", "code": 800}}).encode()
+        return 404, b""
+    http.clear_cache()
+    http.set_transport(fake)
+    res = deezer.search_albums("The Beatles", "Abbey Road")
+    eq([m.source_id for m in res], ["1", "2"], "Deezer-Suche: Album vor Single")
+    eq((res[0].track_total, res[0].formats, res[0].cover_full_url.endswith("1000x1000.jpg")), (17, "Album", True),
+       "Deezer-Suche: Trackzahl, Art, großes Cover")
+    a = deezer.get_album("1")
+    eq((a.year, a.label, a.genre, a.original_year), ("2015", "EMI Catalogue", "Rock", ""), "Deezer-Album: Jahr/Label/Genre")
+    eq([(t.disc, t.position, t.track_total) for t in a.tracks], [(1, 1, 2), (1, 2, 2), (2, 1, 1)],
+       "Deezer: Discs lückenlos (3 → 2), Tracks je Disc")
+    eq(a.tracks[2].artist, "The Beatles", "Deezer: Track ohne Interpret → Albuminterpret")
+    eq(len(calls), 3, "Deezer: eine Suche + Album + Trackliste")
+    t = matching.tags_for(a, 1, {"title", "album", "label", "originalyear", "year"}, clean=True)
+    eq((t["title"], t["album"], t["label"], "originalyear" in t), ("Something", "Abbey Road", "EMI Catalogue", False),
+       "Zusätze entfernt, Label übernommen, kein leeres Original-Jahr")
+    t = matching.tags_for(a, 0, {"title"})
+    eq(t["title"], "Come Together (Remastered 2009)", "ohne „clean“ bleibt der Titel")
+    try:
+        deezer.get_album("9")
+        FAILS.append("Deezer-Fehler nicht erkannt")
+    except OnlineError as exc:
+        eq(str(exc), "Deezer kennt dieses Album nicht (mehr)", "Deezer-Fehler (Status 200 + error)")
+    for raw, want in (("Wish You Were Here (2011 Remaster)", "Wish You Were Here"),
+                      ("Money - 2011 Remastered Version", "Money"), ("Song (Live at Wembley)", "Song (Live at Wembley)"),
+                      ("Shine On (Pts. 1-5) - 2011 Remaster", "Shine On (Pts. 1-5)"), ("Bonus (Remix)", "Bonus (Remix)"),
+                      ("Album (Deluxe Edition) [Remastered]", "Album")):
+        eq(strip_edition(raw), want, f"Zusatz: {raw}")
+    http.clear_cache()
+
+
+def test_deezer_recorded():
+    """Echte Deezer-Antworten – nur wenn sie schon aufgezeichnet sind."""
+    from online_fixtures import DEEZER_ALBUMS, load_index
+    if not any("api.deezer.com/album/" in u for u in load_index()):
+        print("   (Deezer-Alben noch nicht aufgezeichnet – übersprungen)")
+        return
+    res = deezer.search_albums("AC/DC", "Back in Black")
+    eq(bool(res) and res[0].albumartist == "AC/DC", True, f"Deezer: AC/DC gefunden ({res[:1]})")
+    a = deezer.get_album(res[0].source_id)
+    eq((len(a.tracks) >= 10, a.tracks[0].position, bool(a.label), bool(a.year)), (True, 1, True, True),
+       f"Deezer: Back in Black ({len(a.tracks)} Tracks, Label {a.label!r}, Jahr {a.year})")
+    eq(a.tracks[0].length > 100, True, "Deezer: Längen in Sekunden")
+    for artist, album in DEEZER_ALBUMS:
+        res = deezer.search_albums(artist, album)
+        eq(bool(res), True, f"Deezer: {artist} – {album} gefunden")
+        if res:
+            full = deezer.get_album(res[0].source_id)
+            eq(len(full.tracks) >= 17, True, f"Deezer: {full.album} hat {len(full.tracks)} Tracks")
+    aerzte = deezer.search_albums("Die Ärzte", "Die Bestie in Menschengestalt")
+    eq(bool(aerzte) and "Bestie" in aerzte[0].album, True, "Deezer: Umlaute (Die Ärzte)")
 
 
 if __name__ == "__main__":

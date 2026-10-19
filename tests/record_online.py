@@ -17,9 +17,9 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
-from online_fixtures import ALBUMS, ARTISTS, DISCOGS_RELEASES, FIXTURES  # noqa: E402
+from online_fixtures import ALBUMS, ARTISTS, DEEZER_ALBUMS, DISCOGS_RELEASES, FIXTURES  # noqa: E402
 
-from bub3tagmusic.online import acoustid, artistimages, coversearch, discogs, http, musicbrainz  # noqa: E402
+from bub3tagmusic.online import acoustid, artistimages, coversearch, deezer, discogs, http, musicbrainz  # noqa: E402
 from bub3tagmusic.online.base import OnlineError  # noqa: E402
 
 index: dict[str, str] = {}
@@ -105,6 +105,28 @@ def record_acoustid():
         json.dump(info, fh, indent=1, ensure_ascii=False)
 
 
+def record_deezer(artist: str, album: str):
+    try:
+        res = deezer.search_albums(artist, album)
+        note(f"Deezer Suche {artist} – {album}: {len(res)} Treffer; erste: "
+             + "; ".join(f"{m.album} / {m.albumartist} / {m.formats} / {m.track_total} / Score {m.score}"
+                         for m in res[:3]))
+        if not res:
+            return
+        full = deezer.get_album(res[0].source_id)
+        t0 = full.tracks[0] if full.tracks else None
+        note(f"Deezer Album {full.album} ({full.source_id}): {len(full.tracks)} Tracks, {full.disc_total} Disc(s), "
+             f"Jahr {full.year}, Label '{full.label}', Genre '{full.genre}', Cover {'ja' if full.cover_full_url else 'nein'}"
+             + (f", Track1 '{t0.title}' {t0.position}/{t0.track_total} Disc {t0.disc} {t0.length:.0f}s" if t0 else ""))
+        if full.cover_url:
+            try:
+                http.get_image(full.cover_url)
+            except OnlineError as exc:
+                note(f"Deezer Vorschaubild: {exc}")
+    except OnlineError as exc:
+        note(f"Deezer Fehler {artist} – {album}: {exc}")
+
+
 def note(text: str):
     notes.append(text)
     print(text)
@@ -160,6 +182,9 @@ def main():
                  f"{a.disc_total} Disc(s), Positionen {[t.position for t in a.tracks][:8]}")
         except OnlineError as exc:
             note(f"Discogs {rid}: {exc}")
+
+    for artist, album in ALBUMS + DEEZER_ALBUMS:
+        record_deezer(artist, album)
 
     record_acoustid()
 

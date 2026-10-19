@@ -395,6 +395,15 @@ QToolButton[kind="side"] {{
 }}
 QToolButton[kind="side"]:hover {{ background: {t['hover']}; border-color: {t['line_strong']}; }}
 QToolButton[kind="side"]:disabled {{ background: {t['panel']}; border-color: {t['line_soft']}; }}
+/* Songtext-Zeile im Bearbeitungsfeld: sieht aus wie ein Eingabefeld */
+QToolButton[kind="field"] {{
+    background: {t['input']}; border: 1px solid {t['line']}; border-radius: 7px;
+    padding: 5px 8px; text-align: left; color: {t['text']};
+}}
+QToolButton[kind="field"][empty="true"] {{ color: {t['faint']}; }}
+QToolButton[kind="field"]:hover {{ border-color: {t['line_strong']}; }}
+QToolButton[kind="field"][edited="true"] {{ border-color: {t['modified']}; }}
+QToolButton[kind="field"]:disabled {{ color: {t['faint']}; background: {t['panel']}; border-color: {t['line_soft']}; }}
 
 /* Menüs */
 QMenu {{ background: {t['raised']}; border: 1px solid {t['line']}; border-radius: 10px; padding: 6px; }}
@@ -449,6 +458,7 @@ QToolButton[kind="chip"]:checked {{ background: {t['accent_soft']}; border-color
 QPushButton[kind="danger"] {{ background: {t['danger']}; color: #FFFFFF; border: 1px solid {t['danger']}; font-weight: 600; }}
 QPushButton[kind="danger"]:hover {{ background: {t['danger']}; border-color: {t['text']}; }}
 QPlainTextEdit {{ background: {t['input']}; }}
+QPlainTextEdit#LyricsEdit {{ font-size: 14px; padding: 10px 12px; }}
 QListWidget#ResultList {{ background: {t['panel']}; border: none; outline: 0; }}
 QListWidget#ResultList::item {{ border: none; }}
 QListWidget#ImageGrid {{ background: {t['sunken']}; border: none; outline: 0; padding: 10px; }}

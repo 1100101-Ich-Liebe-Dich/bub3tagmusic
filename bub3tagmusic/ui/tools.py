@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QDial
 
 from .. import features
 from ..core import tools
-from ..core.fields import FIELD_BY_KEY, FIELD_KEYS
+from ..core.fields import FIELD_BY_KEY, FIELD_KEYS, PATTERN_KEYS, one_line
 from ..core.model import FileItem
 from ..core.patterns import KNOWN, unknown_placeholders
 from ..core.rename import CONFLICT, INVALID, MISSING, MIXED, OK, SAME, STATUS_TEXT, plan_renames
@@ -91,13 +91,17 @@ class PreviewModel(QAbstractTableModel):
         row = self.rows[index.row()]
         c = index.column()
         last = len(self.preview.columns) + 1
+        if role == Qt.ItemDataRole.ToolTipRole and 0 < c < last and "\n" in (row.cells[c - 1][0] or ""):
+            new, old = row.cells[c - 1]      # Songtext: ganz zeigen (gekürzt), nicht nur eine Zeile
+            text = new[:1200] + (" …" if len(new) > 1200 else "")
+            return text if old is None else f"{text}\n\n— vorher —\n{(old or '(leer)')[:600]}"
         if role == Qt.ItemDataRole.DisplayRole:
             if c == 0:
                 return row.label
             if c == last:
                 return row.status
             new, _old = row.cells[c - 1]
-            return new
+            return one_line(new)
         if role == Qt.ItemDataRole.ForegroundRole:
             if c == last:
                 return theme.qcolor({CHANGED: "done", WARN: "modified", ERROR: "danger"}.get(row.kind, "faint"))
@@ -387,7 +391,7 @@ class TagsFromFilenameDialog(ToolDialog):
         f = self.form
         f.addWidget(section("Muster"))
         self.pattern = PatternBox(tools.PATTERN_PRESETS, self.opts.get("history", []),
-                                  self.opts.get("pattern", ""), [*FIELD_KEYS, "dummy"])
+                                  self.opts.get("pattern", ""), [*PATTERN_KEYS, "dummy"])
         self.pattern.changed.connect(self.later)
         f.addWidget(self.pattern)
         f.addWidget(hint("„/“ trennt Ordnerebenen, z. B. %artist%/%year% - %album%/%track% - %title%. "
@@ -449,7 +453,7 @@ class FilenameFromTagsDialog(ToolDialog):
         f = self.form
         f.addWidget(section("Muster für den Dateinamen"))
         self.pattern = PatternBox(RENAME_PRESETS, self.opts.get("history", []), self.opts.get("pattern", ""),
-                                  list(FIELD_KEYS))
+                                  list(PATTERN_KEYS))
         self.pattern.changed.connect(self.later)
         f.addWidget(self.pattern)
         f.addWidget(hint("Die Endung (.mp3, .flac …) bleibt. Ordner benennt das Werkzeug „Ordner umbenennen“ um."))
@@ -648,7 +652,7 @@ class AutonumberDialog(ToolDialog):
 # ======================================================================
 # #4 Groß-/Kleinschreibung
 # ======================================================================
-CASE_FIELDS = ["title", "artist", "albumartist", "album", "genre", "composer", "comment"]
+CASE_FIELDS = ["title", "artist", "albumartist", "album", "genre", "composer", "comment", "label"]
 
 
 class CaseDialog(ToolDialog):
@@ -740,7 +744,7 @@ class ReplaceDialog(ToolDialog):
         f.addWidget(hint("Bei regulären Ausdrücken: Gruppen mit ( … ) im Suchen, im Ersetzen $1 oder \\1."))
         f.addSpacing(8)
         f.addWidget(section("Felder"))
-        self.fields = FieldPicker(list(tools.TEXT_FIELDS) + ["year", "track", "disc"],
+        self.fields = FieldPicker(list(tools.TEXT_FIELDS) + ["year", "originalyear", "track", "disc", "lyrics"],
                                   self.opts.get("fields", list(tools.TEXT_FIELDS)))
         self.fields.changed.connect(lambda: (self.opts.__setitem__("fields", self.fields.selected()), self.later()))
         f.addWidget(self.fields)

@@ -125,7 +125,8 @@ def text_words(text: str) -> list[str]:
 def text_passes(words: list[str], name: str, tags: dict) -> bool:
     if not words:
         return True
-    hay = " ".join((name, *tags.values())).casefold()
+    # Songtexte nicht durchsuchen: sonst findet „liebe“ jedes Lied, das davon singt (und es wird langsam)
+    hay = " ".join((name, *(v for k, v in tags.items() if k != "lyrics"))).casefold()
     return all(w in hay for w in words)
 
 

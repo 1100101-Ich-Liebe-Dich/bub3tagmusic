@@ -24,6 +24,8 @@ ALBUMS = [
 ]
 ARTISTS = ["AC/DC", "Die Ärzte"]
 DISCOGS_RELEASES = ["249504", "1"]
+# Deezer (1.1): die ALBUMS oben + ein Album mit Remaster-Zusätzen in den Titeln
+DEEZER_ALBUMS = [("The Beatles", "Abbey Road")]
 
 
 def load_index() -> dict:

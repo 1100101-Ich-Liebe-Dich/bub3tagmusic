@@ -16,7 +16,7 @@ import re
 from .fields import FIELDS, split_number
 
 PLACEHOLDER_RE = re.compile(r"%([a-z]+)%")
-KNOWN = {f.key for f in FIELDS}
+KNOWN = {f.key for f in FIELDS if not f.multiline}
 SKIP_NAMES = {"dummy", "skip", "egal"}
 
 # Unter Linux sind nur '/' und NUL verboten. Für USB-Sticks, Autoradios (FAT32)

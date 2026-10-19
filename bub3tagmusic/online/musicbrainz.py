@@ -114,6 +114,7 @@ def get_album(mbid: str, contact: str = "") -> AlbumMatch:
         source="MusicBrainz", source_id=mbid, album=data.get("title", ""),
         albumartist=credit(data.get("artist-credit")), year=(data.get("date") or "")[:4],
         label=_label(data.get("label-info")), country=data.get("country", "") or "",
+        original_year=((data.get("release-group") or {}).get("first-release-date") or "")[:4],
         genre=_genre(data), track_total=len(tracks), disc_total=max(1, len(media)), tracks=tracks,
         formats=_formats(media),
         cover_url=f"{CAA}release/{mbid}/front-250" if has_front else "",

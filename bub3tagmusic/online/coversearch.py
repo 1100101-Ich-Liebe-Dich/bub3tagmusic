@@ -7,6 +7,7 @@ Fällt eine Quelle aus, liefern die anderen trotzdem.
 
 from __future__ import annotations
 
+from . import deezer
 from .base import CoverCandidate, OnlineError, RateLimiter, match_score
 from .http import get_image, get_json
 
@@ -18,7 +19,7 @@ DEEZER = "https://api.deezer.com/search/album"
 
 CAA_LIMITER = RateLimiter(per_second=2)
 ITUNES_LIMITER = RateLimiter(per_second=1)       # iTunes erlaubt ca. 20 Anfragen/Minute
-DEEZER_LIMITER = RateLimiter(per_second=4)
+DEEZER_LIMITER = deezer.LIMITER           # eine gemeinsame Bremse für alle Deezer-Abrufe
 
 
 def from_caa_release_group(rg_id: str, description: str = "", score: float = 0.0) -> list[CoverCandidate]:

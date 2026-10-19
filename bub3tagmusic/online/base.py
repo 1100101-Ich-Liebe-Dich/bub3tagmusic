@@ -55,6 +55,7 @@ class AlbumMatch:
     album: str
     albumartist: str
     year: str = ""
+    original_year: str = ""      # Erstveröffentlichung (MusicBrainz: Release-Group), sonst leer
     label: str = ""
     country: str = ""
     genre: str = ""
@@ -101,6 +102,26 @@ def normalize(text: str) -> str:
     text = re.sub(r"[^a-z0-9]+", " ", text)
     text = re.sub(r"^the\s+", "", text.strip())
     return " ".join(text.split())
+
+
+# Zusätze von Neuauflagen: „(Remastered 2011)“, „ - 2011 Remaster“, „[Deluxe Edition]“ …
+# Bewusst NICHT: Live, Acoustic, Remix, Demo, Single Version – das gehört zum Titel.
+_EDITION_WORDS = (r"remaster(?:ed)?|deluxe|expanded|anniversary|bonus\s+tracks?|special\s+edition|"
+                  r"collector'?s\s+edition|legacy\s+edition|super\s+deluxe")
+_EDITION_BRACKET = re.compile(r"\s*[\(\[][^\(\)\[\]]*\b(?:" + _EDITION_WORDS + r")\b[^\(\)\[\]]*[\)\]]\s*$",
+                              re.IGNORECASE)
+_EDITION_DASH = re.compile(r"\s+[-–]\s+[^-–]*\b(?:" + _EDITION_WORDS + r")\b[^-–]*$", re.IGNORECASE)
+
+
+def strip_edition(text: str) -> str:
+    """'Come Together - Remastered 2009' → 'Come Together', 'Abbey Road (Super Deluxe Edition)' → 'Abbey Road'."""
+    out = (text or "").strip()
+    for _ in range(3):                      # „Titel (Deluxe Edition) [Remastered]“
+        new = _EDITION_DASH.sub("", _EDITION_BRACKET.sub("", out)).strip()
+        if new == out or not new:
+            break
+        out = new
+    return out
 
 
 def similarity(a: str, b: str) -> float:

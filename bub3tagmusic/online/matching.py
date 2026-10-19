@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..core.fields import split_number
-from .base import AlbumMatch
+from .base import AlbumMatch, strip_edition
 
 LENGTH_TOLERANCE = 7.0      # Sekunden, ab denen die Länge als „weicht ab“ gilt
 
@@ -111,8 +111,12 @@ def assign(files: list[FileInfo], album: AlbumMatch, mode: str = "auto") -> tupl
     return out, used_mode
 
 
-def tags_for(album: AlbumMatch, track_index: int, fields: set[str], *, disc_only_if_multi: bool = True) -> dict:
-    """Neue Tag-Werte für eine Datei, die dem Track track_index zugeordnet ist."""
+def tags_for(album: AlbumMatch, track_index: int, fields: set[str], *, disc_only_if_multi: bool = True,
+             clean: bool = False) -> dict:
+    """Neue Tag-Werte für eine Datei, die dem Track track_index zugeordnet ist.
+
+    clean: Zusätze von Neuauflagen („(Remastered 2011)“) aus Titel und Album entfernen.
+    """
     t = album.tracks[track_index]
     out = {}
     if "title" in fields:
@@ -131,6 +135,14 @@ def tags_for(album: AlbumMatch, track_index: int, fields: set[str], *, disc_only
             out["disc"] = f"{t.disc}/{album.disc_total}"
     if "genre" in fields and album.genre:
         out["genre"] = album.genre
+    if "label" in fields and album.label:
+        out["label"] = album.label
+    if "originalyear" in fields and album.original_year:
+        out["originalyear"] = album.original_year
+    if clean:
+        for k in ("title", "album"):
+            if k in out:
+                out[k] = strip_edition(out[k]) or out[k]
     return out
 
 

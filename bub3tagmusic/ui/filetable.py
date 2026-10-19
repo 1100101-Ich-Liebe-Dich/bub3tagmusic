@@ -27,7 +27,7 @@ class Column:
     key: str
     label: str
     width: int
-    kind: str = "tag"          # tag | file | info | state
+    kind: str = "tag"          # tag | lyrics | file | info | state
     align: str = "left"
 
 
@@ -44,6 +44,9 @@ COLUMNS: tuple[Column, ...] = (
     Column("genre", "Genre", 110),
     Column("composer", "Komponist", 150),
     Column("comment", "Kommentar", 180),
+    Column("label", "Label", 140),
+    Column("originalyear", "Orig.-Jahr", 76, align="right"),
+    Column("lyrics", "Songtext", 110, "lyrics"),
     Column("cover", "Cover", 92, "info"),
     Column("length", "Länge", 62, "info", "right"),
     Column("bitrate", "kbit/s", 64, "info", "right"),
@@ -56,7 +59,7 @@ COLUMNS: tuple[Column, ...] = (
 )
 COLUMN_INDEX = {c.key: i for i, c in enumerate(COLUMNS)}
 # Später dazugekommene Spalten: bei vorhandenen Einstellungen erst einmal ausgeblendet
-NEW_HIDDEN = {"rg_track", "rg_album"}
+NEW_HIDDEN = {"rg_track", "rg_album", "label", "originalyear", "lyrics"}
 
 
 def fmt_length(sec: float) -> str:
@@ -128,7 +131,7 @@ class FileTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             return self._align(col)
         if role == Qt.ItemDataRole.ForegroundRole:
-            if col.kind == "tag" and it.is_field_modified(col.key):
+            if col.kind in ("tag", "lyrics") and it.is_field_modified(col.key):
                 return theme.qcolor("modified")
             if col.key == "cover":
                 state = it.cover_state()[0]
@@ -150,6 +153,9 @@ class FileTableModel(QAbstractTableModel):
                 return it.error
             if col.key in ("filename", "folder"):
                 return it.path
+            if col.kind == "lyrics":
+                text = it.tags.get("lyrics", "")
+                return (text[:1200] + (" …" if len(text) > 1200 else "")) if text else None
             if col.kind == "tag" and it.is_field_modified(col.key):
                 old = it.orig.get(col.key, "") or "(leer)"
                 return f"Vorher: {old}"
@@ -164,6 +170,12 @@ class FileTableModel(QAbstractTableModel):
         if col.kind == "tag":
             return it.tags.get(col.key, "")
         k = col.key
+        if k == "lyrics":                     # mehrzeilig – in der Liste nur, ob einer da ist
+            text = it.tags.get("lyrics", "")
+            if not text:
+                return ""
+            n = sum(1 for line in text.splitlines() if line.strip())
+            return f"{n} Zeile{'n' if n != 1 else ''}" if n > 1 else "1 Zeile"
         if k == "filename":
             return it.name
         if k == "folder":
@@ -230,8 +242,10 @@ class FileTableModel(QAbstractTableModel):
             return
         column, order = self._sort
         col = COLUMNS[column]
-        if col.key in ("track", "disc", "year"):
+        if col.key in ("track", "disc", "year", "originalyear"):
             key = lambda i: number_sort_key(items[i].tags.get(col.key, ""))  # noqa: E731
+        elif col.key == "lyrics":
+            key = lambda i: (-len(items[i].tags.get("lyrics", "")), i)  # noqa: E731
         elif col.key == "length":
             key = lambda i: items[i].rec.get("length", 0)  # noqa: E731
         elif col.key in ("rg_track", "rg_album"):
