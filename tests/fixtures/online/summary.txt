@@ -4,16 +4,14 @@ Cover Cover Art Archive für AC/DC – Back in Black: 2 Treffer
 Cover iTunes für AC/DC – Back in Black: 12 Treffer 
 Cover Deezer für AC/DC – Back in Black: 11 Treffer 
 Cover-Vorschau Cover Art Archive geladen
-MB Suche Die Ärzte – Die Bestie in Menschengestalt: 9 Treffer; erster: Die Bestie in Menschengestalt / Die Ärzte / 1993 · DE · Metronome · CD · 19 Tracks / Score 100
-MB Album Die Bestie in Menschengestalt: 19 Tracks, 1 Disc(s), Genre 'Pop Punk', Cover ja, Track1 'Inntro' 6s
+MB Suche Die Ärzte – Die Bestie in Menschengestalt: 9 Treffer; erster: Die Bestie in Menschengestalt / Die Ärzte / 1993 · DE · Metronome · Cassette · 19 Tracks / Score 100
+MB Album Die Bestie in Menschengestalt: 19 Tracks, 1 Disc(s), Genre 'Pop Punk', Cover ja, Track1 'Inntro' 5s
 CAA Vorschaubild geladen
 Cover Cover Art Archive für Die Ärzte – Die Bestie in Menschengestalt: 3 Treffer 
 Cover iTunes für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover Deezer für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover-Vorschau Cover Art Archive geladen
-MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · GB · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
-MB Album The Wall: 26 Tracks, 2 Disc(s), Genre 'Progressive Rock', Cover ja, Track1 'In the Flesh?' 200s
-CAA Vorschaubild geladen
+MB Fehler Pink Floyd – The Wall: MusicBrainz antwortet mit Fehler 503 – später nochmal versuchen
 Cover Cover Art Archive für Pink Floyd – The Wall: 2 Treffer 
 Cover iTunes für Pink Floyd – The Wall: 12 Treffer 
 Cover Deezer für Pink Floyd – The Wall: 12 Treffer 
@@ -26,9 +24,19 @@ Künstlerbild TheAudioDB für Die Ärzte: 4
 Künstlerbild-Vorschau Deezer geladen
 Discogs 249504: Rick Astley – Never Gonna Give You Up (1987), 2 Tracks, 1 Disc(s), Positionen [1, 2]
 Discogs 1: The Persuader – Stockholm (1999), 6 Tracks, 1 Disc(s), Positionen [1, 2, 3, 4, 5, 6]
+Deezer Suche AC/DC – Back in Black: 11 Treffer; erste: Back In Black / AC/DC / Album / 10 / Score 100; Back In Black (Cumbia Version) / aLee DJ / Single / 1 / Score 69; Back In Black / Tuna Rimbaud / Single / 1 / Score 62
+Deezer Album Back In Black (9410100): 10 Tracks, 1 Disc(s), Jahr 2014, Label 'Columbia', Genre 'Rock', Cover ja, Track1 'Hells Bells' 1/10 Disc 1 309s
+Deezer Suche Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer; erste: Die Bestie in Menschengestalt / Die Ärzte / Album / 19 / Score 100
+Deezer Album Die Bestie in Menschengestalt (157635892): 19 Tracks, 1 Disc(s), Jahr 1993, Label 'Hot Action Records', Genre 'Pop', Cover ja, Track1 'Inntro' 1/19 Disc 1 5s
+Deezer Suche Pink Floyd – The Wall: 23 Treffer; erste: The Wall / Pink Floyd / Album / 26 / Score 100; The Wall (Reindition) / Six 5 Zero / Single / 1 / Score 60; The Wall / Francesco Nocerino / Single / 1 / Score 56
+Deezer Album The Wall (12114248): 26 Tracks, 2 Disc(s), Jahr 1979, Label 'Pink Floyd Records', Genre 'Rock', Cover ja, Track1 'In the Flesh?' 1/13 Disc 1 198s
+Deezer Suche The Beatles – Abbey Road: 5 Treffer; erste: Abbey Road (2019 Mix) / The Beatles / Album / 17 / Score 100; Abbey Road (Super Deluxe Edition) / The Beatles / Album / 40 / Score 100; Abbey Road (Remastered 2009) / The Beatles / Album / 17 / Score 100
+Deezer Album Abbey Road (2019 Mix) (1111100002): 17 Tracks, 1 Disc(s), Jahr 2019, Label 'UMC (Universal Music Catalogue)', Genre 'Rock', Cover ja, Track1 'Come Together (2019 Mix)' 1/17 Disc 1 260s
 MB Aufnahmen Hells Bells: 5
-AcoustID Track: {'mbid': '2d280634-5967-4523-bef8-62a6ad51662d', 'trackid': 'b4c7e235-84d7-491c-95ca-d6e5e713c332'}
-AcoustID Lookup: 1 Aufnahme(n); erste: Hells Bells / AC/DC / Back in Melbourne / 2004 / Track 1/12 / Album + Compilation + Live / weitere 2
-AcoustID Fingerabdruck-Lookup (Testklang): 0 Treffer
+AcoustID Track: {'mbid': 'b58975f3-5985-46c6-9640-4399ea96ceb5', 'trackid': '7124cebf-cfc4-4672-bebe-630460f905a7'}
+AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
+AcoustID Fehler: AcoustID-Key ungültig – in Einstellungen → Online prüfen
+AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
+AcoustID Fingerabdruck-Lookup Fehler: AcoustID-Key ungültig – in Einstellungen → Online prüfen
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
 AcoustID falscher Key → AcoustID-Key ungültig – in Einstellungen → Online prüfen
