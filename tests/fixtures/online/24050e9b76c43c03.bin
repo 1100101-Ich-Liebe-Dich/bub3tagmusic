@@ -1,0 +1,10 @@
+
+
+
+{
+ "resultCount":1,
+ "results": [
+{"wrapperType":"collection", "collectionType":"Album", "artistId":68347153, "collectionId":1521288025, "amgArtistId":295241, "artistName":"Die Ärzte", "collectionName":"Die Bestie in Menschengestalt", "collectionCensoredName":"Die Bestie in Menschengestalt", "artistViewUrl":"https://music.apple.com/de/artist/die-%C3%A4rzte/68347153?uo=4", "collectionViewUrl":"https://music.apple.com/de/album/die-bestie-in-menschengestalt/1521288025?uo=4", "artworkUrl60":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/db/50/23/db50239e-dfdf-c886-d43b-c1d5f660a947/0731452101723_3000.jpg/60x60bb.jpg", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/db/50/23/db50239e-dfdf-c886-d43b-c1d5f660a947/0731452101723_3000.jpg/100x100bb.jpg", "collectionPrice":9.99, "collectionExplicitness":"notExplicit", "trackCount":19, "copyright":"℗ 1993 Metronome Musik GmbH", "country":"DEU", "currency":"EUR", "releaseDate":"1993-10-04T07:00:00Z", "primaryGenreName":"Rock"}]
+}
+
+
