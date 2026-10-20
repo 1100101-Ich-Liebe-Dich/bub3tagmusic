@@ -144,7 +144,7 @@ Beispiel-Aktionen sind schon dabei.
 |---|---|
 | **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs**, **Deezer**, **iTunes** oder **Last.fm** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. |
 | **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px), TheAudioDB und Bandcamp als Bildergitter. Einbetten und/oder `cover.jpg`. |
-| **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB → `folder.jpg` im Künstler-Ordner. |
+| **Künstlerbild suchen** (Strg+J) | Fotos von TheAudioDB, Bandcamp, Discogs (mit Token) und Wikipedia → `folder.jpg` im Künstler-Ordner. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
 
 Ohne Anmeldung nutzbar – nur Discogs, Last.fm und AcoustID brauchen einen kostenlosen Schlüssel (*Einstellungen → Online*).
@@ -365,8 +365,8 @@ BuB3TAGMUSIC steht auf den Schultern von
 [rsgain](https://github.com/complexlogic/rsgain) ·
 Schriften [Inter](https://rsms.me/inter/) und [Big Shoulders](https://github.com/xotypeco/big_shoulders) (SIL OFL)
 – und den Daten von [MusicBrainz](https://musicbrainz.org), [Cover Art Archive](https://coverartarchive.org),
-[Discogs](https://www.discogs.com), iTunes, Deezer, [Last.fm](https://www.last.fm), [TheAudioDB](https://www.theaudiodb.com)
-und [Bandcamp](https://bandcamp.com).
+[Discogs](https://www.discogs.com), iTunes, Deezer, [Last.fm](https://www.last.fm), [TheAudioDB](https://www.theaudiodb.com),
+[Bandcamp](https://bandcamp.com) und [Wikimedia Commons](https://commons.wikimedia.org).
 
 <p align="center">
   <img src="bub3tagmusic/resources/bub3tagmusic.svg" width="56" alt=""><br>

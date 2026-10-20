@@ -97,7 +97,7 @@ def main():
     # --- Künstlerbilder ---------------------------------------------------------------------
     found = {}
     imgs = artistimages.search_artist_images("AC/DC", progress=lambda s, f, e: found.__setitem__(s, (len(f), e)))
-    eq(set(found), {"TheAudioDB", "Bandcamp", "Wikipedia"}, f"Quellen ohne Token (kein Deezer, Discogs übersprungen)")
+    eq(set(found), {"TheAudioDB", "Bandcamp", "Wikipedia"}, "Quellen ohne Token (kein Deezer, Discogs übersprungen)")
     eq(found["TheAudioDB"][0] > 0, True, "TheAudioDB liefert")
     for src, frag in (("Bandcamp", '"search_filter": "b"'), ("Wikipedia", "wikidata.org")):
         if recorded(frag):

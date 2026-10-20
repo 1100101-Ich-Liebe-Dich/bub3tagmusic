@@ -187,8 +187,11 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
   bleibt `TDOR` aber stehen (ungültig in v2.3) → `ID3Handler.save` wandelt selbst in `TORY` um. Prüfen nur mit
   `ID3(pfad, translate=False)`.
 - **Deezer meldet Fehler mit Status 200** und `{"error": {...}}` im Inhalt → `deezer._check()`.
-- **Keine Bilder von Deezer** (Wunsch des Auftraggebers): weder Cover noch Vorschaubilder – nur Tags.
-  (Künstlerbilder von Deezer gibt es noch.) Cover-Quellen: CAA, iTunes, TheAudioDB, Bandcamp.
+- **Keine Bilder von Deezer** (Wunsch des Auftraggebers): weder Cover, Vorschaubilder noch Künstlerbilder – nur Tags.
+  Cover: CAA, iTunes, TheAudioDB, Bandcamp. Künstlerbilder: TheAudioDB, Bandcamp, Discogs (Token), Wikipedia.
+- Neue Quelle im Bildergitter → `sources_version` der Dialog-Klasse erhöhen, sonst bleibt sie bei alten
+  Einstellungen abgewählt. Bandcamp-Suche liegt in `online/bandcamp.py` (Alben + Bands).
+- GitHub-Secrets für die Aufnahme (optional): `ACOUSTID_KEY`, `LASTFM_KEY`, `DISCOGS_TOKEN`.
 - **Bandcamp-Suchseite sperrt Programme** (JavaScript-Prüfung) → `coversearch.from_bandcamp` nutzt die JSON-Suche
   `bcsearch_public_api` per POST (`http.fetch(..., post_json=)`; Cache-/Aufnahme-Schlüssel = URL + `#post=` + JSON).
 - **Last.fm**: Fehler kommen als HTTP 400/403 mit JSON → `http.ApiError(code)`; Key im GitHub-Secret `LASTFM_KEY`
