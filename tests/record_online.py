@@ -36,7 +36,12 @@ TEST_KEY = "TESTKEY"
 
 def recorder(url, headers):
     import time
-    req = urllib.request.Request(url, headers=headers)
+    if "#post=" in url:                       # POST mit JSON (Bandcamp) – gespeichert unter URL + Inhalt
+        target, payload = url.split("#post=", 1)
+        req = urllib.request.Request(target, data=payload.encode("utf-8"), method="POST",
+                                     headers={**headers, "Content-Type": "application/json"})
+    else:
+        req = urllib.request.Request(url, headers=headers)
     try:
         for attempt in range(4):              # MusicBrainz antwortet nach vielen Anfragen kurz mit 503
             try:

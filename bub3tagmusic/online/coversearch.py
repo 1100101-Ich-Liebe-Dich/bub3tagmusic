@@ -11,6 +11,7 @@ Fällt eine Quelle aus, liefern die anderen trotzdem.
 from __future__ import annotations
 
 import html
+import json
 import re
 
 from . import itunes
@@ -23,7 +24,6 @@ SOURCES = ("Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp")
 CAA = "https://coverartarchive.org/"
 ITUNES = itunes.SEARCH
 AUDIODB_ALBUM = "https://www.theaudiodb.com/api/v1/json/123/searchalbum.php"
-BANDCAMP = "https://bandcamp.com/search"
 
 CAA_LIMITER = RateLimiter(per_second=2)
 ITUNES_LIMITER = itunes.LIMITER            # iTunes erlaubt ca. 20 Anfragen/Minute – Album- und Cover-Suche teilen
@@ -94,44 +94,41 @@ def from_audiodb(artist: str, album: str) -> list[CoverCandidate]:
     return out
 
 
-# Bandcamp hat keine offizielle Schnittstelle: die normale Suchseite wird gelesen. Ändert Bandcamp die Seite,
-# liefert diese Quelle nichts mehr – die anderen laufen weiter.
-_BC_ITEM = re.compile(r'<li class="searchresult[^"]*"(.*?)</li>', re.DOTALL)
-_BC_IMG = re.compile(r'<img src="(https://f4\.bcbits\.com/img/a(\d+)_\d+\.jpg)"')
-_BC_HEAD = re.compile(r'<div class="heading">\s*<a[^>]*>(.*?)</a>', re.DOTALL)
-_BC_SUB = re.compile(r'<div class="subhead">(.*?)</div>', re.DOTALL)
-_BC_TYPE = re.compile(r'<div class="itemtype">\s*(\w+)', re.DOTALL)
+# Bandcamp: keine offizielle Schnittstelle – benutzt wird die Suche, die die Bandcamp-Seite selbst aufruft.
+# Ändert Bandcamp sie, liefert diese Quelle nichts mehr – die anderen laufen weiter.
+BANDCAMP_API = "https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic"
 
 
-def _text(fragment: str) -> str:
-    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", fragment)).split())
+def bandcamp_art(img: str) -> str:
+    """'https://f4.bcbits.com/img/a123_3.jpg' oder art_id → Kennung 'a123'."""
+    m = re.search(r"/img/(a?\d+)_\d+\.jpg", img or "")
+    return m.group(1) if m else ""
 
 
-def parse_bandcamp(page: str, artist: str, album: str) -> list[CoverCandidate]:
+def parse_bandcamp(data: dict, artist: str, album: str) -> list[CoverCandidate]:
     out = []
-    for block in _BC_ITEM.findall(page):
-        kind = _BC_TYPE.search(block)
-        if kind and kind.group(1).upper() not in ("ALBUM", "TRACK"):
+    for r in ((data.get("auto") or {}).get("results") or []):
+        if r.get("type") not in ("a", "t"):
             continue
-        img = _BC_IMG.search(block)
-        head = _BC_HEAD.search(block)
-        if not img or not head:
+        art = bandcamp_art(r.get("img") or "") or (f"a{r['art_id']}" if r.get("art_id") else "")
+        if not art:
             continue
-        name = _text(head.group(1))
-        sub = _text(_BC_SUB.search(block).group(1)) if _BC_SUB.search(block) else ""
-        who = sub[3:].strip() if sub.lower().startswith("by ") else sub
-        art = img.group(2)
-        out.append(CoverCandidate("Bandcamp", f"https://f4.bcbits.com/img/a{art}_10.jpg",
-                                  f"https://f4.bcbits.com/img/a{art}_2.jpg", description=f"{name} – {who}",
+        if not art.startswith("a"):
+            art = "a" + art
+        name, who = html.unescape(r.get("name") or ""), html.unescape(r.get("band_name") or "")
+        out.append(CoverCandidate("Bandcamp", f"https://f4.bcbits.com/img/{art}_10.jpg",
+                                  f"https://f4.bcbits.com/img/{art}_2.jpg", description=f"{name} – {who}",
                                   score=match_score(artist, album, who, name), size_hint="bis 1200 px"))
     return out
 
 
 def from_bandcamp(artist: str, album: str) -> list[CoverCandidate]:
     term = f"{artist} {album}".strip()
-    page = fetch(BANDCAMP, {"q": term, "item_type": "a"}, limiter=BANDCAMP_LIMITER,
-                 headers={"Accept": "text/html"}).decode("utf-8", "replace")
-    return parse_bandcamp(page, artist, album)
+    body = fetch(BANDCAMP_API, limiter=BANDCAMP_LIMITER,
+                 post_json={"search_text": term, "search_filter": "a", "full_page": False, "fan_id": None})
+    if body[:1] != b"{":
+        raise OnlineError("Bandcamp lässt die Suche gerade nicht zu – die anderen Quellen laufen weiter")
+    return parse_bandcamp(json.loads(body.decode("utf-8")), artist, album)
 
 
 def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = "", country: str = "DE",

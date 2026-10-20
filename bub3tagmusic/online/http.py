@@ -105,8 +105,12 @@ def build_url(url: str, params: dict | None = None) -> str:
 
 
 def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, limiter: RateLimiter | None = None,
-          timeout: float = 20, contact: str = "", use_cache: bool = True) -> bytes:
+          timeout: float = 20, contact: str = "", use_cache: bool = True, post_json: dict | None = None) -> bytes:
     full = build_url(url, params)
+    payload = None
+    if post_json is not None:                     # POST mit JSON (Bandcamp-Suche) – Schlüssel für Cache/Aufnahmen
+        payload = json.dumps(post_json, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        full += "#post=" + payload.decode("utf-8")
     with _cache_lock:
         if use_cache and full in _cache:
             _cache.move_to_end(full)
@@ -122,7 +126,11 @@ def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, 
             if _transport is not None:
                 status, body = _transport(full, hdrs)
             else:
-                req = urllib.request.Request(full, headers=hdrs)
+                if payload is not None:
+                    req = urllib.request.Request(full.split("#post=", 1)[0], data=payload, method="POST",
+                                                 headers={**hdrs, "Content-Type": "application/json"})
+                else:
+                    req = urllib.request.Request(full, headers=hdrs)
                 with urllib.request.urlopen(req, timeout=timeout, context=_context()) as resp:
                     status = resp.status
                     body = resp.read(MAX_BYTES + 1)

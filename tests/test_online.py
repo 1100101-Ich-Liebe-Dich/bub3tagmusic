@@ -81,7 +81,7 @@ def main():
                                        progress=lambda s, f, e: found.__setitem__(s, (len(f), e)))
     eq(set(found), {"Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp"}, "vier Cover-Quellen, kein Deezer mehr")
     eq(found["Cover Art Archive"][0] > 0 and found["iTunes"][0] > 0, True, f"CAA + iTunes liefern ({found})")
-    for src, host in (("TheAudioDB", "searchalbum.php"), ("Bandcamp", "bandcamp.com/search")):
+    for src, host in (("TheAudioDB", "searchalbum.php"), ("Bandcamp", "bandcamp.com/api")):
         if recorded(host):
             eq(found[src][0] > 0, True, f"{src} liefert ({found[src]})")
         else:
@@ -201,7 +201,7 @@ def main():
     eq(seconds("1:02:03"), 3723.0, "Zeit 1:02:03")
 
     # Neue Quellen, die noch nie aufgezeichnet wurden, zählen nicht
-    pending = [e for e in ("searchalbum.php", "bandcamp.com/search", "itunes.apple.com/lookup", "audioscrobbler")
+    pending = [e for e in ("searchalbum.php", "bandcamp.com/api", "itunes.apple.com/lookup", "audioscrobbler")
                if not recorded(e)]
     unexpected = [u for u in misses if "front-250" not in u and "gibtsnicht" not in u
                   and not any(e in u for e in pending)]
@@ -313,12 +313,11 @@ def test_new_sources_structure():
                                                                          "@attr": {"rank": 1}}}}}
     adb = {"album": [{"strAlbum": "Back in Black", "strArtist": "AC/DC", "intYearReleased": "1980",
                       "strAlbumThumb": "https://r2.theaudiodb.com/images/media/album/thumb/bib.jpg"}]}
-    bc = ('<ul><li class="searchresult data-search" data-search="{}"><a class="artcont" href="x">'
-          '<div class="art"><img src="https://f4.bcbits.com/img/a1234567890_7.jpg"></div></a>'
-          '<div class="result-info"><div class="itemtype">ALBUM</div><div class="heading"><a href="x">'
-          ' Back in Black &amp; Blue </a></div><div class="subhead">by Kiel Band</div></div></li>'
-          '<li class="searchresult data-search"><div class="art"><img src="https://f4.bcbits.com/img/a1_7.jpg">'
-          '</div><div class="itemtype">ARTIST</div><div class="heading"><a>Nur Künstler</a></div></li></ul>')
+    bc = {"auto": {"results": [
+        {"type": "a", "id": 1, "art_id": 1234567890, "name": "Back in Black &amp; Blue", "band_name": "Kiel Band",
+         "img": "https://f4.bcbits.com/img/a1234567890_3.jpg"},
+        {"type": "b", "id": 2, "name": "Nur Künstler", "img": "https://f4.bcbits.com/img/0001_3.jpg"},
+        {"type": "a", "id": 3, "art_id": 42, "name": "Ohne Bild-URL", "band_name": "X"}]}}
     calls = []
 
     def fake(url, headers):
@@ -339,8 +338,8 @@ def test_new_sources_structure():
             return 200, json.dumps(lf_info).encode()
         if "searchalbum.php" in url:
             return 200, json.dumps(adb).encode()
-        if "bandcamp.com/search" in url:
-            return 200, bc.encode()
+        if "bandcamp.com/api" in url:
+            return 200, json.dumps(bc).encode()
         return 404, b""
     http.clear_cache()
     http.set_transport(fake)
@@ -381,7 +380,12 @@ def test_new_sources_structure():
     c = coversearch.from_bandcamp("AC/DC", "Back in Black")
     eq([(x.description, x.url, x.thumb_url) for x in c],
        [("Back in Black & Blue – Kiel Band", "https://f4.bcbits.com/img/a1234567890_10.jpg",
-         "https://f4.bcbits.com/img/a1234567890_2.jpg")], "Bandcamp: nur Alben, 1200 px, Text ohne HTML")
+         "https://f4.bcbits.com/img/a1234567890_2.jpg"),
+        ("Ohne Bild-URL – X", "https://f4.bcbits.com/img/a42_10.jpg", "https://f4.bcbits.com/img/a42_2.jpg")],
+       "Bandcamp: nur Alben, 1200 px, Text ohne HTML")
+    eq([u for u in calls if "bandcamp" in u][0].split("#post=")[1],
+       '{"fan_id": null, "full_page": false, "search_filter": "a", "search_text": "AC/DC Back in Black"}',
+       "Bandcamp: Suche als POST")
     http.clear_cache()
 
 
@@ -390,7 +394,7 @@ def test_new_sources_recorded():
     from bub3tagmusic.online import itunes, lastfm
     if recorded("itunes.apple.com/lookup"):
         res = itunes.search_albums("AC/DC", "Back in Black")
-        eq((res[0].albumartist, "Back in Black" in res[0].album), ("AC/DC", True), f"iTunes: {res[0].album}")
+        eq((res[0].albumartist, "back in black" in res[0].album.lower()), ("AC/DC", True), f"iTunes: {res[0].album}")
         a = itunes.get_album(res[0].source_id)
         eq((len(a.tracks), a.tracks[0].position, a.year), (10, 1, "1980"), f"iTunes: Back in Black ({a.tracks[0].title})")
         wall = itunes.get_album(itunes.search_albums("Pink Floyd", "The Wall")[0].source_id)
