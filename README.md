@@ -3,7 +3,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0-E5A00D?style=flat-square&labelColor=1C1F1C" alt="Version 1.0">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/1100101-Ich-Liebe-Dich/bub3tagmusic?label=Version&style=flat-square&color=E5A00D&labelColor=1C1F1C" alt="Aktuelle Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-GPL--3.0-7A8B76?style=flat-square&labelColor=1C1F1C" alt="Lizenz GPL-3.0"></a>
   <img src="https://img.shields.io/badge/Linux-64%20Bit-7A8B76?style=flat-square&labelColor=1C1F1C&logo=linux&logoColor=E4ECE0" alt="Linux 64 Bit">
   <img src="https://img.shields.io/badge/Installation-keine%20(AppImage)-7FA872?style=flat-square&labelColor=1C1F1C" alt="Keine Installation">
   <img src="https://img.shields.io/badge/Qt%206-PySide6-7A8B76?style=flat-square&labelColor=1C1F1C&logo=qt&logoColor=E4ECE0" alt="Qt 6">
@@ -345,6 +346,12 @@ Fahrplan und Entscheidungen: [BuB3TAGMUSIC.md](BuB3TAGMUSIC.md) · Arbeitsnotize
 </details>
 
 ---
+
+## 📜 Lizenz
+
+BuB3TAGMUSIC ist freie Software unter der **[GNU GPL 3.0](LICENSE)** (oder später): nutzen, ändern und weitergeben
+erlaubt – Weitergaben und Änderungen bleiben ebenfalls frei und mit Quelltext.
+Mitgelieferte Teile behalten ihre eigenen Lizenzen (Qt: LGPL, Schriften: SIL OFL, fpcalc: LGPL, rsgain: BSD).
 
 ## 🙏 Dank
 

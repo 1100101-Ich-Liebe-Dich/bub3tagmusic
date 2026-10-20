@@ -282,6 +282,7 @@ class AboutDialog(QDialog):
         lay.addSpacing(10)
         lay.addWidget(_muted("Gebaut mit Python, Qt 6 (PySide6), mutagen und Pillow. "
                              "Icons: Phosphor. Schriften: Inter und Big Shoulders Stencil (SIL OFL).", "faint"))
+        lay.addWidget(_muted("Freie Software unter der GNU GPL 3.0 oder später.", "faint"))
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         btns.button(QDialogButtonBox.StandardButton.Close).setText("Schließen")
         btns.rejected.connect(self.reject)

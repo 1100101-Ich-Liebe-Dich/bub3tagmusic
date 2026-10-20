@@ -7,6 +7,7 @@ name = "bub3tagmusic"
 version = "1.1.1"
 description = "Moderner, schneller Musik-Tagger für Linux – präsentiert von www.BAUENUNDBOOTEN.de"
 readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.10"
 dependencies = [
     "PySide6-Essentials>=6.8,<6.11; python_version < '3.12'",

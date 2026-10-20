@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BuB3TAGMUSIC – moderner, schneller Musik-Tagger für Linux.
 
 präsentiert von www.BAUENUNDBOOTEN.de
