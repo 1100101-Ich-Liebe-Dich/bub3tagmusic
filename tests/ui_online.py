@@ -165,6 +165,7 @@ def main():
     d.field_chips["year"].setChecked(False)          # Jahr von Deezer lieber nicht (2014 = Remaster)
     pump(app, 0.2)
     check("Jahr" not in d.model.preview.columns, "Jahr abgewählt")
+    check(not any("dzcdn" in u or "cover_" in u for u in requested), "keine Bilder von Deezer geladen")
     d.grab().save(os.path.join(out, "o1b_deezer.png"))
     d._apply()
     check(wait(app, lambda: not d.isVisible()), "Deezer übernommen")
@@ -178,6 +179,24 @@ def main():
     check(d.field_chips["year"].isChecked() is False, "Feldauswahl wird gemerkt")
     d.field_chips["year"].setChecked(True)
     d.store_options()
+    d.reject()
+
+    # --- iTunes / Last.fm (1.1.2) -------------------------------------------------------------------
+    if any("itunes.apple.com/lookup" in u for u in index):
+        d = O.AlbumSearchDialog(win, items, scope, "iTunes")
+        d.show()
+        check(wait(app, lambda: d._current is not None and d.model.preview.apply_count > 0), "iTunes: Trackliste geladen")
+        pump(app, 0.3)
+        cols = d.model.preview.columns
+        check(d.model.rows[0].cells[cols.index("Titel")][0].startswith("Hells Bells"), "iTunes: Track 1 = Hells Bells")
+        d.grab().save(os.path.join(out, "o1c_itunes.png"))
+        d.reject()
+    else:
+        print("  (iTunes noch nicht aufgezeichnet)")
+    d = O.AlbumSearchDialog(win, items, scope, "Last.fm")
+    d.show()
+    check(wait(app, lambda: "API-Key" in d.status.text()), f"Last.fm ohne Key: {d.status.text()[:60]}")
+    check(list(d.src) == ["MusicBrainz", "Discogs", "Deezer", "iTunes", "Last.fm"], "fünf Album-Quellen")
     d.reject()
 
     # --- Discogs ohne Token ------------------------------------------------------------------------
@@ -195,7 +214,8 @@ def main():
     check(wait(app, lambda: d.grid.count() > 5), f"Cover gefunden: {d.grid.count()}")
     check(wait(app, lambda: len(d._thumbs) >= 3, 10), f"Vorschaubilder geladen: {len(d._thumbs)}")
     srcs = {c.source for c in d._candidates}
-    check(srcs == {"Cover Art Archive", "iTunes", "Deezer"}, f"alle drei Quellen: {sorted(srcs)}")
+    check({"Cover Art Archive", "iTunes"} <= srcs and "Deezer" not in srcs, f"Quellen ohne Deezer: {sorted(srcs)}")
+    check(list(d.src_chips) == ["Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp"], f"Chips: {list(d.src_chips)}")
     pump(app, 0.4)
     d.grab().save(os.path.join(out, "o2_cover.png"))
     d._apply()

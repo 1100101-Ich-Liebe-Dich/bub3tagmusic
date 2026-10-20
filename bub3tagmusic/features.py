@@ -57,10 +57,16 @@ FEATURES: tuple[Feature, ...] = (
             "Zweite Quelle für Album-Daten. Braucht einen kostenlosen Discogs-Token "
             "(Einstellungen → Online).", ready=True),
     Feature("deezer", "Album suchen – Deezer", 3, "online", "disc",
-            "Dritte Quelle, ohne Anmeldung: stark bei neuer und deutscher Musik, große Cover, Label. "
+            "Ohne Anmeldung: stark bei neuer und deutscher Musik, mit Label. Nur Tags, keine Cover. "
             "Das Jahr ist oft das der Neuauflage.", ready=True),
+    Feature("itunes", "Album suchen – iTunes / Apple Music", 3, "online", "disc",
+            "Ohne Anmeldung: genaue Tracklisten mit Discs, meist das Jahr der Erstveröffentlichung, "
+            "Cover bis 3000 px.", ready=True),
+    Feature("lastfm", "Album suchen – Last.fm", 3, "online", "disc",
+            "Titel, Längen und Genres aus den Tags der Hörer. Braucht einen kostenlosen Last.fm-API-Key "
+            "(Einstellungen → Online).", ready=True),
     Feature("cover_search", "Cover suchen …", 3, "online", "image-square",
-            "Sucht bei Cover Art Archive, iTunes und Deezer. Treffer als Bildergitter "
+            "Sucht bei Cover Art Archive, iTunes, TheAudioDB und Bandcamp. Treffer als Bildergitter "
             "mit Auflösung; speichern als cover.jpg und/oder einbetten.", "Ctrl+K", ready=True),
     Feature("artist_image", "Künstlerbild suchen …", 3, "online", "user-circle",
             "Sucht ein Künstlerfoto (Deezer, TheAudioDB) und legt es als folder.jpg im Künstler-Ordner ab.",

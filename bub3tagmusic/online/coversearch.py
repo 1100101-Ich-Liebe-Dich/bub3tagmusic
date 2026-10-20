@@ -1,4 +1,7 @@
-"""Cover-Suche über Cover Art Archive, iTunes und Deezer.
+"""Cover-Suche über Cover Art Archive, iTunes, TheAudioDB und Bandcamp.
+
+Deezer liefert bewusst keine Cover mehr (nur noch Album-Daten) – deren Bilder sind nicht zum
+Weiterverwenden gedacht.
 
 search_covers() liefert Kandidaten fürs Bildergitter (nur Vorschau-URLs).
 Heruntergeladen wird das große Bild erst, wenn der Nutzer eins auswählt (download()).
@@ -7,19 +10,24 @@ Fällt eine Quelle aus, liefern die anderen trotzdem.
 
 from __future__ import annotations
 
-from . import deezer
-from .base import CoverCandidate, OnlineError, RateLimiter, match_score
-from .http import get_image, get_json
+import html
+import json
+import re
 
-SOURCES = ("Cover Art Archive", "iTunes", "Deezer")
+from . import itunes
+from .artistimages import AUDIODB_LIMITER
+from .base import CoverCandidate, OnlineError, RateLimiter, match_score
+from .http import fetch, get_image, get_json
+
+SOURCES = ("Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp")
 
 CAA = "https://coverartarchive.org/"
-ITUNES = "https://itunes.apple.com/search"
-DEEZER = "https://api.deezer.com/search/album"
+ITUNES = itunes.SEARCH
+AUDIODB_ALBUM = "https://www.theaudiodb.com/api/v1/json/123/searchalbum.php"
 
 CAA_LIMITER = RateLimiter(per_second=2)
-ITUNES_LIMITER = RateLimiter(per_second=1)       # iTunes erlaubt ca. 20 Anfragen/Minute
-DEEZER_LIMITER = deezer.LIMITER           # eine gemeinsame Bremse für alle Deezer-Abrufe
+ITUNES_LIMITER = itunes.LIMITER            # iTunes erlaubt ca. 20 Anfragen/Minute – Album- und Cover-Suche teilen
+BANDCAMP_LIMITER = RateLimiter(per_second=0.5)
 
 
 def from_caa_release_group(rg_id: str, description: str = "", score: float = 0.0) -> list[CoverCandidate]:
@@ -69,22 +77,62 @@ def from_itunes(artist: str, album: str, country: str = "DE") -> list[CoverCandi
     return out
 
 
-def from_deezer(artist: str, album: str) -> list[CoverCandidate]:
-    q = f'artist:"{artist}" album:"{album}"' if artist.strip() else album
-    data = get_json(DEEZER, {"q": q, "limit": 12}, limiter=DEEZER_LIMITER)
-    if not data.get("data") and artist.strip():        # strenge Suche ohne Treffer → locker suchen
-        data = get_json(DEEZER, {"q": f"{artist} {album}", "limit": 12}, limiter=DEEZER_LIMITER)
+def from_audiodb(artist: str, album: str) -> list[CoverCandidate]:
+    if not artist.strip():
+        return []                                   # TheAudioDB sucht Alben nur zusammen mit dem Interpreten
+    data = get_json(AUDIODB_ALBUM, {"s": artist, "a": album}, limiter=AUDIODB_LIMITER)
     out = []
-    for r in data.get("data", []):
-        xl = r.get("cover_xl") or r.get("cover_big")
-        if not xl:
+    for a in data.get("album") or []:
+        name, who = a.get("strAlbum", ""), a.get("strArtist", "")
+        url = a.get("strAlbumThumbHQ") or a.get("strAlbumThumb")
+        if not url:
             continue
-        name, who = r.get("title", ""), (r.get("artist") or {}).get("name", "")
-        out.append(CoverCandidate("Deezer", xl, r.get("cover_medium") or r.get("cover_big") or xl,
-                                  width=1000 if r.get("cover_xl") else 500,
-                                  height=1000 if r.get("cover_xl") else 500,
-                                  description=f"{name} – {who}", score=match_score(artist, album, who, name)))
+        year = a.get("intYearReleased") or ""
+        out.append(CoverCandidate("TheAudioDB", url, url + "/preview",
+                                  description=f"{name} – {who}" + (f" ({year})" if year else ""),
+                                  score=match_score(artist, album, who, name), size_hint="Original"))
     return out
+
+
+# Bandcamp: keine offizielle Schnittstelle – benutzt wird die Suche, die die Bandcamp-Seite selbst aufruft.
+# Ändert Bandcamp sie, liefert diese Quelle nichts mehr – die anderen laufen weiter.
+BANDCAMP_API = "https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic"
+BANDCAMP_MIN = 0.35        # Bandcamp liefert viele Remixe/Tribute – nur halbwegs passende zeigen
+
+
+def bandcamp_art(img: str) -> str:
+    """'https://f4.bcbits.com/img/a123_3.jpg' oder art_id → Kennung 'a123'."""
+    m = re.search(r"/img/(a?\d+)_\d+\.jpg", img or "")
+    return m.group(1) if m else ""
+
+
+def parse_bandcamp(data: dict, artist: str, album: str) -> list[CoverCandidate]:
+    out = []
+    for r in ((data.get("auto") or {}).get("results") or []):
+        if r.get("type") not in ("a", "t"):
+            continue
+        art = bandcamp_art(r.get("img") or "") or (f"a{r['art_id']}" if r.get("art_id") else "")
+        if not art:
+            continue
+        if not art.startswith("a"):
+            art = "a" + art
+        name, who = html.unescape(r.get("name") or ""), html.unescape(r.get("band_name") or "")
+        score = match_score(artist, album, who, name)
+        if score < BANDCAMP_MIN:
+            continue
+        out.append(CoverCandidate("Bandcamp", f"https://f4.bcbits.com/img/{art}_10.jpg",
+                                  f"https://f4.bcbits.com/img/{art}_2.jpg", description=f"{name} – {who}",
+                                  score=score, size_hint="bis 1200 px"))
+    return out
+
+
+def from_bandcamp(artist: str, album: str) -> list[CoverCandidate]:
+    term = f"{artist} {album}".strip()
+    body = fetch(BANDCAMP_API, limiter=BANDCAMP_LIMITER,
+                 post_json={"search_text": term, "search_filter": "a", "full_page": False, "fan_id": None})
+    if body[:1] != b"{":
+        raise OnlineError("Bandcamp lässt die Suche gerade nicht zu – die anderen Quellen laufen weiter")
+    return parse_bandcamp(json.loads(body.decode("utf-8")), artist, album)
 
 
 def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = "", country: str = "DE",
@@ -92,9 +140,12 @@ def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = ""
     """Alle Quellen nacheinander; Fehler einer Quelle werden gemeldet, aber nicht geworfen."""
     funcs = {"Cover Art Archive": lambda: from_caa(artist, album, contact),
              "iTunes": lambda: from_itunes(artist, album, country),
-             "Deezer": lambda: from_deezer(artist, album)}
+             "TheAudioDB": lambda: from_audiodb(artist, album),
+             "Bandcamp": lambda: from_bandcamp(artist, album)}
     out: list[CoverCandidate] = []
     for src in sources:
+        if src not in funcs:                        # z. B. „Deezer“ aus alten Einstellungen
+            continue
         try:
             found = funcs[src]()
             out += found
@@ -105,13 +156,18 @@ def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = ""
     return out
 
 
-def download(candidate: CoverCandidate) -> bytes:
+def download_url(url: str) -> bytes:
+    """Großes Bild laden – bei iTunes notfalls kleiner (3000 px gibt es nicht immer)."""
     try:
-        return get_image(candidate.url)
+        return get_image(url)
     except OnlineError:
-        if candidate.source == "iTunes":          # 3000 px gibt es nicht immer → kleinere Größe
-            return get_image(candidate.url.replace("3000x3000bb", "1400x1400bb"))
+        if "3000x3000bb" in url:
+            return get_image(url.replace("3000x3000bb", "1400x1400bb"))
         raise
+
+
+def download(candidate: CoverCandidate) -> bytes:
+    return download_url(candidate.url)
 
 
 def thumbnail(candidate: CoverCandidate) -> bytes:

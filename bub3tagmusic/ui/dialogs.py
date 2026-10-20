@@ -125,8 +125,8 @@ class SettingsDialog(QDialog):
         f = QFormLayout(o)
         f.setContentsMargins(18, 18, 18, 18)
         f.setVerticalSpacing(12)
-        f.addRow(_muted("MusicBrainz, Cover-Suche (Cover Art Archive, iTunes, Deezer) und Künstlerbilder "
-                        "brauchen keine Zugangsdaten. Nur Discogs braucht einen kostenlosen Token.", "faint"))
+        f.addRow(_muted("MusicBrainz, Deezer, iTunes, die Cover-Suche und Künstlerbilder brauchen keine Zugangsdaten. "
+                        "Discogs, Last.fm und AcoustID brauchen je einen kostenlosen Schlüssel.", "faint"))
         self.discogs = QLineEdit(settings.discogs_token)
         self.discogs.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         self.discogs.setPlaceholderText("persönlicher Token von discogs.com/settings/developers")
@@ -137,6 +137,10 @@ class SettingsDialog(QDialog):
         self.acoustid = QLineEdit(settings.acoustid_key)
         self.acoustid.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         f.addRow("AcoustID-Key", self.acoustid)
+        self.lastfm = QLineEdit(settings.lastfm_key)
+        self.lastfm.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
+        self.lastfm.setPlaceholderText("kostenlos: last.fm/api/account/create")
+        f.addRow("Last.fm-API-Key", self.lastfm)
         tabs.addTab(o, "Online")
 
         # --- Darstellung --------------------------------------------------------------
@@ -177,6 +181,7 @@ class SettingsDialog(QDialog):
         s.discogs_token = self.discogs.text().strip()
         s.musicbrainz_contact = self.mb.text().strip()
         s.acoustid_key = self.acoustid.text().strip()
+        s.lastfm_key = self.lastfm.text().strip()
         s.theme = self.theme_box.currentData()
         s.select_all_on_load = self.select_all.isChecked()
         s.save()

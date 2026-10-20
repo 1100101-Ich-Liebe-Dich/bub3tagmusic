@@ -5,7 +5,8 @@ Ablauf wie bei MusicBrainz:
   2. Nutzer wählt einen Treffer
   3. get_album(id) → Album (Label, Datum, Genre) + Trackliste mit Track-/Disc-Nummern (zwei Abrufe)
 
-Stärken: viel neue und deutsche Musik, große Cover (1000 px), Label.
+Stärken: viel neue und deutsche Musik, Label. Cover und Vorschaubilder von Deezer werden bewusst NICHT
+benutzt (nicht zum Weiterverwenden gedacht) – Cover gibt es über die Cover-Suche (Strg+K).
 Schwächen: das Datum ist oft das der Neuauflage (Remaster), Genres sind grob, Titel tragen gern
 Zusätze wie „(Remastered 2011)“ – die entfernt das Album-Fenster auf Wunsch (base.strip_edition).
 Deezer erlaubt 50 Anfragen in 5 Sekunden; wir bleiben weit darunter.
@@ -53,8 +54,6 @@ def search_albums(artist: str, album: str, limit: int = 25) -> list[AlbumMatch]:
         m = AlbumMatch(
             source="Deezer", source_id=str(r.get("id", "")), album=r.get("title", ""), albumartist=who,
             track_total=int(r.get("nb_tracks") or 0), formats=RECORD_TYPES.get(kind, kind.capitalize()),
-            cover_url=r.get("cover_medium") or r.get("cover_big") or "",
-            cover_full_url=r.get("cover_xl") or r.get("cover_big") or "",
             extra={"type": kind, "explicit": bool(r.get("explicit_lyrics"))})
         m.score = int(100 * match_score(artist, album, who, m.album))
         if kind not in ("album", "compile", ""):                  # Singles/EPs etwas nach hinten
@@ -104,7 +103,5 @@ def get_album(album_id: str) -> AlbumMatch:
         genre=genres[0] if genres else "", track_total=len(tracks),
         disc_total=max([t.disc for t in tracks] or [1]), tracks=tracks,
         formats=RECORD_TYPES.get(kind, kind.capitalize()),
-        cover_url=data.get("cover_medium") or data.get("cover_big") or "",
-        cover_full_url=data.get("cover_xl") or data.get("cover_big") or "",
         extra={"release_date": data.get("release_date", ""), "upc": data.get("upc", ""), "type": kind},
     )
