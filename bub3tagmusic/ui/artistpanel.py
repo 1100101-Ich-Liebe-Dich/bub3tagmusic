@@ -107,7 +107,7 @@ class ArtistPanel(QWidget):
 
         self.btn_search = QPushButton("Künstlerbild online suchen")
         self.btn_search.setProperty("kind", "primary")
-        self.btn_search.setToolTip("Deezer und TheAudioDB durchsuchen (Strg+J)")
+        self.btn_search.setToolTip("TheAudioDB, Bandcamp, Discogs und Wikipedia durchsuchen (Strg+J)")
         self.btn_search.clicked.connect(lambda: self.featureRequested.emit("artist_image"))
         self._icon(self.btn_search, "magnifying-glass", "accent_text")
         lay.addWidget(self.btn_search)

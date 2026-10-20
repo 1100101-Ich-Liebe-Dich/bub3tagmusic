@@ -630,9 +630,15 @@ class ImageGridDialog(OnlineDialog):
     tile = 150
     BIG = 240
 
+    sources_version = 1          # höher setzen, wenn Quellen dazukommen → gespeicherte Auswahl einmal zurücksetzen
+
     def build_grid(self, side_title: str):
         self.src_chips = {}
         active = set(self.opts.get("sources", list(self.sources)))
+        if self.opts.get("sources_v", 1) < self.sources_version:
+            active = set(self.sources)               # neue Quellen sind sonst bei alten Einstellungen aus
+            self.opts["sources_v"] = self.sources_version
+            self.opts["sources"] = list(self.sources)
         for name in self.sources:
             c = chip(name, checkable=True)
             c.setChecked(name in active)
@@ -733,6 +739,7 @@ class ImageGridDialog(OnlineDialog):
 class CoverSearchDialog(ImageGridDialog):
     feature_id = "cover_search"
     sources = coversearch.SOURCES
+    sources_version = 2          # 1.1.2: TheAudioDB + Bandcamp statt Deezer
 
     def __init__(self, win, items, scope):
         super().__init__(win, items, scope)
@@ -827,6 +834,7 @@ class CoverSearchDialog(ImageGridDialog):
 class ArtistImageDialog(ImageGridDialog):
     feature_id = "artist_image"
     sources = artistimages.SOURCES
+    sources_version = 2          # 1.1.3: Bandcamp, Discogs, Wikipedia statt Deezer
 
     def __init__(self, win, items, scope, folder: str = "", artist: str = ""):
         """folder/artist: direkt für einen Künstler-Ordner (ohne geladene Dateien) – der Ordnername
@@ -839,6 +847,17 @@ class ArtistImageDialog(ImageGridDialog):
             artist = os.path.basename(self.target_dir)
         self.artist = self.search_field("Künstler", artist)
         self.build_grid("Künstlerbild")
+        dc = self.src_chips.get("Discogs")
+        if dc is not None and not self.settings.discogs_token:        # ohne Token: Quelle aus, mit Hinweis
+            dc.setChecked(False)
+            dc.setEnabled(False)
+            dc.setToolTip("Discogs braucht einen kostenlosen Token – Einstellungen → Online")
+        tips = {"Bandcamp": "Band-Fotos – gut für kleine, unbekannte Künstler",
+                "Wikipedia": "Freie Bilder von Wikimedia Commons (über MusicBrainz/Wikidata)",
+                "TheAudioDB": "Porträt, Fanart und Breitbild"}
+        for name, tip in tips.items():
+            if name in self.src_chips:
+                self.src_chips[name].setToolTip(tip)
         name = self.settings.artist_image_name
         if self.target_dir:
             where = f"Wird gespeichert als {name} in „{os.path.basename(self.target_dir)}“."
@@ -866,8 +885,10 @@ class ArtistImageDialog(ImageGridDialog):
         self.set_status("Suche Bilder bei " + ", ".join(sources) + " …")
         self.grid.clear()
         self._errors = []
+        token, contact = self.settings.discogs_token, self.settings.musicbrainz_contact
         self.run(lambda: artistimages.search_artist_images(
-            artist, sources, progress=lambda s, f, e: e and self._errors.append(f"{s}: {e}")), done=self._found)
+            artist, sources, progress=lambda s, f, e: e and self._errors.append(f"{s}: {e}"),
+            discogs_token=token, contact=contact), done=self._found)
 
     def _found(self, cands):
         self.show_candidates(cands)

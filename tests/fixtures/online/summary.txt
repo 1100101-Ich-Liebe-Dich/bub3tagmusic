@@ -1,10 +1,8 @@
-503 von https://musicbrainz.org/ws/2/release/?query=release%3A%22Bac … warte 5 s
-503 von https://musicbrainz.org/ws/2/release/?query=release%3A%22Bac … warte 10 s
 MB Suche AC/DC – Back in Black: 15 Treffer; erster: Back in Black / AC/DC / 1980 · US · Atlantic · 12" Vinyl · 10 Tracks / Score 100
-503 von https://musicbrainz.org/ws/2/release/f7c680af-5b09-3fea-be84 … warte 5 s
 MB Album Back in Black: 10 Tracks, 1 Disc(s), Genre 'Hard Rock', Cover nein, Track1 'Hells Bells' 309s
+503 von https://musicbrainz.org/ws/2/release-group/?query=releasegro … warte 5 s
 Cover Cover Art Archive für AC/DC – Back in Black: 2 Treffer 
-Cover iTunes für AC/DC – Back in Black: 12 Treffer 
+Cover iTunes für AC/DC – Back in Black: 11 Treffer 
 Cover TheAudioDB für AC/DC – Back in Black: 1 Treffer 
 Cover Bandcamp für AC/DC – Back in Black: 2 Treffer 
 Cover-Vorschau Cover Art Archive geladen
@@ -16,21 +14,28 @@ Cover iTunes für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer
 Cover TheAudioDB für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover Bandcamp für Die Ärzte – Die Bestie in Menschengestalt: 0 Treffer 
 Cover-Vorschau Cover Art Archive geladen
-MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · DE · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
+503 von https://musicbrainz.org/ws/2/release/?query=release%3A%22The … warte 5 s
+MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · GB · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
+503 von https://musicbrainz.org/ws/2/release/93c4f215-15ae-34a2-981a … warte 5 s
 MB Album The Wall: 26 Tracks, 2 Disc(s), Genre 'Progressive Rock', Cover ja, Track1 'In the Flesh?' 200s
 CAA Vorschaubild geladen
-503 von https://musicbrainz.org/ws/2/release-group/?query=releasegro … warte 5 s
 Cover Cover Art Archive für Pink Floyd – The Wall: 2 Treffer 
 Cover iTunes für Pink Floyd – The Wall: 12 Treffer 
 Cover TheAudioDB für Pink Floyd – The Wall: 1 Treffer 
 Cover Bandcamp für Pink Floyd – The Wall: 5 Treffer 
 Cover-Vorschau Cover Art Archive geladen
-Künstlerbild Deezer für AC/DC: 5 
 Künstlerbild TheAudioDB für AC/DC: 4 
-Künstlerbild-Vorschau Deezer geladen
-Künstlerbild Deezer für Die Ärzte: 2 
+Künstlerbild Bandcamp für AC/DC: 2 
+Künstlerbild Wikipedia für AC/DC: 1 
+Künstlerbild-Vorschau TheAudioDB geladen (AC/DC · Porträt)
+Künstlerbild-Vorschau Bandcamp geladen (AC/DC · Bayonne, New Jersey)
+Künstlerbild-Vorschau Wikipedia geladen (AC/DC (Australian hard rock band) · frei)
 Künstlerbild TheAudioDB für Die Ärzte: 4 
-Künstlerbild-Vorschau Deezer geladen
+Künstlerbild Bandcamp für Die Ärzte: 0 
+503 von https://musicbrainz.org/ws/2/artist/?query=artist%3A%22Die+% … warte 5 s
+Künstlerbild Wikipedia für Die Ärzte: 1 
+Künstlerbild-Vorschau TheAudioDB geladen (Die Ärzte · Porträt)
+Künstlerbild-Vorschau Wikipedia geladen (Die Ärzte · freies Bild (Wikimedia Commo)
 Discogs 249504: Rick Astley – Never Gonna Give You Up (1987), 2 Tracks, 1 Disc(s), Positionen [1, 2]
 Discogs 1: The Persuader – Stockholm (1999), 6 Tracks, 1 Disc(s), Positionen [1, 2, 3, 4, 5, 6]
 Deezer Suche AC/DC – Back in Black: 11 Treffer; erste: Back In Black / AC/DC / Album / 10 / Score 100; Back In Black (Cumbia Version) / aLee DJ / Single / 1 / Score 69; Back In Black / Tuna Rimbaud / Single / 1 / Score 62
@@ -50,8 +55,9 @@ Last.fm übersprungen – GitHub-Secret LASTFM_KEY fehlt
 iTunes Suche Pink Floyd – The Wall: 25 Treffer; erste: The Wall / Pink Floyd / 1979 / 27 / Score 100; Meddle (2016 Remaster) / Pink Floyd / 1971 / 7 / Score 56; Ummagumma / Pink Floyd / 1969 / 17 / Score 53
 iTunes Album The Wall: 26 Tracks, 2 Disc(s), Jahr 1979, Genre 'Rock', Track1 'In the Flesh?' 1/13 199s
 Last.fm übersprungen – GitHub-Secret LASTFM_KEY fehlt
+503 von https://musicbrainz.org/ws/2/recording?query=recording%3A%22 … warte 5 s
 MB Aufnahmen Hells Bells: 5
-AcoustID Track: {'mbid': '7b0c65cd-8bde-40e3-ab95-e3a4f0333f7f', 'trackid': '6455d7c5-8e1f-40a6-9a9e-a436500cb0a7'}
+AcoustID Track: {'mbid': 'b58975f3-5985-46c6-9640-4399ea96ceb5', 'trackid': '7124cebf-cfc4-4672-bebe-630460f905a7'}
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
 AcoustID Fehler: AcoustID-Key ungültig – in Einstellungen → Online prüfen
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
@@ -59,4 +65,4 @@ AcoustID Fingerabdruck-Lookup Fehler: AcoustID-Key ungültig – in Einstellunge
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
 AcoustID falscher Key → AcoustID-Key ungültig – in Einstellungen → Online prüfen
 AcoustID diesmal ohne Treffer – die letzte gute Aufnahme bleibt
-22 Antworten aus der letzten Aufnahme behalten
+26 Antworten aus der letzten Aufnahme behalten

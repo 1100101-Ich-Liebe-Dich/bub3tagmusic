@@ -233,6 +233,9 @@ def main():
     d = O.ArtistImageDialog(win, items, scope)
     d.show()
     check(d.target_dir == os.path.dirname(album_dir), "Ziel = Künstler-Ordner")
+    check(list(d.src_chips) == ["TheAudioDB", "Bandcamp", "Discogs", "Wikipedia"], f"Quellen: {list(d.src_chips)}")
+    check(not d.src_chips["Discogs"].isEnabled() and "Token" in d.src_chips["Discogs"].toolTip(),
+          "Discogs ohne Token: aus, mit Hinweis")
     check(wait(app, lambda: d.grid.count() > 0), f"Künstlerbilder: {d.grid.count()}")
     wait(app, lambda: len(d._thumbs) >= 1, 8)
     pump(app, 0.4)

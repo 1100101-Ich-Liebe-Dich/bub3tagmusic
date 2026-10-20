@@ -33,6 +33,8 @@ HOST_NAMES = {
     "audioscrobbler.com": "Last.fm",
     "bandcamp.com": "Bandcamp",
     "bcbits.com": "Bandcamp",
+    "wikidata.org": "Wikidata",
+    "wikimedia.org": "Wikimedia Commons",
 }
 
 MAX_BYTES = 40 * 1024 * 1024

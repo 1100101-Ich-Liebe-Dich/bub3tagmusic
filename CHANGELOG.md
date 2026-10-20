@@ -2,6 +2,20 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.3] – 2026-10-20 – Mehr Künstlerbilder
+
+### Neu
+- **Künstlerbild suchen** jetzt bei **TheAudioDB, Bandcamp, Discogs und Wikipedia** – mehr Treffer, auch für kleine
+  und unbekannte Künstler:
+  - **Bandcamp:** Fotos der Bands (mit Ort, damit gleichnamige Bands unterscheidbar sind)
+  - **Discogs:** alle Fotos des passenden Künstlers – braucht den Discogs-Token, ohne ist die Quelle aus
+  - **Wikipedia:** freie Bilder von Wikimedia Commons (über MusicBrainz → Wikidata)
+
+### Geändert
+- **Keine Künstlerbilder mehr von Deezer** – von Deezer kommen jetzt nur noch Tags.
+- Bei neuen Quellen wird die gemerkte Quellen-Auswahl einmal zurückgesetzt, damit die neuen auch an sind
+  (betraf auch TheAudioDB/Bandcamp in der Cover-Suche aus 1.1.2).
+
 ## [1.1.2] – 2026-10-20 – Mehr Quellen
 
 ### Neu
