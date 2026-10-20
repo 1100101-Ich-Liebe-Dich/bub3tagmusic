@@ -1,6 +1,5 @@
 MB Suche AC/DC – Back in Black: 15 Treffer; erster: Back in Black / AC/DC / 1980 · US · Atlantic · 12" Vinyl · 10 Tracks / Score 100
 MB Album Back in Black: 10 Tracks, 1 Disc(s), Genre 'Hard Rock', Cover nein, Track1 'Hells Bells' 309s
-503 von https://musicbrainz.org/ws/2/release-group/?query=releasegro … warte 5 s
 Cover Cover Art Archive für AC/DC – Back in Black: 2 Treffer 
 Cover iTunes für AC/DC – Back in Black: 11 Treffer 
 Cover TheAudioDB für AC/DC – Back in Black: 1 Treffer 
@@ -9,15 +8,16 @@ Cover-Vorschau Cover Art Archive geladen
 MB Suche Die Ärzte – Die Bestie in Menschengestalt: 9 Treffer; erster: Die Bestie in Menschengestalt / Die Ärzte / 1993 · DE · Metronome · CD · 19 Tracks / Score 100
 MB Album Die Bestie in Menschengestalt: 19 Tracks, 1 Disc(s), Genre 'Pop Punk', Cover ja, Track1 'Inntro' 6s
 CAA Vorschaubild geladen
+503 von https://musicbrainz.org/ws/2/release-group/?query=releasegro … warte 5 s
 Cover Cover Art Archive für Die Ärzte – Die Bestie in Menschengestalt: 3 Treffer 
 Cover iTunes für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover TheAudioDB für Die Ärzte – Die Bestie in Menschengestalt: 1 Treffer 
 Cover Bandcamp für Die Ärzte – Die Bestie in Menschengestalt: 0 Treffer 
 Cover-Vorschau Cover Art Archive geladen
 503 von https://musicbrainz.org/ws/2/release/?query=release%3A%22The … warte 5 s
-MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · GB · Harvest · 2×12" Vinyl · 26 Tracks / Score 100
-503 von https://musicbrainz.org/ws/2/release/93c4f215-15ae-34a2-981a … warte 5 s
-MB Album The Wall: 26 Tracks, 2 Disc(s), Genre 'Progressive Rock', Cover ja, Track1 'In the Flesh?' 200s
+MB Suche Pink Floyd – The Wall: 15 Treffer; erster: The Wall / Pink Floyd / 1979 · JP · CBS/Sony · 2×12" Vinyl · 26 Tracks / Score 100
+503 von https://musicbrainz.org/ws/2/release/552d6be6-6fba-4156-9612 … warte 5 s
+MB Album The Wall: 26 Tracks, 2 Disc(s), Genre 'Progressive Rock', Cover ja, Track1 'In the Flesh?' 196s
 CAA Vorschaubild geladen
 Cover Cover Art Archive für Pink Floyd – The Wall: 2 Treffer 
 Cover iTunes für Pink Floyd – The Wall: 12 Treffer 
@@ -65,4 +65,4 @@ AcoustID Fingerabdruck-Lookup Fehler: AcoustID-Key ungültig – in Einstellunge
 AcoustID 400: {"error": {"code": 4, "message": "invalid API key"}, "status": "error"}
 AcoustID falscher Key → AcoustID-Key ungültig – in Einstellungen → Online prüfen
 AcoustID diesmal ohne Treffer – die letzte gute Aufnahme bleibt
-26 Antworten aus der letzten Aufnahme behalten
+28 Antworten aus der letzten Aufnahme behalten
