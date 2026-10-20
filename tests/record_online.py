@@ -31,6 +31,7 @@ notes: list[str] = []
 # In den Aufnahmen steht immer „TESTKEY“ – ein echter Key landet so nie im Repository.
 ACOUSTID_KEY = os.environ.get("ACOUSTID_KEY") or "zYspohqt0AM"
 LASTFM_KEY = os.environ.get("LASTFM_KEY", "")        # GitHub-Secret; ohne wird Last.fm übersprungen
+DISCOGS_TOKEN = os.environ.get("DISCOGS_TOKEN", "")  # GitHub-Secret; nur im Kopf der Anfrage, nie in der URL
 TEST_KEY = "TESTKEY"
 
 
@@ -219,11 +220,16 @@ def main():
 
     for artist in ARTISTS:
         imgs = artistimages.search_artist_images(
-            artist, progress=lambda s, f, e, a=artist: note(f"Künstlerbild {s} für {a}: {len(f)} {e}"))
-        for c in imgs[:1]:
+            artist, progress=lambda s, f, e, a=artist: note(f"Künstlerbild {s} für {a}: {len(f)} {e}"),
+            discogs_token=DISCOGS_TOKEN)
+        seen = set()
+        for c in imgs:                              # je Quelle ein Vorschaubild aufzeichnen
+            if c.source in seen:
+                continue
+            seen.add(c.source)
             try:
                 http.get_image(c.thumb_url)
-                note(f"Künstlerbild-Vorschau {c.source} geladen")
+                note(f"Künstlerbild-Vorschau {c.source} geladen ({c.description[:40]})")
             except OnlineError as exc:
                 note(f"Künstlerbild-Vorschau {c.source}: {exc}")
 

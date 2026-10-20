@@ -10,14 +10,10 @@ Fällt eine Quelle aus, liefern die anderen trotzdem.
 
 from __future__ import annotations
 
-import html
-import json
-import re
-
-from . import itunes
+from . import bandcamp, itunes
 from .artistimages import AUDIODB_LIMITER
 from .base import CoverCandidate, OnlineError, RateLimiter, match_score
-from .http import fetch, get_image, get_json
+from .http import get_image, get_json
 
 SOURCES = ("Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp")
 
@@ -27,7 +23,6 @@ AUDIODB_ALBUM = "https://www.theaudiodb.com/api/v1/json/123/searchalbum.php"
 
 CAA_LIMITER = RateLimiter(per_second=2)
 ITUNES_LIMITER = itunes.LIMITER            # iTunes erlaubt ca. 20 Anfragen/Minute – Album- und Cover-Suche teilen
-BANDCAMP_LIMITER = RateLimiter(per_second=0.5)
 
 
 def from_caa_release_group(rg_id: str, description: str = "", score: float = 0.0) -> list[CoverCandidate]:
@@ -94,45 +89,30 @@ def from_audiodb(artist: str, album: str) -> list[CoverCandidate]:
     return out
 
 
-# Bandcamp: keine offizielle Schnittstelle – benutzt wird die Suche, die die Bandcamp-Seite selbst aufruft.
-# Ändert Bandcamp sie, liefert diese Quelle nichts mehr – die anderen laufen weiter.
-BANDCAMP_API = "https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic"
 BANDCAMP_MIN = 0.35        # Bandcamp liefert viele Remixe/Tribute – nur halbwegs passende zeigen
 
 
-def bandcamp_art(img: str) -> str:
-    """'https://f4.bcbits.com/img/a123_3.jpg' oder art_id → Kennung 'a123'."""
-    m = re.search(r"/img/(a?\d+)_\d+\.jpg", img or "")
-    return m.group(1) if m else ""
-
-
-def parse_bandcamp(data: dict, artist: str, album: str) -> list[CoverCandidate]:
+def parse_bandcamp(results: list[dict], artist: str, album: str) -> list[CoverCandidate]:
     out = []
-    for r in ((data.get("auto") or {}).get("results") or []):
+    for r in results:
         if r.get("type") not in ("a", "t"):
             continue
-        art = bandcamp_art(r.get("img") or "") or (f"a{r['art_id']}" if r.get("art_id") else "")
-        if not art:
+        img = bandcamp.image_id(r)
+        if not img:
             continue
-        if not art.startswith("a"):
-            art = "a" + art
-        name, who = html.unescape(r.get("name") or ""), html.unescape(r.get("band_name") or "")
+        if not img.startswith("a"):
+            img = "a" + img
+        name, who = r.get("name") or "", r.get("band_name") or ""
         score = match_score(artist, album, who, name)
         if score < BANDCAMP_MIN:
             continue
-        out.append(CoverCandidate("Bandcamp", f"https://f4.bcbits.com/img/{art}_10.jpg",
-                                  f"https://f4.bcbits.com/img/{art}_2.jpg", description=f"{name} – {who}",
-                                  score=score, size_hint="bis 1200 px"))
+        out.append(CoverCandidate("Bandcamp", bandcamp.image_url(img, 10), bandcamp.image_url(img, 2),
+                                  description=f"{name} – {who}", score=score, size_hint="bis 1200 px"))
     return out
 
 
 def from_bandcamp(artist: str, album: str) -> list[CoverCandidate]:
-    term = f"{artist} {album}".strip()
-    body = fetch(BANDCAMP_API, limiter=BANDCAMP_LIMITER,
-                 post_json={"search_text": term, "search_filter": "a", "full_page": False, "fan_id": None})
-    if body[:1] != b"{":
-        raise OnlineError("Bandcamp lässt die Suche gerade nicht zu – die anderen Quellen laufen weiter")
-    return parse_bandcamp(json.loads(body.decode("utf-8")), artist, album)
+    return parse_bandcamp(bandcamp.search(f"{artist} {album}".strip(), bandcamp.ALBUMS), artist, album)
 
 
 def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = "", country: str = "DE",

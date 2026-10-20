@@ -95,10 +95,17 @@ def main():
     eq(covers[0].score >= covers[-1].score, True, "Cover nach Ähnlichkeit sortiert")
 
     # --- Künstlerbilder ---------------------------------------------------------------------
-    imgs = artistimages.search_artist_images("AC/DC")
-    eq({c.source for c in imgs} >= {"Deezer", "TheAudioDB"}, True, f"Künstlerbilder aus beiden Quellen ({len(imgs)})")
-    eq(all("/artist//" not in c.url for c in imgs), True, "Deezer-Platzhalter ausgefiltert")
+    found = {}
+    imgs = artistimages.search_artist_images("AC/DC", progress=lambda s, f, e: found.__setitem__(s, (len(f), e)))
+    eq(set(found), {"TheAudioDB", "Bandcamp", "Wikipedia"}, f"Quellen ohne Token (kein Deezer, Discogs übersprungen)")
+    eq(found["TheAudioDB"][0] > 0, True, "TheAudioDB liefert")
+    for src, frag in (("Bandcamp", '"search_filter": "b"'), ("Wikipedia", "wikidata.org")):
+        if recorded(frag):
+            eq(found[src][0] > 0, True, f"{src} liefert ({found[src]})")
+        else:
+            print(f"   (Künstlerbilder {src} noch nicht aufgezeichnet – übersprungen)")
     eq(similarity("AC/DC", imgs[0].description.split(" · ")[0]) > 0.8, True, "bester Treffer ist AC/DC")
+    eq(artistimages.search_artist_images("AC/DC", ("Deezer",)), [], "alte Einstellung „Deezer“ wird ignoriert")
 
     # --- Discogs -------------------------------------------------------------------------------
     p = discogs.get_album("1")
@@ -186,6 +193,7 @@ def main():
 
     test_deezer_structure()
     test_new_sources_structure()
+    test_artist_sources_structure()
     use_fixtures(misses)
     test_deezer_recorded()
     test_new_sources_recorded()
@@ -201,7 +209,9 @@ def main():
     eq(seconds("1:02:03"), 3723.0, "Zeit 1:02:03")
 
     # Neue Quellen, die noch nie aufgezeichnet wurden, zählen nicht
-    pending = [e for e in ("searchalbum.php", "bandcamp.com/api", "itunes.apple.com/lookup", "audioscrobbler")
+    pending = [e for e in ("searchalbum.php", "bandcamp.com/api", "itunes.apple.com/lookup", "audioscrobbler",
+                           '"search_filter": "b"', "musicbrainz.org/ws/2/artist", "wikidata.org", "discogs.com/artists",
+                           "type=artist")
                if not recorded(e)]
     unexpected = [u for u in misses if "front-250" not in u and "gibtsnicht" not in u
                   and not any(e in u for e in pending)]
@@ -387,6 +397,66 @@ def test_new_sources_structure():
     eq([u for u in calls if "bandcamp" in u][0].split("#post=")[1],
        '{"fan_id": null, "full_page": false, "search_filter": "a", "search_text": "AC/DC Back in Black"}',
        "Bandcamp: Suche als POST")
+    http.clear_cache()
+
+
+def test_artist_sources_structure():
+    """Künstlerbilder 1.1.3: Bandcamp (Bands), Discogs (mit Token), Wikipedia über MusicBrainz → Wikidata."""
+    import json
+    bc = {"auto": {"results": [
+        {"type": "b", "id": 1, "name": "Kielwasser", "location": "Kiel, Deutschland",
+         "img": "https://f4.bcbits.com/img/0012345678_0.jpg"},
+        {"type": "b", "id": 2, "name": "Ganz Andere Band", "img": "https://f4.bcbits.com/img/0099_0.jpg"},
+        {"type": "a", "id": 3, "name": "Kielwasser", "img": "https://f4.bcbits.com/img/a55_3.jpg"}]}}
+    dsearch = {"results": [{"id": 77, "title": "Kielwasser (2)", "thumb": "https://i.discogs.com/t.jpg",
+                            "cover_image": "https://i.discogs.com/c.jpg"},
+                           {"id": 78, "title": "Kielwasser Revival", "cover_image": "https://st.discogs.com/spacer.gif"}]}
+    dartist = {"images": [{"uri": "https://i.discogs.com/1.jpg", "uri150": "https://i.discogs.com/1s.jpg",
+                           "width": 600, "height": 400}, {"uri": "https://i.discogs.com/2.jpg"}]}
+    mb_search = {"artists": [{"id": "mb1", "name": "Kielwasser", "score": 100, "disambiguation": "Band aus Kiel"},
+                             {"id": "mb2", "name": "Kielwasser", "score": 60}]}
+    mb_artist = {"relations": [{"type": "wikidata", "url": {"resource": "https://www.wikidata.org/wiki/Q42"}},
+                               {"type": "official homepage", "url": {"resource": "https://kielwasser.example"}}]}
+    wd = {"entities": {"Q42": {"claims": {"P18": [{"mainsnak": {"datavalue": {"value": "Kielwasser live 2019.jpg"}}}]}}}}
+    calls = []
+
+    def fake(url, headers):
+        calls.append((url, headers.get("Authorization", "")))
+        if "bandcamp.com/api" in url:
+            return 200, json.dumps(bc).encode()
+        if "discogs.com/database/search" in url:
+            return 200, json.dumps(dsearch).encode()
+        if "discogs.com/artists/77" in url:
+            return 200, json.dumps(dartist).encode()
+        if "musicbrainz.org/ws/2/artist/?" in url:
+            return 200, json.dumps(mb_search).encode()
+        if "musicbrainz.org/ws/2/artist/mb1" in url:
+            return 200, json.dumps(mb_artist).encode()
+        if "wikidata.org" in url:
+            return 200, json.dumps(wd).encode()
+        return 404, b""
+    http.clear_cache()
+    http.set_transport(fake)
+    c = artistimages.from_bandcamp("Kielwasser")
+    eq([(x.description, x.url, x.thumb_url) for x in c],
+       [("Kielwasser · Kiel, Deutschland", "https://f4.bcbits.com/img/0012345678_0.jpg",
+         "https://f4.bcbits.com/img/0012345678_2.jpg")], "Bandcamp: nur passende Bands, Original + Vorschau")
+    eq('"search_filter": "b"' in [u for u, _ in calls if "bandcamp" in u][0], True, "Bandcamp: Suche nach Bands")
+    eq(artistimages.search_artist_images("Kielwasser", ("Discogs",)), [], "Discogs ohne Token: übersprungen")
+    eq(any("discogs" in u for u, _ in calls), False, "ohne Token keine Anfrage an Discogs")
+    c = artistimages.from_discogs("Kielwasser", "tok")
+    eq([(x.url, x.thumb_url, x.width) for x in c],
+       [("https://i.discogs.com/1.jpg", "https://i.discogs.com/1s.jpg", 600),
+        ("https://i.discogs.com/2.jpg", "https://i.discogs.com/2.jpg", 0)],
+       "Discogs: alle Fotos des besten Treffers, „(2)“ entfernt, Platzhalter ignoriert")
+    eq(all(a == "Discogs token=tok" for u, a in calls if "discogs" in u), True, "Discogs: Token im Kopf")
+    c = artistimages.from_wikipedia("Kielwasser")
+    eq([(x.url, x.thumb_url, x.description) for x in c],
+       [("https://commons.wikimedia.org/wiki/Special:FilePath/Kielwasser_live_2019.jpg?width=1600",
+         "https://commons.wikimedia.org/wiki/Special:FilePath/Kielwasser_live_2019.jpg?width=330",
+         "Kielwasser (Band aus Kiel) · freies Bild (Wikimedia Commons)")],
+       "Wikipedia: MusicBrainz → Wikidata → Commons (nur sichere MB-Treffer)")
+    eq(sum(1 for u, _ in calls if "musicbrainz.org/ws/2/artist/mb" in u), 1, "nur der sichere MusicBrainz-Treffer")
     http.clear_cache()
 
 

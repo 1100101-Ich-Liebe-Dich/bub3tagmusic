@@ -69,7 +69,8 @@ FEATURES: tuple[Feature, ...] = (
             "Sucht bei Cover Art Archive, iTunes, TheAudioDB und Bandcamp. Treffer als Bildergitter "
             "mit Auflösung; speichern als cover.jpg und/oder einbetten.", "Ctrl+K", ready=True),
     Feature("artist_image", "Künstlerbild suchen …", 3, "online", "user-circle",
-            "Sucht ein Künstlerfoto (Deezer, TheAudioDB) und legt es als folder.jpg im Künstler-Ordner ab.",
+            "Sucht ein Künstlerfoto (TheAudioDB, Bandcamp, Discogs, Wikipedia) und legt es als folder.jpg "
+            "im Künstler-Ordner ab.",
             "Ctrl+J", ready=True),
 
     # --- Phase 4: Extras ---------------------------------------------------
