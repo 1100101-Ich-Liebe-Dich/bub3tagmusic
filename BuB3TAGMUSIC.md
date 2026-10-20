@@ -8,7 +8,7 @@ präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 > 1.0.0 ist veröffentlicht (Release auf GitHub). Release 1.1: Anleitung + Text in `docs/RELEASE-1.1.md`.
 > Nächster Schritt: Praxis mit der echten Sammlung, Rückmeldungen sammeln.
 >
-> Code + Aufgaben: privates GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic`.
+> Code + Aufgaben: GitHub-Repo `1100101-Ich-Liebe-Dich/bub3tagmusic` (Lizenz GPL-3.0 oder später).
 > Die Nummern `#n` im Fahrplan sind die zugehörigen GitHub-Aufgaben (mit Abnahmekriterien).
 
 ---

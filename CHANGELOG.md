@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [Unveröffentlicht]
+
+- Lizenz: GNU GPL 3.0 oder später (`LICENSE`, auch im AppImage und im Fenster „Über“)
+
 ## [1.1.1] – 2026-10-19 – Aus ‹verschieden› wählen
 
 ### Neu

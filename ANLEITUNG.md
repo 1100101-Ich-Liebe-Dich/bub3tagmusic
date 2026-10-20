@@ -33,9 +33,7 @@ entpacken (z. B. nach `~/bub3tagmusic`).
 git clone https://github.com/1100101-Ich-Liebe-Dich/bub3tagmusic.git ~/bub3tagmusic
 ```
 
-Da das Repository privat ist, fragt git nach Benutzername und „Passwort“. Als Passwort geht hier
-**nicht** das normale GitHub-Passwort, sondern ein Token: GitHub → Settings → Developer settings →
-Personal access tokens → *Generate new token* (Recht „repo“ anhaken).
+Später aktualisieren: `cd ~/bub3tagmusic && git pull && make`
 
 ## 3. Bauen
 

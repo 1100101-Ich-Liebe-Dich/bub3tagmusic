@@ -8,7 +8,10 @@ nach jeder Sitzung aktuell halten.
 - **BuB3TAGMUSIC** – moderner, schneller Musik-Tagger für Linux (Mp3tag-Funktionsumfang, aber modern).
 - Schreibweise genau so: **BuB3TAGMUSIC**. Überall „präsentiert von www.BAUENUNDBOOTEN.de“.
 - Auftraggeber: BAUENUNDBOOTEN. Gespräch auf **Deutsch, per du**, locker. Oberflächentexte Deutsch.
-- Repo privat: `1100101-Ich-Liebe-Dich/bub3tagmusic`, Branch `main`, direkt auf `main` arbeiten.
+- Repo `1100101-Ich-Liebe-Dich/bub3tagmusic` (wird öffentlich), Lizenz **GPL-3.0-or-later** (`LICENSE`).
+  Arbeit **in einem Zweig + Pull Request** auf `main`; der Auftraggeber prüft und merged. Danach `main` holen.
+  Commits mit `BAUENUNDBOOTEN <285221481+1100101-Ich-Liebe-Dich@users.noreply.github.com>` – nie eine echte Mail.
+  `gh pr create` geht hier nicht (GraphQL) → `gh api repos/…/pulls -f title=… -f head=ZWEIG -f base=main -f body=…`.
 - **Masterplan: `BuB3TAGMUSIC.md`** (Entscheidungen, Fahrplan mit Checkboxen, offene Punkte).
   Fortschritt dort abhaken. Änderungen zusätzlich in `CHANGELOG.md`.
 - Aufgaben je Funktion als GitHub-Issues mit Meilensteinen „Phase 2/3/4“.

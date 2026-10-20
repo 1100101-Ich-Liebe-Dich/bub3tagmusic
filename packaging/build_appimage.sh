@@ -88,6 +88,7 @@ cp packaging/libs/*.so.* "$APPDIR/usr/lib/fallback/"
 mkdir -p "$APPDIR/usr/share/doc/bub3tagmusic"
 cp -r packaging/libs/copyright "$APPDIR/usr/share/doc/bub3tagmusic/xcb-libs"
 cp bub3tagmusic/resources/fonts/OFL-*.txt "$APPDIR/usr/share/doc/bub3tagmusic/"
+cp LICENSE "$APPDIR/usr/share/doc/bub3tagmusic/LICENSE-GPL-3.0.txt"
 
 # --- Hilfsprogramme ---------------------------------------------------------------------
 # fpcalc (Fingerabdruck: Erkennen, Duplikate) und rsgain (ReplayGain) – beide als fertige,
