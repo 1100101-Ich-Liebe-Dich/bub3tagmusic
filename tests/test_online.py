@@ -317,7 +317,8 @@ def test_new_sources_structure():
         {"type": "a", "id": 1, "art_id": 1234567890, "name": "Back in Black &amp; Blue", "band_name": "Kiel Band",
          "img": "https://f4.bcbits.com/img/a1234567890_3.jpg"},
         {"type": "b", "id": 2, "name": "Nur Künstler", "img": "https://f4.bcbits.com/img/0001_3.jpg"},
-        {"type": "a", "id": 3, "art_id": 42, "name": "Ohne Bild-URL", "band_name": "X"}]}}
+        {"type": "a", "id": 3, "art_id": 42, "name": "Back in Black", "band_name": "AC/DC"},
+        {"type": "a", "id": 4, "art_id": 7, "name": "Völlig anderes Album", "band_name": "Jemand"}]}}
     calls = []
 
     def fake(url, headers):
@@ -381,8 +382,8 @@ def test_new_sources_structure():
     eq([(x.description, x.url, x.thumb_url) for x in c],
        [("Back in Black & Blue – Kiel Band", "https://f4.bcbits.com/img/a1234567890_10.jpg",
          "https://f4.bcbits.com/img/a1234567890_2.jpg"),
-        ("Ohne Bild-URL – X", "https://f4.bcbits.com/img/a42_10.jpg", "https://f4.bcbits.com/img/a42_2.jpg")],
-       "Bandcamp: nur Alben, 1200 px, Text ohne HTML")
+        ("Back in Black – AC/DC", "https://f4.bcbits.com/img/a42_10.jpg", "https://f4.bcbits.com/img/a42_2.jpg")],
+       "Bandcamp: nur passende Alben, 1200 px, Text ohne HTML")
     eq([u for u in calls if "bandcamp" in u][0].split("#post=")[1],
        '{"fan_id": null, "full_page": false, "search_filter": "a", "search_text": "AC/DC Back in Black"}',
        "Bandcamp: Suche als POST")

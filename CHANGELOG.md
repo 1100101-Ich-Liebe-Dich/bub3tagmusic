@@ -2,9 +2,19 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
-## [Unveröffentlicht]
+## [1.1.2] – 2026-10-20 – Mehr Quellen
 
-- Lizenz: GNU GPL 3.0 oder später (`LICENSE`, auch im AppImage und im Fenster „Über“)
+### Neu
+- **Album suchen – iTunes / Apple Music** (ohne Anmeldung): genaue Tracklisten mit Discs, meist das Jahr der
+  Erstveröffentlichung, Cover bis 3000 px.
+- **Album suchen – Last.fm**: Titel, Längen und Genres aus den Tags der Hörer. Braucht einen kostenlosen API-Key
+  (*Einstellungen → Online → Last.fm-API-Key*).
+- **Cover suchen** jetzt bei **Cover Art Archive, iTunes, TheAudioDB und Bandcamp**.
+- Lizenz: GNU GPL 3.0 oder später (`LICENSE`, auch im AppImage und im Fenster „Über“).
+
+### Geändert
+- **Deezer liefert nur noch Tags** – keine Cover und keine Vorschaubilder mehr (deren Bilder sind nicht zum
+  Weiterverwenden gedacht). Cover gibt es über *Cover suchen* (Strg+K).
 
 ## [1.1.1] – 2026-10-19 – Aus ‹verschieden› wählen
 

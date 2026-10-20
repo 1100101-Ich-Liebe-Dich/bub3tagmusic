@@ -97,6 +97,7 @@ def from_audiodb(artist: str, album: str) -> list[CoverCandidate]:
 # Bandcamp: keine offizielle Schnittstelle – benutzt wird die Suche, die die Bandcamp-Seite selbst aufruft.
 # Ändert Bandcamp sie, liefert diese Quelle nichts mehr – die anderen laufen weiter.
 BANDCAMP_API = "https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic"
+BANDCAMP_MIN = 0.35        # Bandcamp liefert viele Remixe/Tribute – nur halbwegs passende zeigen
 
 
 def bandcamp_art(img: str) -> str:
@@ -116,9 +117,12 @@ def parse_bandcamp(data: dict, artist: str, album: str) -> list[CoverCandidate]:
         if not art.startswith("a"):
             art = "a" + art
         name, who = html.unescape(r.get("name") or ""), html.unescape(r.get("band_name") or "")
+        score = match_score(artist, album, who, name)
+        if score < BANDCAMP_MIN:
+            continue
         out.append(CoverCandidate("Bandcamp", f"https://f4.bcbits.com/img/{art}_10.jpg",
                                   f"https://f4.bcbits.com/img/{art}_2.jpg", description=f"{name} – {who}",
-                                  score=match_score(artist, album, who, name), size_hint="bis 1200 px"))
+                                  score=score, size_hint="bis 1200 px"))
     return out
 
 

@@ -76,7 +76,7 @@ nach jeder Sitzung aktuell halten.
 - Mehrzeilige Felder (Songtext): `Field(multiline=True)` → nicht in `PATTERN_KEYS`/`patterns.KNOWN`, nicht im
   Listenfilter, in Tabellen über `fields.one_line()`. Im Bearbeitungsfeld `ui/lyrics.LyricsField` (gleiche
   Schnittstelle wie `FieldEdit`: `show_value`, `dirty`, `refresh_icons`) + `LyricsDialog`; .lrc/.txt-Logik in `core/lyrics.py`.
-- Album-Quellen: `ui/online.ALBUM_SOURCES` (MusicBrainz, Discogs, Deezer) – neue Quelle = Modul in `online/` mit
+- Album-Quellen: `ui/online.ALBUM_SOURCES` (MusicBrainz, Discogs, Deezer, iTunes, Last.fm) – neue Quelle = Modul in `online/` mit
   `search_albums` + `get_album` → `AlbumMatch`, dann in `AlbumSearchDialog.search/_pick` eintragen. Felder, die eine
   Quelle nicht liefert, blendet die Vorschau aus. Neue Album-Felder → `ALBUM_FIELDS` + `ALBUM_FIELDS_VERSION` erhöhen.
 - Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
@@ -187,6 +187,13 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
   bleibt `TDOR` aber stehen (ungültig in v2.3) → `ID3Handler.save` wandelt selbst in `TORY` um. Prüfen nur mit
   `ID3(pfad, translate=False)`.
 - **Deezer meldet Fehler mit Status 200** und `{"error": {...}}` im Inhalt → `deezer._check()`.
+- **Keine Bilder von Deezer** (Wunsch des Auftraggebers): weder Cover noch Vorschaubilder – nur Tags.
+  (Künstlerbilder von Deezer gibt es noch.) Cover-Quellen: CAA, iTunes, TheAudioDB, Bandcamp.
+- **Bandcamp-Suchseite sperrt Programme** (JavaScript-Prüfung) → `coversearch.from_bandcamp` nutzt die JSON-Suche
+  `bcsearch_public_api` per POST (`http.fetch(..., post_json=)`; Cache-/Aufnahme-Schlüssel = URL + `#post=` + JSON).
+- **Last.fm**: Fehler kommen als HTTP 400/403 mit JSON → `http.ApiError(code)`; Key im GitHub-Secret `LASTFM_KEY`
+  (Aufnahmen speichern `api_key=TESTKEY`). Bei einem Eintrag liefert Last.fm ein Objekt statt einer Liste.
+- Testdaten-Aufnahme läuft auf **jedem Zweig** (RECORD ändern) und schreibt in denselben Zweig → danach `git pull`.
 - **Aufnahme der Online-Testdaten:** MusicBrainz antwortet zwischendurch mit 503. Der Recorder wiederholt jetzt und
   behält Einträge der letzten Aufnahme, die diesmal fehlen; `acoustid.json` wird nur mit Treffern überschrieben.
   Nach jeder Aufnahme `summary.txt` lesen.

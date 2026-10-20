@@ -39,7 +39,7 @@
 | 📂 **Ordner für Ordner** | Links deine Sammlung als Baum (Künstler → Alben) mit Fortschritt. Album anklicken, bearbeiten, **Strg+→** speichert, hakt ab und springt zum nächsten offenen Album. |
 | ✏️ **Viele Dateien auf einmal** | Alle Dateien eines Albums – oder mit „Unterordner“ einen ganzen Künstler – gleichzeitig bearbeiten. Unterschiedliche Werte zeigen `‹verschieden›` und bleiben, wie sie sind – oder du wählst per Pfeil einen davon für alle. |
 | 🖼️ **Cover & Künstlerbild** | Einbetten, `cover.jpg` im Album-Ordner, `folder.jpg` im Künstler-Ordner – per Drag & Drop, aus dem Ordner oder online gesucht. |
-| 🌐 **Online** | MusicBrainz, Discogs & Deezer (eine Suche pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
+| 🌐 **Online** | MusicBrainz, Discogs, Deezer, iTunes & Last.fm (eine Suche pro Album), Cover bis 3000 px, Künstlerfotos, Erkennen per Fingerabdruck. |
 | 🎤 **Songtext, Label, Original-Jahr** | Songtexte eintippen oder aus `.lrc`/`.txt` übernehmen – auch für ein ganzes Album auf einmal. |
 | 🛠️ **Werkzeuge** | Tags ↔ Dateinamen, nummerieren, Schreibweise, Suchen & Ersetzen, aufräumen, Ordner umbenennen – und alles zusammen als **Aktion**. |
 | ⚡ **Schnell, auch auf alter Hardware** | 12.000 Dateien in unter 2 Sekunden eingelesen, danach aus dem Zwischenspeicher in Sekundenbruchteilen. 50.000 Einträge in der Liste sind kein Problem. |
@@ -142,12 +142,12 @@ Beispiel-Aktionen sind schon dabei.
 
 | Funktion | Was sie macht |
 |---|---|
-| **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs** oder **Deezer** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. |
-| **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px) und Deezer als Bildergitter. Einbetten und/oder `cover.jpg`. |
+| **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs**, **Deezer**, **iTunes** oder **Last.fm** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. |
+| **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px), TheAudioDB und Bandcamp als Bildergitter. Einbetten und/oder `cover.jpg`. |
 | **Künstlerbild suchen** (Strg+J) | Fotos von Deezer und TheAudioDB → `folder.jpg` im Künstler-Ordner. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
 
-Ohne Anmeldung nutzbar – nur Discogs und AcoustID brauchen einen kostenlosen Schlüssel (*Einstellungen → Online*).
+Ohne Anmeldung nutzbar – nur Discogs, Last.fm und AcoustID brauchen einen kostenlosen Schlüssel (*Einstellungen → Online*).
 
 ### 🔎 Schnellfilter – auch über die ganze Sammlung
 
@@ -293,18 +293,19 @@ Die Namen sind unter *Einstellungen → Cover* änderbar. Einzelne Alben und Tra
 <details>
 <summary><b>Brauche ich Zugangsdaten für die Online-Funktionen?</b></summary>
 
-Für MusicBrainz, Deezer, Cover-Suche und Künstlerbilder nicht. Discogs braucht einen kostenlosen Token
-(discogs.com → Settings → Developers), „Unbekannte Dateien erkennen“ einen kostenlosen AcoustID-Key
-(acoustid.org/new-application). Beides unter *Einstellungen → Online* eintragen.
+Für MusicBrainz, Deezer, iTunes, Cover-Suche und Künstlerbilder nicht. Discogs braucht einen kostenlosen Token
+(discogs.com → Settings → Developers), Last.fm einen kostenlosen API-Key (last.fm/api/account/create),
+„Unbekannte Dateien erkennen“ einen kostenlosen AcoustID-Key (acoustid.org/new-application).
+Alles unter *Einstellungen → Online* eintragen.
 </details>
 
 <details>
 <summary><b>MusicBrainz, Discogs oder Deezer – welche Quelle nehme ich?</b></summary>
 
-**MusicBrainz** zuerst: sehr genau, kennt das **Original-Jahr** und Genres. **Deezer**, wenn MusicBrainz nichts findet –
-stark bei neuer und deutscher Musik, große Cover, Label; das Jahr ist dort aber oft das der Neuauflage (dann „Jahr“
-einfach abwählen). **Discogs** für Vinyl, Raritäten und Sampler. Im Fenster wechselst du die Quelle mit einem Klick –
-die Suche bleibt stehen.
+**MusicBrainz** zuerst: sehr genau, kennt das **Original-Jahr** und Genres. **iTunes** als zweite Wahl: genaue
+Tracklisten, meist das richtige Jahr, große Cover. **Deezer** für neue und deutsche Musik, mit Label – das Jahr ist dort
+aber oft das der Neuauflage (dann „Jahr“ abwählen), Cover gibt es von Deezer nicht. **Discogs** für Vinyl, Raritäten
+und Sampler. **Last.fm** vor allem für Genres. Im Fenster wechselst du die Quelle mit einem Klick – die Suche bleibt stehen.
 </details>
 
 <details>
@@ -333,7 +334,7 @@ bub3tagmusic/
 ├── features.py       alle Funktionen als Daten → baut die Menüs
 ├── core/             ohne Qt: Tags (mutagen), Cache (SQLite), Muster, Werkzeuge, Umbenennen,
 │                     Filter, Export, Aktionen, Duplikate, Fingerabdruck, ReplayGain
-├── online/           ohne Qt: http (Limiter, Zertifikate), MusicBrainz, Discogs, Deezer, Cover, Künstlerbilder, AcoustID
+├── online/           ohne Qt: http (Limiter, Zertifikate), MusicBrainz, Discogs, Deezer, iTunes, Last.fm, Cover, Künstlerbilder, AcoustID
 └── ui/               Oberfläche: Hauptfenster, Session (Rückgängig), Hintergrund-Arbeiter, Dialoge, Themes
 packaging/            AppImage-Bau (eigenes Python 3.12, Qt 6.9, fpcalc, rsgain, verschlankt)
 tests/                Kern-, Oberflächen-, Online- (aufgezeichnet) und Leistungstests
@@ -364,7 +365,8 @@ BuB3TAGMUSIC steht auf den Schultern von
 [rsgain](https://github.com/complexlogic/rsgain) ·
 Schriften [Inter](https://rsms.me/inter/) und [Big Shoulders](https://github.com/xotypeco/big_shoulders) (SIL OFL)
 – und den Daten von [MusicBrainz](https://musicbrainz.org), [Cover Art Archive](https://coverartarchive.org),
-[Discogs](https://www.discogs.com), iTunes, Deezer und [TheAudioDB](https://www.theaudiodb.com).
+[Discogs](https://www.discogs.com), iTunes, Deezer, [Last.fm](https://www.last.fm), [TheAudioDB](https://www.theaudiodb.com)
+und [Bandcamp](https://bandcamp.com).
 
 <p align="center">
   <img src="bub3tagmusic/resources/bub3tagmusic.svg" width="56" alt=""><br>
