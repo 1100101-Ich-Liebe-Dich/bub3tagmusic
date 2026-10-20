@@ -79,12 +79,16 @@ def main():
     found = {}
     covers = coversearch.search_covers("AC/DC", "Back in Black",
                                        progress=lambda s, f, e: found.__setitem__(s, (len(f), e)))
-    eq({s: n > 0 for s, (n, _e) in found.items()}, {"Cover Art Archive": True, "iTunes": True, "Deezer": True},
-       f"alle drei Quellen liefern ({found})")
+    eq(set(found), {"Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp"}, "vier Cover-Quellen, kein Deezer mehr")
+    eq(found["Cover Art Archive"][0] > 0 and found["iTunes"][0] > 0, True, f"CAA + iTunes liefern ({found})")
+    for src, host in (("TheAudioDB", "searchalbum.php"), ("Bandcamp", "bandcamp.com/search")):
+        if recorded(host):
+            eq(found[src][0] > 0, True, f"{src} liefert ({found[src]})")
+        else:
+            print(f"   ({src} noch nicht aufgezeichnet – übersprungen)")
+    eq(coversearch.search_covers("AC/DC", "Back in Black", ("Deezer",)), [], "alte Einstellung „Deezer“ wird ignoriert")
     it = next(c for c in covers if c.source == "iTunes")
     eq(("3000x3000" in it.url, it.size_text), (True, "bis 3000 px"), "iTunes in groß")
-    dz = next(c for c in covers if c.source == "Deezer")
-    eq(dz.size_text, "1000 × 1000", "Deezer 1000 px")
     caa = next(c for c in covers if c.source == "Cover Art Archive")
     eq(caa.thumb_url.startswith("https://"), True, "CAA über https")
     eq(len(coversearch.thumbnail(caa)) > 1000, True, "Vorschaubild geladen")
@@ -181,8 +185,10 @@ def main():
     eq((m.album, m.tags().get("disc")), ("Ein Schritt", "2/2"), "AcoustID: Album aus den Tags hat Vorrang (mit Disc)")
 
     test_deezer_structure()
+    test_new_sources_structure()
     use_fixtures(misses)
     test_deezer_recorded()
+    test_new_sources_recorded()
 
     def offline(url, headers):
         raise urllib.error.URLError("Name or service not known")
@@ -194,7 +200,11 @@ def main():
         eq("Keine Verbindung zu MusicBrainz" in str(exc), True, "ohne Internet: verständliche Meldung")
     eq(seconds("1:02:03"), 3723.0, "Zeit 1:02:03")
 
-    unexpected = [u for u in misses if "front-250" not in u and "gibtsnicht" not in u]
+    # Neue Quellen, die noch nie aufgezeichnet wurden, zählen nicht
+    pending = [e for e in ("searchalbum.php", "bandcamp.com/search", "itunes.apple.com/lookup", "audioscrobbler")
+               if not recorded(e)]
+    unexpected = [u for u in misses if "front-250" not in u and "gibtsnicht" not in u
+                  and not any(e in u for e in pending)]
     eq(unexpected, [], "keine unerwarteten Anfragen (alles aus der Aufnahme)")
     http.set_transport(None)
     print()
@@ -241,8 +251,8 @@ def test_deezer_structure():
     http.set_transport(fake)
     res = deezer.search_albums("The Beatles", "Abbey Road")
     eq([m.source_id for m in res], ["1", "2"], "Deezer-Suche: Album vor Single")
-    eq((res[0].track_total, res[0].formats, res[0].cover_full_url.endswith("1000x1000.jpg")), (17, "Album", True),
-       "Deezer-Suche: Trackzahl, Art, großes Cover")
+    eq((res[0].track_total, res[0].formats, res[0].cover_url, res[0].cover_full_url), (17, "Album", "", ""),
+       "Deezer-Suche: Trackzahl, Art – und keine Cover")
     a = deezer.get_album("1")
     eq((a.year, a.label, a.genre, a.original_year), ("2015", "EMI Catalogue", "Rock", ""), "Deezer-Album: Jahr/Label/Genre")
     eq([(t.disc, t.position, t.track_total) for t in a.tracks], [(1, 1, 2), (1, 2, 2), (2, 1, 1)],
@@ -266,6 +276,134 @@ def test_deezer_structure():
                       ("Song (Club Mix)", "Song (Club Mix)"), ("Abbey Road (Super Deluxe Edition)", "Abbey Road")):
         eq(strip_edition(raw), want, f"Zusatz: {raw}")
     http.clear_cache()
+
+
+def recorded(fragment: str) -> bool:
+    from online_fixtures import load_index
+    return any(fragment in u for u in load_index())
+
+
+def test_new_sources_structure():
+    """iTunes, Last.fm, TheAudioDB, Bandcamp – Antworten nach echter Struktur (ohne Aufnahme)."""
+    import json
+
+    from bub3tagmusic.online import itunes, lastfm
+    search = {"resultCount": 2, "results": [
+        {"wrapperType": "collection", "collectionId": 5, "collectionName": "Back in Black", "artistName": "AC/DC",
+         "artworkUrl100": "https://is1.mzstatic.com/x/100x100bb.jpg", "trackCount": 10,
+         "releaseDate": "1980-07-25T07:00:00Z", "primaryGenreName": "Hard Rock", "country": "DEU"},
+        {"wrapperType": "collection", "collectionId": 6, "collectionName": "Back in Black (Tribute)",
+         "artistName": "Somebody", "artworkUrl100": "", "trackCount": 10}]}
+    lookup = {"resultCount": 3, "results": [
+        search["results"][0],
+        {"wrapperType": "track", "kind": "song", "trackName": "Shoot to Thrill", "artistName": "AC/DC",
+         "trackNumber": 2, "trackCount": 10, "discNumber": 1, "trackTimeMillis": 317000},
+        {"wrapperType": "track", "kind": "song", "trackName": "Hells Bells (Remastered)", "artistName": "AC/DC",
+         "trackNumber": 1, "trackCount": 10, "discNumber": 1, "trackTimeMillis": 312000}]}
+    lf_search = {"results": {"albummatches": {"album": [
+        {"name": "Back in Black", "artist": "AC/DC", "mbid": "x"},
+        {"name": "(null)", "artist": "AC/DC"}]}}}
+    lf_info = {"album": {"name": "Back in Black", "artist": "AC/DC", "tags": {"tag": [
+        {"name": "seen live"}, {"name": "1980"}, {"name": "hard rock"}]},
+        "tracks": {"track": [{"name": "Hells Bells", "duration": 312, "@attr": {"rank": 1},
+                              "artist": {"name": "AC/DC"}},
+                             {"name": "Shoot to Thrill", "duration": None, "@attr": {"rank": 2},
+                              "artist": {"name": "AC/DC"}}]}}}
+    lf_one = {"album": {"name": "Single", "artist": "X", "tracks": {"track": {"name": "Nur eins", "duration": 200,
+                                                                         "@attr": {"rank": 1}}}}}
+    adb = {"album": [{"strAlbum": "Back in Black", "strArtist": "AC/DC", "intYearReleased": "1980",
+                      "strAlbumThumb": "https://r2.theaudiodb.com/images/media/album/thumb/bib.jpg"}]}
+    bc = ('<ul><li class="searchresult data-search" data-search="{}"><a class="artcont" href="x">'
+          '<div class="art"><img src="https://f4.bcbits.com/img/a1234567890_7.jpg"></div></a>'
+          '<div class="result-info"><div class="itemtype">ALBUM</div><div class="heading"><a href="x">'
+          ' Back in Black &amp; Blue </a></div><div class="subhead">by Kiel Band</div></div></li>'
+          '<li class="searchresult data-search"><div class="art"><img src="https://f4.bcbits.com/img/a1_7.jpg">'
+          '</div><div class="itemtype">ARTIST</div><div class="heading"><a>Nur Künstler</a></div></li></ul>')
+    calls = []
+
+    def fake(url, headers):
+        calls.append(url)
+        if "itunes.apple.com/search" in url:
+            return 200, json.dumps(search).encode()
+        if "itunes.apple.com/lookup" in url:
+            return 200, json.dumps(lookup).encode()
+        if "audioscrobbler" in url:
+            if "api_key=falsch" in url:
+                return 403, json.dumps({"error": 10, "message": "Invalid API key"}).encode()
+            if "album.search" in url:
+                return 200, json.dumps(lf_search).encode()
+            if "album=Single" in url:
+                return 200, json.dumps(lf_one).encode()
+            if "album=Gibtsnicht" in url:
+                return 200, json.dumps({"error": 6, "message": "Album not found"}).encode()
+            return 200, json.dumps(lf_info).encode()
+        if "searchalbum.php" in url:
+            return 200, json.dumps(adb).encode()
+        if "bandcamp.com/search" in url:
+            return 200, bc.encode()
+        return 404, b""
+    http.clear_cache()
+    http.set_transport(fake)
+    res = itunes.search_albums("AC/DC", "Back in Black")
+    eq((res[0].source_id, res[0].year, res[0].genre), ("5", "1980", "Hard Rock"), "iTunes-Suche: Jahr, Genre")
+    eq(res[0].cover_full_url.endswith("3000x3000bb.jpg") and res[0].cover_url.endswith("250x250bb.jpg"), True,
+       "iTunes: Cover 3000 px, Vorschau 250 px")
+    a = itunes.get_album("5")
+    eq([(t.position, t.title, round(t.length)) for t in a.tracks],
+       [(1, "Hells Bells (Remastered)", 312), (2, "Shoot to Thrill", 317)], "iTunes: Tracks sortiert, Längen")
+    eq(matching.tags_for(a, 0, {"title"}, clean=True)["title"], "Hells Bells", "iTunes: Remaster-Zusatz weg")
+    try:
+        lastfm.search_albums("AC/DC", "Back in Black", "")
+        FAILS.append("Last.fm ohne Key nicht abgefangen")
+    except OnlineError as exc:
+        eq("API-Key" in str(exc), True, "Last.fm ohne Key: klare Meldung")
+    res = lastfm.search_albums("AC/DC", "Back in Black", "k")
+    eq([m.album for m in res], ["Back in Black"], "Last.fm-Suche ohne „(null)“")
+    a = lastfm.get_album(res[0].source_id, "k")
+    eq((a.genre, a.year, len(a.tracks), a.tracks[1].length, a.cover_full_url), ("Hard Rock", "", 2, 0.0, ""),
+       "Last.fm: Genre aus Tags (ohne „seen live“/„1980“), kein Jahr, kein Cover")
+    one = lastfm.get_album(f"X{lastfm.SEP}Single", "k")
+    eq([t.title for t in one.tracks], ["Nur eins"], "Last.fm: einzelner Track (Objekt statt Liste)")
+    try:
+        lastfm.get_album(f"X{lastfm.SEP}Gibtsnicht", "k")
+        FAILS.append("Last.fm: unbekanntes Album nicht gemeldet")
+    except OnlineError as exc:
+        eq("kennt dieses Album nicht" in str(exc), True, "Last.fm: unbekanntes Album")
+    try:
+        lastfm.search_albums("AC/DC", "Back in Black", "falsch")
+        FAILS.append("Last.fm: falscher Key nicht gemeldet")
+    except OnlineError as exc:
+        eq(str(exc), "Last.fm-API-Key ungültig – in Einstellungen → Online prüfen", "Last.fm: falscher Key (403)")
+    c = coversearch.from_audiodb("AC/DC", "Back in Black")
+    eq((c[0].url.endswith("bib.jpg"), c[0].thumb_url.endswith("/preview"), "(1980)" in c[0].description),
+       (True, True, True), "TheAudioDB: Cover + Vorschau")
+    eq(coversearch.from_audiodb("", "Back in Black"), [], "TheAudioDB braucht den Interpreten")
+    c = coversearch.from_bandcamp("AC/DC", "Back in Black")
+    eq([(x.description, x.url, x.thumb_url) for x in c],
+       [("Back in Black & Blue – Kiel Band", "https://f4.bcbits.com/img/a1234567890_10.jpg",
+         "https://f4.bcbits.com/img/a1234567890_2.jpg")], "Bandcamp: nur Alben, 1200 px, Text ohne HTML")
+    http.clear_cache()
+
+
+def test_new_sources_recorded():
+    """Echte Antworten von iTunes, Last.fm, TheAudioDB, Bandcamp – nur, was schon aufgezeichnet ist."""
+    from bub3tagmusic.online import itunes, lastfm
+    if recorded("itunes.apple.com/lookup"):
+        res = itunes.search_albums("AC/DC", "Back in Black")
+        eq((res[0].albumartist, "Back in Black" in res[0].album), ("AC/DC", True), f"iTunes: {res[0].album}")
+        a = itunes.get_album(res[0].source_id)
+        eq((len(a.tracks), a.tracks[0].position, a.year), (10, 1, "1980"), f"iTunes: Back in Black ({a.tracks[0].title})")
+        wall = itunes.get_album(itunes.search_albums("Pink Floyd", "The Wall")[0].source_id)
+        eq((wall.disc_total, len(wall.tracks)), (2, 26), "iTunes: The Wall mit 2 Discs")
+    else:
+        print("   (iTunes-Alben noch nicht aufgezeichnet – übersprungen)")
+    if recorded("album.getinfo"):
+        res = lastfm.search_albums("AC/DC", "Back in Black", "TESTKEY")
+        a = lastfm.get_album(res[0].source_id, "TESTKEY")
+        eq((a.albumartist, len(a.tracks) >= 10, bool(a.genre)), ("AC/DC", True, True),
+           f"Last.fm: {a.album}, {len(a.tracks)} Tracks, Genre {a.genre!r}")
+    else:
+        print("   (Last.fm noch nicht aufgezeichnet – übersprungen; braucht das GitHub-Secret LASTFM_KEY)")
 
 
 def test_deezer_recorded():

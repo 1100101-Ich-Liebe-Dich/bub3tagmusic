@@ -4,8 +4,7 @@ name: Testdaten aufzeichnen
 # Discogs, TheAudioDB und AcoustID auf und legt sie nach tests/fixtures/online.
 # Auslösen: Datei tests/fixtures/online/RECORD ändern (oder per Hand in GitHub).
 on:
-  push:
-    branches: [main]
+  push:                      # auf jedem Zweig – die Aufnahme landet im selben Zweig (Pull Request)
     paths: ["tests/fixtures/online/RECORD"]
   workflow_dispatch:
 
@@ -28,6 +27,7 @@ jobs:
       - name: Aufzeichnen
         env:
           ACOUSTID_KEY: ${{ secrets.ACOUSTID_KEY }}
+          LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
         run: python tests/record_online.py
 
       - name: Ins Repository legen

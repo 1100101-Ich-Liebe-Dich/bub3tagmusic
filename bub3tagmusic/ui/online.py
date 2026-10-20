@@ -22,7 +22,7 @@ from .. import features
 from ..core.covers import find_folder_image, prepare_for_embedding, save_image_file
 from ..core.fields import FIELD_BY_KEY
 from ..core.model import FileItem
-from ..online import artistimages, coversearch, deezer, discogs, matching, musicbrainz
+from ..online import artistimages, coversearch, deezer, discogs, itunes, lastfm, matching, musicbrainz
 from ..online.base import AlbumMatch, CoverCandidate
 from ..online.http import get_image
 from . import icons, theme
@@ -261,9 +261,11 @@ ALBUM_FIELDS = (
     ("label", "Label"), ("originalyear", "Original-Jahr"),
 )
 ALBUM_FIELDS_VERSION = 2          # 2 = Label + Original-Jahr (1.1) – bei alten Einstellungen einmal dazunehmen
-ALBUM_SOURCES = ("MusicBrainz", "Discogs", "Deezer")
+ALBUM_SOURCES = ("MusicBrainz", "Discogs", "Deezer", "iTunes", "Last.fm")
 SOURCE_HINTS = {
-    "Deezer": "Bei Deezer ist das Jahr oft das der Neuauflage – Original-Jahr kennt nur MusicBrainz",
+    "Deezer": "Deezer: Jahr oft das der Neuauflage · Cover gibt es hier nicht – dafür Cover suchen (Strg+K)",
+    "Last.fm": "Last.fm: Titel, Längen und Genre – kein Jahr, kein Label, kein Cover",
+    "iTunes": "",
     "Discogs": "",
     "MusicBrainz": "",
 }
@@ -414,6 +416,10 @@ class AlbumSearchDialog(OnlineDialog):
             fn, args = discogs.search_albums, (artist, album, self.settings.discogs_token)
         elif self.source == "Deezer":
             fn, args = deezer.search_albums, (artist, album)
+        elif self.source == "iTunes":
+            fn, args = itunes.search_albums, (artist, album)
+        elif self.source == "Last.fm":
+            fn, args = lastfm.search_albums, (artist, album, self.settings.lastfm_key)
         else:
             fn, args = musicbrainz.search_albums, (artist, album, self.settings.musicbrainz_contact)
         self.run(fn, *args, done=self._results)
@@ -456,6 +462,10 @@ class AlbumSearchDialog(OnlineDialog):
             fn, args = discogs.get_album, (m.source_id, self.settings.discogs_token)
         elif m.source == "Deezer":
             fn, args = deezer.get_album, (m.source_id,)
+        elif m.source == "iTunes":
+            fn, args = itunes.get_album, (m.source_id,)
+        elif m.source == "Last.fm":
+            fn, args = lastfm.get_album, (m.source_id, self.settings.lastfm_key)
         else:
             fn, args = musicbrainz.get_album, (m.source_id, self.settings.musicbrainz_contact)
         self.run(fn, *args, done=lambda full, k=key, r=row: self._loaded(k, r, full))
@@ -571,7 +581,7 @@ class AlbumSearchDialog(OnlineDialog):
         if self._cover_all and m.cover_full_url:
             self.apply_btn.setEnabled(False)
             self.set_status("Lade Cover in voller Größe …")
-            self.run(get_image, m.cover_full_url, done=lambda data: self._finish(label, data),
+            self.run(coversearch.download_url, m.cover_full_url, done=lambda data: self._finish(label, data),
                      failed=lambda msg: (self.set_status(f"Cover nicht geladen ({msg}) – Tags werden trotzdem übernommen",
                                                          "modified"), self._finish(label, None)))
         else:
@@ -908,6 +918,8 @@ ONLINE_DIALOGS = {
     "musicbrainz": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "MusicBrainz"),
     "discogs": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Discogs"),
     "deezer": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Deezer"),
+    "itunes": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "iTunes"),
+    "lastfm": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Last.fm"),
     "cover_search": CoverSearchDialog,
     "artist_image": ArtistImageDialog,
 }

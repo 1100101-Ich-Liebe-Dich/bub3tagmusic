@@ -19,7 +19,8 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 from online_fixtures import ALBUMS, ARTISTS, DEEZER_ALBUMS, DISCOGS_RELEASES, FIXTURES  # noqa: E402
 
-from bub3tagmusic.online import acoustid, artistimages, coversearch, deezer, discogs, http, musicbrainz  # noqa: E402
+from bub3tagmusic.online import (acoustid, artistimages, coversearch, deezer, discogs, http, itunes,  # noqa: E402
+                                 lastfm, musicbrainz)
 from bub3tagmusic.online.base import OnlineError  # noqa: E402
 
 index: dict[str, str] = {}
@@ -29,6 +30,7 @@ notes: list[str] = []
 # AcoustID braucht einen Key: GitHub-Secret ACOUSTID_KEY, sonst der Beispiel-Key aus der Doku.
 # In den Aufnahmen steht immer „TESTKEY“ – ein echter Key landet so nie im Repository.
 ACOUSTID_KEY = os.environ.get("ACOUSTID_KEY") or "zYspohqt0AM"
+LASTFM_KEY = os.environ.get("LASTFM_KEY", "")        # GitHub-Secret; ohne wird Last.fm übersprungen
 TEST_KEY = "TESTKEY"
 
 
@@ -55,6 +57,8 @@ def recorder(url, headers):
         return exc.code, body
     if status == 200:
         stored = url.replace(f"client={ACOUSTID_KEY}", f"client={TEST_KEY}")
+        if LASTFM_KEY:
+            stored = stored.replace(f"api_key={LASTFM_KEY}", f"api_key={TEST_KEY}")
         ext = ".json" if body[:1] in (b"{", b"[") else ".bin"
         name = hashlib.sha1(stored.encode()).hexdigest()[:16] + ext
         with open(os.path.join(FIXTURES, name), "wb") as fh:
@@ -140,6 +144,36 @@ def record_deezer(artist: str, album: str):
         note(f"Deezer Fehler {artist} – {album}: {exc}")
 
 
+def record_itunes(artist: str, album: str):
+    try:
+        res = itunes.search_albums(artist, album)
+        note(f"iTunes Suche {artist} – {album}: {len(res)} Treffer; erste: "
+             + "; ".join(f"{m.album} / {m.albumartist} / {m.year} / {m.track_total} / Score {m.score}" for m in res[:3]))
+        if res:
+            a = itunes.get_album(res[0].source_id)
+            t0 = a.tracks[0] if a.tracks else None
+            note(f"iTunes Album {a.album}: {len(a.tracks)} Tracks, {a.disc_total} Disc(s), Jahr {a.year}, "
+                 f"Genre '{a.genre}'" + (f", Track1 '{t0.title}' {t0.position}/{t0.track_total} {t0.length:.0f}s" if t0 else ""))
+    except OnlineError as exc:
+        note(f"iTunes Fehler {artist} – {album}: {exc}")
+
+
+def record_lastfm(artist: str, album: str):
+    if not LASTFM_KEY:
+        note("Last.fm übersprungen – GitHub-Secret LASTFM_KEY fehlt")
+        return
+    try:
+        res = lastfm.search_albums(artist, album, LASTFM_KEY)
+        note(f"Last.fm Suche {artist} – {album}: {len(res)} Treffer; erste: "
+             + "; ".join(f"{m.album} / {m.albumartist} / Score {m.score}" for m in res[:3]))
+        if res:
+            a = lastfm.get_album(res[0].source_id, LASTFM_KEY)
+            note(f"Last.fm Album {a.album}: {len(a.tracks)} Tracks, Genre '{a.genre}'"
+                 + (f", Track1 '{a.tracks[0].title}' {a.tracks[0].length:.0f}s" if a.tracks else ""))
+    except OnlineError as exc:
+        note(f"Last.fm Fehler {artist} – {album}: {exc}")
+
+
 def note(text: str):
     notes.append(text)
     print(text)
@@ -198,6 +232,9 @@ def main():
 
     for artist, album in ALBUMS + DEEZER_ALBUMS:
         record_deezer(artist, album)
+    for artist, album in ALBUMS:
+        record_itunes(artist, album)
+        record_lastfm(artist, album)
 
     record_acoustid()
 

@@ -30,6 +30,9 @@ HOST_NAMES = {
     "api.discogs.com": "Discogs",
     "www.theaudiodb.com": "TheAudioDB",
     "api.acoustid.org": "AcoustID",
+    "audioscrobbler.com": "Last.fm",
+    "bandcamp.com": "Bandcamp",
+    "bcbits.com": "Bandcamp",
 }
 
 MAX_BYTES = 40 * 1024 * 1024
@@ -144,14 +147,20 @@ def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, 
             raise NotFound(f"{name}: nichts gefunden")
         if status == 401:
             raise OnlineError(f"{name} lehnt die Anfrage ab – Zugangsdaten (Token) prüfen")
-        if status == 400 and body[:1] == b"{":
+        if status in (400, 403) and body[:1] == b"{":
+            # AcoustID: {"error": {"code", "message"}} · Last.fm: {"error": 10, "message": "…"}
+            code, msg = None, ""
             try:
-                err = json.loads(body.decode("utf-8")).get("error")
-                msg = err.get("message") if isinstance(err, dict) else str(err or "")
+                data = json.loads(body.decode("utf-8"))
+                err = data.get("error")
+                if isinstance(err, dict):
+                    code, msg = err.get("code"), err.get("message") or ""
+                else:
+                    code, msg = err, data.get("message") or (str(err) if err else "")
             except (ValueError, UnicodeDecodeError, AttributeError):
-                msg = ""
+                pass
             if msg:
-                raise OnlineError(f"{name} lehnt die Anfrage ab: {msg}")
+                raise ApiError(f"{name} lehnt die Anfrage ab: {msg}", code, msg)
         if status >= 400:
             raise OnlineError(f"{name} antwortet mit Fehler {status} – später nochmal versuchen")
         if use_cache:
@@ -165,6 +174,14 @@ def fetch(url: str, params: dict | None = None, *, headers: dict | None = None, 
 
 class NotFound(OnlineError):
     pass
+
+
+class ApiError(OnlineError):
+    """Fehler mit Code aus der Antwort des Dienstes (z. B. Last.fm 10 = ungültiger Key)."""
+
+    def __init__(self, text: str, code=None, message: str = ""):
+        super().__init__(text)
+        self.code, self.message = code, message
 
 
 def get_json(url: str, params: dict | None = None, **kw) -> dict:

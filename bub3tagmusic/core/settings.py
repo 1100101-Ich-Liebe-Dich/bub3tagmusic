@@ -63,6 +63,7 @@ class Settings:
     # --- Online (Phase 3) ---------------------------------------------
     discogs_token: str = ""
     acoustid_key: str = ""               # Phase 4
+    lastfm_key: str = ""                 # 1.1.2
     musicbrainz_contact: str = ""        # E-Mail für den User-Agent (MusicBrainz-Regel)
 
     # ------------------------------------------------------------------
