@@ -142,7 +142,7 @@ Beispiel-Aktionen sind schon dabei.
 
 | Funktion | Was sie macht |
 |---|---|
-| **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs**, **Deezer**, **iTunes** oder **Last.fm** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. |
+| **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs**, **Deezer**, **iTunes** oder **Last.fm** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. **Alle Quellen** fragt alle Dienste gleichzeitig; **Übernehmen & weiter** (Strg+→) speichert und sucht gleich im nächsten Ordner – ohne das Fenster zu schließen. |
 | **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px), TheAudioDB und Bandcamp als Bildergitter. Einbetten und/oder `cover.jpg`. |
 | **Künstlerbild suchen** (Strg+J) | Fotos von TheAudioDB, Bandcamp, Discogs (mit Token) und Wikipedia → `folder.jpg` im Künstler-Ordner. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
@@ -341,7 +341,7 @@ tests/                Kern-, Oberflächen-, Online- (aufgezeichnet) und Leistung
 docs/                 Bilder für diese Seite (neu erzeugen: python3 docs/make_images.py)
 ```
 
-Bei jedem Hochladen laufen alle Tests auf GitHub (Python 3.10, 3.11, 3.13) und das AppImage wird gebaut und auf einem
+Bei jedem Hochladen laufen alle Tests auf GitHub (Python 3.10 und 3.13) und das AppImage wird gebaut und auf einem
 echten X-Bildschirm gestartet. Die Online-Tests spielen echte, aufgezeichnete Antworten ab.
 Fahrplan und Entscheidungen: [BuB3TAGMUSIC.md](BuB3TAGMUSIC.md) · Arbeitsnotizen: [CLAUDE.md](CLAUDE.md)
 </details>

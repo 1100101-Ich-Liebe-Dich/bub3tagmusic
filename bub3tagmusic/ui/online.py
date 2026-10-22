@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import os
 import re
+import time
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QFont, QIcon, QPainter, QPainterPath, QPixmap
+from PySide6.QtGui import QFont, QIcon, QKeySequence, QPainter, QPainterPath, QPixmap, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QFrame, QHBoxLayout, QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea,
                                QSplitter,
@@ -110,7 +111,8 @@ class OnlineDialog(QDialog):
         title = QLabel(name)
         title.setProperty("role", "heading")
         tbox.addWidget(title)
-        tbox.addWidget(hint(scope, "muted"))
+        self.scope_label = hint(scope, "muted")
+        tbox.addWidget(self.scope_label)
         top.addLayout(tbox, 1)
         hl.addLayout(top)
         self.search_row = QHBoxLayout()
@@ -123,7 +125,7 @@ class OnlineDialog(QDialog):
         root.addLayout(self.body, 1)
 
         foot = QWidget(objectName="ToolFoot")
-        fl = QHBoxLayout(foot)
+        fl = self.foot_layout = QHBoxLayout(foot)
         fl.setContentsMargins(20, 12, 20, 12)
         fl.setSpacing(10)
         self.status = QLabel()
@@ -240,8 +242,9 @@ class _ResultDelegate(QStyledItemDelegate):
         p.drawText(QRect(x, r.top() + 25, w, 16), Qt.AlignmentFlag.AlignLeft,
                    fm.elidedText(m.albumartist, Qt.TextElideMode.ElideRight, w))
         p.setPen(theme.qcolor("faint"))
+        details = index.data(Qt.ItemDataRole.UserRole + 1) or m.details      # bei „Alle Quellen“ mit Quelle
         p.drawText(QRect(x, r.top() + 42, w, 16), Qt.AlignmentFlag.AlignLeft,
-                   fm.elidedText(m.details, Qt.TextElideMode.ElideRight, w))
+                   fm.elidedText(details, Qt.TextElideMode.ElideRight, w))
         # Passt-Wert als kleine Pille
         score = max(0, min(100, m.score))
         role = "done" if score >= 85 else ("modified" if score >= 60 else "faint")
@@ -262,6 +265,7 @@ ALBUM_FIELDS = (
 )
 ALBUM_FIELDS_VERSION = 2          # 2 = Label + Original-Jahr (1.1) – bei alten Einstellungen einmal dazunehmen
 ALBUM_SOURCES = ("MusicBrainz", "Discogs", "Deezer", "iTunes", "Last.fm")
+ALL_SOURCES = "Alle"             # alle Quellen auf einmal (1.1.4)
 SOURCE_HINTS = {
     "Deezer": "Deezer: Jahr oft das der Neuauflage · Cover gibt es hier nicht – dafür Cover suchen (Strg+K)",
     "Last.fm": "Last.fm: Titel, Längen und Genre – kein Jahr, kein Label, kein Cover",
@@ -275,8 +279,13 @@ class AlbumSearchDialog(OnlineDialog):
     feature_id = "musicbrainz"
     title = "Album suchen"
 
-    def __init__(self, win, items, scope, source: str = "MusicBrainz"):
-        self.source = source
+    def __init__(self, win, items, scope, source: str | None = None):
+        # Strg+L (ohne feste Quelle) nimmt die zuletzt benutzte – auch „Alle Quellen“
+        self.source = source or dict(win.settings.tool_options.get("musicbrainz", {})).get("source", "MusicBrainz")
+        if self.source not in (*ALBUM_SOURCES, ALL_SOURCES):
+            self.source = "MusicBrainz"
+        self._search_id = 0
+        self._then_next = False
         self._lookups: dict[tuple[str, str], AlbumMatch] = {}
         self._current: AlbumMatch | None = None
         self._changes: list = []
@@ -284,13 +293,16 @@ class AlbumSearchDialog(OnlineDialog):
         self._cover_bytes: bytes | None = None
         super().__init__(win, items, scope)
         artist, album = guess_search(items)
+        self.opts["source"] = self.source
 
         self.artist = self.search_field("Interpret", artist)
         self.album = self.search_field("Album", album)
         self.src = {}
-        for name in ALBUM_SOURCES:
-            c = chip(name, checkable=True)
-            c.setChecked(name == source)
+        for name in (*ALBUM_SOURCES, ALL_SOURCES):
+            c = chip("Alle Quellen" if name == ALL_SOURCES else name, checkable=True,
+                     tooltip="Alle Dienste gleichzeitig fragen – Treffer zeigen, woher sie kommen"
+                     if name == ALL_SOURCES else "")
+            c.setChecked(name == self.source)
             c.clicked.connect(lambda _=False, n=name: self._set_source(n))
             self.src[name] = c
             self.search_row.addWidget(c)
@@ -390,7 +402,33 @@ class AlbumSearchDialog(OnlineDialog):
         split.setSizes([360, 740])
         self.body.addWidget(split)
 
-        self.foot_hint.setText("Danach gelb markiert · Strg+S speichert · Strg+Z nimmt zurück")
+        # Ordner für Ordner ohne das Fenster zu schließen (1.1.4). Der Hinweistext weicht den Knöpfen
+        # (sonst wird die Statuszeile gequetscht) und steht stattdessen im Tooltip von „Übernehmen“.
+        self.foot_hint.hide()
+        self.apply_btn.setToolTip("Übernehmen und Fenster schließen – danach gelb markiert, Strg+S speichert, "
+                                  "Strg+Z nimmt zurück")
+        fl = self.foot_layout
+        self.skip_btn = QPushButton("Nächster Ordner")
+        self.skip_btn.setIcon(icons.icon("skip-forward", "text"))
+        self.skip_btn.setToolTip("Nichts übernehmen – speichern, Ordner abhaken und im nächsten Ordner weitersuchen")
+        self.skip_btn.clicked.connect(lambda: self._advance())
+        fl.insertWidget(fl.indexOf(self.apply_btn), self.skip_btn)
+        self.apply_btn.setProperty("kind", "")
+        self.apply_btn.setMinimumWidth(130)
+        self.next_btn = QPushButton("Übernehmen && weiter")
+        self.next_btn.setProperty("kind", "primary")
+        self.next_btn.setMinimumWidth(200)
+        self.next_btn.setEnabled(False)
+        self.next_btn.setToolTip("Übernehmen, speichern, Ordner abhaken und gleich im nächsten Ordner suchen "
+                                 "(Strg+→ / Strg+Enter)")
+        self.next_btn.clicked.connect(self._apply_next)
+        fl.addWidget(self.next_btn)
+        for keys in ("Ctrl+Right", "Ctrl+Return", "Ctrl+Enter"):
+            QShortcut(QKeySequence(keys), self, self._apply_next)
+        if self.win.is_result_list:                  # Suchergebnis statt Ordner: es gibt kein „weiter“
+            self.skip_btn.hide()
+            self.next_btn.hide()
+            self.apply_btn.setProperty("kind", "primary")
         self._show_details(None)
         if self.album.text().strip():
             QTimer.singleShot(0, self.search)
@@ -400,9 +438,54 @@ class AlbumSearchDialog(OnlineDialog):
     # --- Suche ----------------------------------------------------------------------
     def _set_source(self, name: str):
         self.source = name
+        self.opts["source"] = name
         for n, c in self.src.items():
             c.setChecked(n == name)
         self.search()
+
+    def done(self, r):
+        self.store_options()                         # gewählte Quelle (auch „Alle Quellen“) für Strg+L merken
+        super().done(r)
+
+    def _source_call(self, source: str, artist: str, album: str):
+        """(Funktion, Argumente) für die Suche bei einer Quelle – None, wenn ein Schlüssel fehlt."""
+        s = self.settings
+        if source == "Discogs":
+            return (discogs.search_albums, (artist, album, s.discogs_token)) if s.discogs_token else None
+        if source == "Last.fm":
+            return (lastfm.search_albums, (artist, album, s.lastfm_key)) if s.lastfm_key else None
+        if source == "Deezer":
+            return deezer.search_albums, (artist, album)
+        if source == "iTunes":
+            return itunes.search_albums, (artist, album)
+        return musicbrainz.search_albums, (artist, album, s.musicbrainz_contact)
+
+    def _search_all(self, artist: str, album: str):
+        self._search_id += 1
+        sid = self._search_id
+        calls, skipped = [], []
+        for src in ALBUM_SOURCES:
+            call = self._source_call(src, artist, album)
+            (calls.append((src, call)) if call else skipped.append(src))
+        self._all = {"left": len(calls), "total": len(calls), "found": [], "failed": [], "skipped": skipped}
+        self.set_status(f"Suche bei {len(calls)} Quellen …")
+        for src, (fn, args) in calls:              # alle gleichzeitig – jede Quelle hat ihre eigene Bremse
+            self.run(fn, *args, done=lambda res, sid=sid: self._part(sid, res, ""),
+                     failed=lambda msg, sid=sid, n=src: self._part(sid, [], f"{n}: {msg}"))
+
+    def _part(self, sid: int, matches: list, error: str):
+        if sid != self._search_id:                   # alte Suche – inzwischen neu gesucht
+            return
+        a = self._all
+        a["left"] -= 1
+        a["found"] += matches
+        if error:
+            a["failed"].append(error)
+        if a["left"] > 0:
+            self.set_status(f"Suche bei {a['total']} Quellen … ({a['total'] - a['left']} fertig, "
+                            f"{len(a['found'])} Treffer)")
+            return
+        self._results(a["found"])
 
     def search(self):
         artist, album = self.artist.text().strip(), self.album.text().strip()
@@ -411,35 +494,53 @@ class AlbumSearchDialog(OnlineDialog):
             return
         self.results.clear()
         self._show_details(None)
+        if self.source == ALL_SOURCES:
+            self._search_all(artist, album)
+            return
+        self._search_id += 1
         self.set_status(f"Suche bei {self.source} …")
-        if self.source == "Discogs":
+        if self.source == "Discogs":                 # ohne Token: verständliche Meldung von discogs.py
             fn, args = discogs.search_albums, (artist, album, self.settings.discogs_token)
-        elif self.source == "Deezer":
-            fn, args = deezer.search_albums, (artist, album)
-        elif self.source == "iTunes":
-            fn, args = itunes.search_albums, (artist, album)
         elif self.source == "Last.fm":
             fn, args = lastfm.search_albums, (artist, album, self.settings.lastfm_key)
         else:
-            fn, args = musicbrainz.search_albums, (artist, album, self.settings.musicbrainz_contact)
-        self.run(fn, *args, done=self._results)
+            fn, args = self._source_call(self.source, artist, album)
+        sid = self._search_id
+        self.run(fn, *args, done=lambda res, sid=sid: sid == self._search_id and self._results(res))
 
     def _results(self, matches: list[AlbumMatch]):
         matches = matching.rank_for_files(matches, len(self.items))
         self.results.clear()
+        every = self.source == ALL_SOURCES
+        if every:
+            matches = matching.mix_sources(matches)
         if not matches:
-            self.set_status(f"{self.source} kennt dieses Album nicht – Schreibweise prüfen oder andere Quelle wählen")
+            if every:
+                extra = "; ".join(self._all["failed"])
+                self.set_status("Keine Quelle kennt dieses Album – Schreibweise prüfen" + (f" ({extra})" if extra else ""))
+            else:
+                self.set_status(f"{self.source} kennt dieses Album nicht – Schreibweise prüfen oder andere Quelle wählen")
             return
         jobs = []
         for i, m in enumerate(matches):
             it = QListWidgetItem()
             it.setData(Qt.ItemDataRole.UserRole, m)
+            if every:                                    # woher kommt der Treffer?
+                it.setData(Qt.ItemDataRole.UserRole + 1, " · ".join(p for p in (m.source, m.details) if p))
             it.setData(Qt.ItemDataRole.DecorationRole, rounded_pixmap(None, 52, 6))
             self.results.addItem(it)
             if m.cover_url:
                 jobs.append((i, m.cover_url))
         self.load_images(jobs, self._thumb)
-        self.set_status(f"{len(matches)} Treffer bei {self.source}")
+        if every:
+            a = self._all
+            srcs = len({m.source for m in matches})
+            notes = [f"ohne Schlüssel übersprungen: {', '.join(a['skipped'])}"] if a["skipped"] else []
+            notes += a["failed"]
+            self.set_status(f"{len(matches)} Treffer aus {srcs} Quelle{'n' if srcs != 1 else ''}"
+                            + "".join(f"  ·  {n}" for n in notes), "modified" if a["failed"] else "")
+        else:
+            self.set_status(f"{len(matches)} Treffer bei {self.source}")
         self.results.setCurrentRow(0)
 
     def _thumb(self, row: int, data: bytes):
@@ -486,6 +587,7 @@ class AlbumSearchDialog(OnlineDialog):
             self.cover.setPixmap(rounded_pixmap(None, 112))
             self.model.set_preview(Preview())
             self.apply_btn.setEnabled(False)
+            self.next_btn.setEnabled(False)
             return
         self.d_title.setText(m.album)
         self.d_artist.setText(m.albumartist)
@@ -563,6 +665,7 @@ class AlbumSearchDialog(OnlineDialog):
         self._cover_all = [it for it, _ in changes] if cover else []
         self.apply_btn.setEnabled(n > 0)
         self.apply_btn.setText(f"Übernehmen ({n})" if n else "Übernehmen")
+        self.next_btn.setEnabled(n > 0)
 
     WIDTHS = {"Datei": 190, "Track": 58, "Disc": 50, "Titel": 190, "Interpret": 130, "Album": 140,
               "Albuminterpret": 130, "Jahr": 54, "Genre": 110, "Label": 120, "Original-Jahr": 92}
@@ -580,6 +683,7 @@ class AlbumSearchDialog(OnlineDialog):
         label = f"Album-Daten von {m.source} ({len(self._changes or self._cover_all)} Dateien)"
         if self._cover_all and m.cover_full_url:
             self.apply_btn.setEnabled(False)
+            self.next_btn.setEnabled(False)
             self.set_status("Lade Cover in voller Größe …")
             self.run(coversearch.download_url, m.cover_full_url, done=lambda data: self._finish(label, data),
                      failed=lambda msg: (self.set_status(f"Cover nicht geladen ({msg}) – Tags werden trotzdem übernommen",
@@ -603,8 +707,72 @@ class AlbumSearchDialog(OnlineDialog):
         else:
             n = self.session.apply_changes(self._changes, label)
             extra = ""
+        if self._then_next:
+            self._then_next = False
+            self._advance(f"{n} Datei(en) übernommen{extra}")
+            return
         self.win.toast.show_message(f"{n} Datei(en) übernommen{extra} – Strg+S speichert")
         self.accept()
+
+    # --- Übernehmen & weiter: speichern, abhaken, nächster Ordner, gleich wieder suchen ---------------
+    def _apply_next(self):
+        if not self.next_btn.isEnabled() or not self.next_btn.isVisible():
+            return
+        self._then_next = True
+        self._apply()
+
+    def _advance(self, done_text: str = ""):
+        win = self.win
+        if win.is_result_list:
+            self.accept()
+            return
+        before = list(win._loaded_dirs)
+        for b in (self.apply_btn, self.next_btn, self.skip_btn, self.search_btn):
+            b.setEnabled(False)
+        self.set_status((done_text + " · " if done_text else "") + "Speichere und gehe zum nächsten Ordner …")
+        win.save_and_next()
+        started = time.monotonic()
+
+        def poll():
+            if not self.isVisible():
+                return
+            busy = win._save_worker is not None or win._load_worker is not None
+            if not busy and win._loaded_dirs != before and win.session.items:
+                self._continue_here()
+                return
+            waited = time.monotonic() - started
+            if (not busy and waited > 2.0) or waited > 60:     # kein offener Ordner mehr oder Fehler beim Speichern
+                self.skip_btn.setEnabled(True)
+                self.search_btn.setEnabled(True)
+                self.apply_btn.setEnabled(False)
+                self.next_btn.setEnabled(False)
+                if win.session.modified_count():
+                    self.set_status("Nicht alles gespeichert – bitte im Hauptfenster nachsehen", "danger")
+                else:
+                    self.set_status("Gespeichert – kein offener Ordner mehr. Geschafft! 🎉", "done")
+                return
+            QTimer.singleShot(100, poll)
+        QTimer.singleShot(100, poll)
+
+    def _continue_here(self):
+        """Der nächste Ordner ist geladen: Dateien übernehmen, Suchbegriffe neu, gleich suchen."""
+        items, scope = self.win.tool_items()
+        self.items = items
+        self.scope_label.setText(scope)
+        self._changes, self._cover_all = [], []
+        artist, album = guess_search(items)
+        self.artist.setText(artist)
+        self.album.setText(album)
+        self.skip_btn.setEnabled(True)
+        self.search_btn.setEnabled(True)
+        self.results.clear()
+        self._show_details(None)
+        folder = os.path.basename(items[0].dir) if items else ""
+        if album:
+            self.search()
+            self.setWindowTitle(f"Album suchen – {folder}")
+        else:
+            self.set_status(f"Weiter mit „{folder}“ – Album und Interpret eingeben, dann Suchen")
 
 
 def save_cover_files(items: list[FileItem], cover, name: str, overwrite: bool = False) -> int:
@@ -936,7 +1104,9 @@ def artist_folder(items: list[FileItem]) -> str:
 
 
 ONLINE_DIALOGS = {
-    "musicbrainz": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "MusicBrainz"),
+    "musicbrainz": lambda win, items, scope: AlbumSearchDialog(win, items, scope),   # zuletzt benutzte Quelle
+    "album_mb": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "MusicBrainz"),
+    "album_all": lambda win, items, scope: AlbumSearchDialog(win, items, scope, ALL_SOURCES),
     "discogs": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Discogs"),
     "deezer": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "Deezer"),
     "itunes": lambda win, items, scope: AlbumSearchDialog(win, items, scope, "iTunes"),

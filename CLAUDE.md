@@ -79,6 +79,9 @@ nach jeder Sitzung aktuell halten.
 - Album-Quellen: `ui/online.ALBUM_SOURCES` (MusicBrainz, Discogs, Deezer, iTunes, Last.fm) – neue Quelle = Modul in `online/` mit
   `search_albums` + `get_album` → `AlbumMatch`, dann in `AlbumSearchDialog.search/_pick` eintragen. Felder, die eine
   Quelle nicht liefert, blendet die Vorschau aus. Neue Album-Felder → `ALBUM_FIELDS` + `ALBUM_FIELDS_VERSION` erhöhen.
+  „Alle Quellen“ (`ALL_SOURCES`): je Quelle ein `Job` parallel, `_source_call()` (None = Schlüssel fehlt), Ergebnis
+  über `matching.mix_sources`. „Übernehmen & weiter“: `_then_next` → `_finish` → `_advance()` ruft
+  `win.save_and_next()` und wartet per Timer, bis `win._loaded_dirs` wechselt → `_continue_here()`.
 - Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
   `ImageLoader` (beide in `ui/workers.py`). Album-Daten + Cover gemeinsam: `session.apply_changes(..., cover=CoverData)`.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
@@ -126,7 +129,8 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - Bei Oberflächen-Änderungen die Screenshots ansehen (`SHOTS=ordner tests/run_all.sh`).
 - `BuB3TAGMUSIC.md` + `CHANGELOG.md` aktualisieren, Issues schließen (`Closes #n` im Commit).
 - Commit-Nachrichten auf Deutsch, mit den Attribution-Zeilen aus den Sitzungs-Hinweisen.
-- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10, 3.11 und 3.13).
+- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10 und 3.13, je ~3 Min., Abbruch nach 20 Min.).
+  Hängt ein Lauf (z. B. `apt` auf dem GitHub-Rechner): `gh api -X POST repos/…/actions/runs/ID/cancel`, dann neu pushen.
 - Logs der Actions sind von der Arbeitsumgebung aus nicht abrufbar → Fehler lokal mit
   `uv python install 3.10` + eigener venv nachstellen.
 - Tags (`git push --tags`, Releases) sind über den Zugang hier nicht erlaubt – ebenso Repo-Einstellungen

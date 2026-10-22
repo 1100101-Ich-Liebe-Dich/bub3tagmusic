@@ -163,3 +163,21 @@ def rank_for_files(matches: list[AlbumMatch], n_files: int) -> list[AlbumMatch]:
             bonus -= 10
         return -(m.score + bonus)
     return sorted(matches, key=key)
+
+
+def mix_sources(ranked: list[AlbumMatch], good: int = 85) -> list[AlbumMatch]:
+    """„Alle Quellen“: gute Treffer abwechselnd je Quelle nach oben (sonst stehen oben nur die vielen
+    MusicBrainz-Ausgaben), danach der Rest in der bisherigen Reihenfolge."""
+    by_source: dict[str, list[AlbumMatch]] = {}
+    for m in ranked:
+        if m.score >= good:
+            by_source.setdefault(m.source, []).append(m)
+    mixed: list[AlbumMatch] = []
+    queues = list(by_source.values())                 # Reihenfolge: Quelle mit dem besten Treffer zuerst
+    while queues:
+        for q in list(queues):
+            mixed.append(q.pop(0))
+            if not q:
+                queues.remove(q)
+    seen = {id(m) for m in mixed}
+    return mixed + [m for m in ranked if id(m) not in seen]
