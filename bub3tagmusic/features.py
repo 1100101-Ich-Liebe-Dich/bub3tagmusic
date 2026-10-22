@@ -50,9 +50,15 @@ FEATURES: tuple[Feature, ...] = (
             "Doppelte Leerzeichen, Leerzeichen am Rand und störende Sonderzeichen entfernen.", ready=True),
 
     # --- Phase 3: Online ---------------------------------------------------
-    Feature("musicbrainz", "Album suchen – MusicBrainz", 3, "online", "disc",
-            "Eine Suche pro Album mit Album + Künstler. Treffer mit Trackliste, Jahr, "
-            "Label und Cover; Übernahme erst nach deiner Bestätigung.", "Ctrl+L", ready=True),
+    Feature("musicbrainz", "Album suchen …", 3, "online", "disc",
+            "Startet mit der zuletzt benutzten Quelle (anfangs MusicBrainz). Eine Suche pro Album mit Album + "
+            "Künstler; Übernahme erst nach deiner Bestätigung – auf Wunsch gleich weiter zum nächsten Ordner.",
+            "Ctrl+L", ready=True),
+    Feature("album_all", "Album suchen – alle Quellen", 3, "online", "stack",
+            "Fragt MusicBrainz, Discogs, Deezer, iTunes und Last.fm gleichzeitig; jeder Treffer zeigt, "
+            "woher er kommt. Quellen ohne Schlüssel werden übersprungen.", ready=True),
+    Feature("album_mb", "Album suchen – MusicBrainz", 3, "online", "disc",
+            "Sehr genau, mit Original-Jahr, Label und Cover.", ready=True),
     Feature("discogs", "Album suchen – Discogs", 3, "online", "disc",
             "Zweite Quelle für Album-Daten. Braucht einen kostenlosen Discogs-Token "
             "(Einstellungen → Online).", ready=True),

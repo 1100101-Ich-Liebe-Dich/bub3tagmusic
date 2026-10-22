@@ -2,6 +2,17 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.4] – 2026-10-22 – Album suchen: alle Quellen, Ordner für Ordner
+
+### Neu
+- **Alle Quellen auf einmal:** Im Album-Fenster fragt **„Alle Quellen“** MusicBrainz, Discogs, Deezer, iTunes und
+  Last.fm gleichzeitig. Jeder Treffer zeigt, woher er kommt; gute Treffer stehen abwechselnd je Quelle oben.
+  Quellen ohne Schlüssel (Discogs, Last.fm) werden übersprungen. Auch im Menü: *Online → Album suchen – alle Quellen*.
+- **Übernehmen & weiter** (Strg+→ oder Strg+Enter): übernimmt den Treffer, speichert, hakt den Ordner ab, springt
+  zum nächsten offenen Ordner und sucht dort gleich weiter – das Fenster bleibt offen.
+  **Nächster Ordner** springt weiter, ohne etwas zu übernehmen.
+- **Strg+L** startet mit der zuletzt benutzten Quelle – auch mit „Alle Quellen“.
+
 ## [1.1.3] – 2026-10-20 – Mehr Künstlerbilder
 
 ### Neu

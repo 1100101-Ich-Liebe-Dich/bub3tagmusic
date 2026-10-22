@@ -76,6 +76,12 @@ def main():
         shutil.copy(tpl, p)
         write_file(p, {"artist": "AC/DC", "albumartist": "AC/DC", "album": "Back in Black", "track": str(n),
                        "title": f"Track {n}"}, None, {"id3_version": 3})
+    second_dir = os.path.join(work, "Musik", "AC_DC", "1981 - For Those About to Rock")   # für „Übernehmen & weiter“
+    os.makedirs(second_dir)
+    for n in range(1, 3):
+        p = os.path.join(second_dir, f"{n:02d} - Lied {n}.mp3")
+        shutil.copy(tpl, p)
+        write_file(p, {"artist": "AC/DC", "album": "For Those About to Rock", "track": str(n)}, None, {"id3_version": 3})
 
     # Abspielen der Aufnahmen; fehlende große Bilder → erzeugtes JPEG
     index = load_index()
@@ -196,7 +202,8 @@ def main():
     d = O.AlbumSearchDialog(win, items, scope, "Last.fm")
     d.show()
     check(wait(app, lambda: "API-Key" in d.status.text()), f"Last.fm ohne Key: {d.status.text()[:60]}")
-    check(list(d.src) == ["MusicBrainz", "Discogs", "Deezer", "iTunes", "Last.fm"], "fünf Album-Quellen")
+    check(list(d.src) == ["MusicBrainz", "Discogs", "Deezer", "iTunes", "Last.fm", O.ALL_SOURCES],
+          "fünf Album-Quellen + „Alle Quellen“")
     d.reject()
 
     # --- Discogs ohne Token ------------------------------------------------------------------------
@@ -243,6 +250,45 @@ def main():
     d._apply()
     check(wait(app, lambda: not d.isVisible()), "Künstlerbild übernommen")
     check(os.path.exists(os.path.join(os.path.dirname(album_dir), "folder.jpg")), "folder.jpg im Künstler-Ordner")
+
+    # --- Alle Quellen + Übernehmen & weiter (1.1.4) --------------------------------------------------
+    win.tree.select_paths([album_dir])
+    check(wait(app, lambda: win._load_worker is None and len(win.session.items) == 10), "wieder Back in Black")
+    pump(app, 0.3)
+    items, scope = win.tool_items()
+    requested.clear()
+    d = O.AlbumSearchDialog(win, items, scope, O.ALL_SOURCES)
+    d.show()
+    check(wait(app, lambda: getattr(d, "_all", {}).get("left", 1) == 0 and d.results.count() > 0, 30),
+          f"alle Quellen fertig: {d.status.text()[:90]}")
+    rows = [d.results.item(i) for i in range(d.results.count())]
+    srcs = {r.data(0x0100).source for r in rows}
+    check({"MusicBrainz", "Deezer", "iTunes"} <= srcs, f"Treffer aus mehreren Quellen: {sorted(srcs)}")
+    check(all((r.data(0x0101) or "").startswith(r.data(0x0100).source) for r in rows), "jeder Treffer zeigt seine Quelle")
+    check(d._all["skipped"] == ["Discogs", "Last.fm"], f"ohne Schlüssel übersprungen: {d._all['skipped']}")
+    check(sum(1 for u in requested if "musicbrainz.org/ws/2/release/?" in u) <= 1, "MusicBrainz höchstens EINE Suche")
+    pump(app, 0.5)
+    d.grab().save(os.path.join(out, "o4_alle_quellen.png"))
+    row = next(i for i, r in enumerate(rows) if r.data(0x0100).source == "iTunes")
+    d.results.setCurrentRow(row)
+    check(wait(app, lambda: d._current is not None and d._current.source == "iTunes" and d.next_btn.isEnabled()),
+          "iTunes-Treffer gewählt, „Übernehmen & weiter“ bereit")
+    d._apply_next()
+    check(wait(app, lambda: d.items and d.items[0].dir == second_dir, 30), "nächster Ordner im selben Fenster")
+    check(d.isVisible() and d.album.text() == "For Those About to Rock", f"Suchbegriffe neu: {d.album.text()!r}")
+    check("2 ausgewählte" in d.scope_label.text(), f"Bereich neu: {d.scope_label.text()}")
+    check(win.tree.is_done(album_dir), "voriger Ordner abgehakt")
+    rec = read_file(os.path.join(album_dir, "01 - Track 1.mp3"))
+    check(rec["tags"]["title"] == "Hells Bells", "voriger Ordner gespeichert")
+    check(not d.next_btn.isEnabled() or d._current is not None, "„Übernehmen & weiter“ erst mit Treffer")
+    pump(app, 0.5)
+    d.skip_btn.click()                                   # letzter offener Ordner → fertig
+    check(wait(app, lambda: "kein offener Ordner mehr" in d.status.text(), 30), f"am Ende: {d.status.text()[:70]}")
+    check(win.tree.is_done(second_dir), "letzter Ordner abgehakt")
+    d.reject()
+    d = O.AlbumSearchDialog(win, items, scope)
+    check(d.source == O.ALL_SOURCES and d.src[O.ALL_SOURCES].isChecked(), "Strg+L merkt sich „Alle Quellen“")
+    d.reject()
 
     # Fehlerfall: ohne Netz
     http.set_transport(lambda url, h: (_ for _ in ()).throw(__import__("urllib.error").error.URLError("offline")))

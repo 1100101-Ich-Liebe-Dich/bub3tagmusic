@@ -74,6 +74,13 @@ def main():
     eq(("disc" in one, one["track"]), (False, "1/19"), "Einzel-CD: keine Disc-Nummer")
     ranked = matching.rank_for_files(res, 10)
     eq(ranked[0].track_total, 10, "Treffer mit passender Trackzahl nach oben")
+    from bub3tagmusic.online.base import AlbumMatch
+    mixed = matching.mix_sources([AlbumMatch("MusicBrainz", str(i), "a", "b", score=100) for i in range(3)]
+                                 + [AlbumMatch("iTunes", "i", "a", "b", score=96),
+                                    AlbumMatch("Deezer", "d", "a", "b", score=90),
+                                    AlbumMatch("Deezer", "x", "a", "b", score=40)])
+    eq([m.source + m.source_id for m in mixed], ["MusicBrainz0", "iTunesi", "Deezerd", "MusicBrainz1", "MusicBrainz2",
+                                                 "Deezerx"], "Alle Quellen: gute Treffer abwechselnd je Quelle")
 
     # --- Cover ------------------------------------------------------------------------------
     found = {}

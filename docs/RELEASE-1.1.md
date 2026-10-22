@@ -3,12 +3,12 @@
 Wie bei 1.0 – nur mit neuem Tag. Das AppImage baut und hängt GitHub selbst an.
 
 1. Auf GitHub: **Releases → Draft a new release**
-2. **Choose a tag:** `v1.1.3` eintippen → *Create new tag: v1.1.3 on publish* (Ziel: `main`)
+2. **Choose a tag:** `v1.1.4` eintippen → *Create new tag: v1.1.4 on publish* (Ziel: `main`)
 3. **Release title:** `BuB3TAGMUSIC 1.1 – Songtext an Bord`
 4. Text unten (zwischen den Linien) in das Beschreibungsfeld kopieren
 5. **Set as the latest release** angehakt lassen → **Publish release**
 6. Nach ein paar Minuten unter *Actions* prüfen, dass „Release – AppImage anhängen“ grün ist –
-   dann hängen `BuB3TAGMUSIC-1.1.3-x86_64.AppImage` und `SHA256SUMS.txt` am Release.
+   dann hängen `BuB3TAGMUSIC-1.1.4-x86_64.AppImage` und `SHA256SUMS.txt` am Release.
 
 Das Release 1.0.0 bleibt stehen, wie es ist.
 
@@ -27,6 +27,8 @@ Das Release 1.0.0 bleibt stehen, wie es ist.
 - **Mehr Quellen:** Album suchen auch bei **iTunes / Apple Music** und **Last.fm**; Cover suchen bei
   **Cover Art Archive, iTunes, TheAudioDB und Bandcamp**; Künstlerbilder bei **TheAudioDB, Bandcamp, Discogs und
   Wikipedia**. Deezer liefert nur noch Tags, keine Bilder.
+- **Album suchen bei allen Quellen gleichzeitig** und **„Übernehmen & weiter“**: speichert, hakt ab und sucht
+  gleich im nächsten Ordner – das Fenster bleibt offen.
 - Album suchen übernimmt jetzt auch **Label** und (MusicBrainz) **Original-Jahr**; **„Ohne Remaster-Zusätze“**
   macht aus „Titel (Remastered 2011)“ einfach „Titel“.
 
@@ -38,7 +40,7 @@ Das Release 1.0.0 bleibt stehen, wie es ist.
 - Lange Werte zeigen den Anfang statt das Ende
 
 ### Herunterladen
-`BuB3TAGMUSIC-1.1.3-x86_64.AppImage` unten unter *Assets* – ausführbar machen, Doppelklick, fertig.
+`BuB3TAGMUSIC-1.1.4-x86_64.AppImage` unten unter *Assets* – ausführbar machen, Doppelklick, fertig.
 Einstellungen, Zwischenspeicher und eigene Aktionen aus 1.0 bleiben erhalten: einfach die alte Datei ersetzen.
 
 Alle Details: [Änderungen](https://github.com/1100101-Ich-Liebe-Dich/bub3tagmusic/blob/main/CHANGELOG.md) ·
