@@ -121,6 +121,13 @@ def main():
     pump(app)
     items, scope = win.tool_items()
     check(O.guess_search(items) == ("AC/DC", "Back in Black"), f"Suchbegriffe erkannt: {O.guess_search(items)}")
+    from types import SimpleNamespace as NS
+    for folder, want in (("/m/Kielwasser (Band)/Hochsee (2020) [FLAC]", ("Kielwasser", "Hochsee")),
+                         ("/m/Kielwasser/2019 - Nebelhorn (EP)", ("Kielwasser", "Nebelhorn"))):
+        got = O.guess_search([NS(tags={}, dir=folder)])
+        check(got == want, f"ohne Klammern: {folder} → {got}")
+    got = O.guess_search([NS(tags={"album": "Hochsee [Deluxe Edition]", "albumartist": "Kielwasser"}, dir="/m/x")])
+    check(got == ("Kielwasser", "Hochsee"), f"auch aus den Tags ohne Klammern: {got}")
 
     # --- Album suchen (MusicBrainz) ------------------------------------------------------------
     d = O.AlbumSearchDialog(win, items, scope)

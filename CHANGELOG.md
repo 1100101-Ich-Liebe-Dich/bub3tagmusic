@@ -2,6 +2,20 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.5] – 2026-10-22 – Bessere Suche und Zuordnung
+
+### Neu
+- **Zuordnung über Titel / Dateiname:** Album suchen erkennt jetzt, welcher Track zu welcher Datei gehört –
+  über den Titel-Tag oder den Dateinamen. Zusätze stören nicht: „(feat. …)“, „[Live]“, „- Remastered 2011“,
+  Tracknummern und der Interpret im Dateinamen („03 - AC_DC - Hells Bells.mp3“), Groß-/Kleinschreibung, „&“/„and“,
+  Apostrophe. Bei gleichen Titeln helfen Tracknummer (auch aus dem Dateinamen) und Länge.
+  „Automatisch“ nimmt die Titel, wenn die meisten Dateien sicher erkannt werden – sonst wie bisher die Tracknummern.
+  Unsichere Treffer markiert die Vorschau mit „Titel nur ähnlich“.
+
+### Geändert
+- **Suchbegriffe ohne Klammern:** „Album (2020)“, „Album (EP)“, „Album [Deluxe]“ werden als „Album“ gesucht –
+  aus dem Ordnernamen genauso wie aus den Tags.
+
 ## [1.1.4] – 2026-10-22 – Album suchen: alle Quellen, Ordner für Ordner
 
 ### Neu

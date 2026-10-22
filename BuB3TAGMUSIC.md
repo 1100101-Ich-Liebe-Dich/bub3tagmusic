@@ -3,9 +3,10 @@
 **Moderner, schneller Musik-Tagger für Linux**
 präsentiert von [www.BAUENUNDBOOTEN.de](https://www.BAUENUNDBOOTEN.de)
 
-> **Aktueller Stand:** Version **1.1.4** (22.10.2026): Album suchen bei MusicBrainz, Discogs, Deezer (nur Tags),
+> **Aktueller Stand:** Version **1.1.5** (22.10.2026): Album suchen bei MusicBrainz, Discogs, Deezer (nur Tags),
 > iTunes und Last.fm; Cover bei Cover Art Archive, iTunes, TheAudioDB und Bandcamp; Künstlerbilder bei TheAudioDB,
 > Bandcamp, Discogs und Wikipedia. 1.1.4: Album suchen bei allen Quellen gleichzeitig + „Übernehmen & weiter“.
+> 1.1.5: Zuordnung über Titel/Dateiname, Suchbegriffe ohne Klammern.
 > Lizenz GPL-3.0.
 > 1.0.0 ist veröffentlicht (Release auf GitHub). Release 1.1: Anleitung + Text in `docs/RELEASE-1.1.md`.
 > Nächster Schritt: Praxis mit der echten Sammlung, Rückmeldungen sammeln.
@@ -262,6 +263,8 @@ und alle Tests spielen sie ab. Neu aufzeichnen: Datei `tests/fixtures/online/REC
 - [x] **1.1.4:** Album suchen – „Alle Quellen“ gleichzeitig (Treffer mit Quelle, gute Treffer gemischt);
   „Übernehmen & weiter“ / „Nächster Ordner“ im Fenster (speichert, hakt ab, sucht im nächsten Ordner weiter);
   Strg+L merkt sich die Quelle. (Ersetzt die Idee „Rückfall auf die nächste Quelle“.)
+- [x] **1.1.5:** Zuordnung „Nach Titel / Dateiname“ (auch in „Automatisch“, wenn ≥ 60 % sicher erkannt);
+  Suchbegriffe ohne Inhalt von ( ) [ ] { }.
 
 **Hilfsprogramme:** `make` packt `fpcalc` 1.5.1 und `rsgain` 3.8 (fertige Programme der Hersteller,
 Prüfsumme geprüft) ins AppImage – nichts extra zu installieren. Ohne AppImage nutzt BuB3TAGMUSIC die

@@ -24,7 +24,7 @@ from ..core.covers import find_folder_image, prepare_for_embedding, save_image_f
 from ..core.fields import FIELD_BY_KEY
 from ..core.model import FileItem
 from ..online import artistimages, coversearch, deezer, discogs, itunes, lastfm, matching, musicbrainz
-from ..online.base import AlbumMatch, CoverCandidate
+from ..online.base import AlbumMatch, CoverCandidate, search_text
 from ..online.http import get_image
 from . import icons, theme
 from .tools import CHANGED, ERROR, UNCHANGED, WARN, Preview, PreviewModel, PreviewRow
@@ -49,7 +49,8 @@ def guess_search(items: list[FileItem]) -> tuple[str, str]:
             album = _YEAR_SUFFIX.sub("", _YEAR_PREFIX.sub("", os.path.basename(d)))
         if not artist:
             artist = os.path.basename(os.path.dirname(d))
-    return artist, album
+    # Alles in Klammern bleibt draußen: „Album (2020)“, „Album (EP)“, „Album [Deluxe]“ (1.1.5)
+    return search_text(artist), search_text(album)
 
 
 def rounded_pixmap(data: bytes | None, size: int, radius: int = 8) -> QPixmap:
@@ -620,7 +621,8 @@ class AlbumSearchDialog(OnlineDialog):
         if m is None:
             return
         fields = {k for k, c in self.field_chips.items() if c.isChecked()}
-        files = [matching.FileInfo(it.tags.get("track", ""), it.tags.get("disc", ""), it.rec.get("length", 0.0))
+        files = [matching.FileInfo(it.tags.get("track", ""), it.tags.get("disc", ""), it.rec.get("length", 0.0),
+                                   it.tags.get("title", ""), it.name)
                  for it in self.items]
         assigned, used = matching.assign(files, m, self.mode.currentData())
         # Felder, die diese Quelle für dieses Album nicht kennt, gar nicht erst als Spalte zeigen
@@ -644,6 +646,9 @@ class AlbumSearchDialog(OnlineDialog):
                 ("unverändert", UNCHANGED)
             if not a.length_ok:
                 status, kind = f"Länge weicht ab ({a.length_diff:+.0f} s)".replace("+", "±"), WARN
+                problems += 1
+            elif a.title_score is not None and a.title_score < matching.TITLE_SURE:
+                status, kind = f"Titel nur ähnlich ({a.title_score:.0%})", WARN
                 problems += 1
             rows.append(PreviewRow(it.name, cells, status, kind, it.path))
             changes.append((it, diff))

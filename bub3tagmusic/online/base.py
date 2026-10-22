@@ -125,6 +125,16 @@ def strip_edition(text: str) -> str:
     return out
 
 
+_BRACKETS = re.compile(r"\s*[\(\[\{][^\)\]\}]*[\)\]\}]")
+
+
+def search_text(text: str) -> str:
+    """Suchbegriff ohne alles in Klammern: 'Album (2020)' → 'Album', 'Album [EP]' → 'Album'.
+    Bliebe nichts übrig („(What's the Story)“ allein), bleibt der Text, wie er ist."""
+    out = " ".join(_BRACKETS.sub(" ", text or "").split()).strip(" -–_.")
+    return out or (text or "").strip()
+
+
 def similarity(a: str, b: str) -> float:
     a, b = normalize(a), normalize(b)
     if not a or not b:
