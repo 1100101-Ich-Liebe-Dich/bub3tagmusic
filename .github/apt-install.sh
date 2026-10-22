@@ -21,11 +21,11 @@ step() {   # step SEKUNDEN befehl… – mit Zeitangabe ins Protokoll
 }
 
 install() {
-  step 150 apt-get "${APT[@]}" update -qq && step 360 apt-get "${APT[@]}" install -y -qq --no-install-recommends "$@"
+  step 150 apt-get "${APT[@]}" update -qq && step 300 apt-get "${APT[@]}" install -y --no-install-recommends -o Dpkg::Progress-Fancy=0 "$@"
 }
 
 report() {
-  echo "::error title=apt ($1)::$(grep -v '^$' "$LOG" | tail -n 12 | cut -c1-160 | tr '\n' '|')"
+  echo "::error title=apt ($1)::$(grep -v '^$' "$LOG" | tail -n 14 | cut -c1-140 | tr '\n' '|')"
 }
 
 : >"$LOG"
