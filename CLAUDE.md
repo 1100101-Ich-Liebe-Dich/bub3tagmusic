@@ -129,7 +129,8 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - Bei Oberflächen-Änderungen die Screenshots ansehen (`SHOTS=ordner tests/run_all.sh`).
 - `BuB3TAGMUSIC.md` + `CHANGELOG.md` aktualisieren, Issues schließen (`Closes #n` im Commit).
 - Commit-Nachrichten auf Deutsch, mit den Attribution-Zeilen aus den Sitzungs-Hinweisen.
-- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10, 3.11 und 3.13).
+- GitHub Actions führt `tests/run_all.sh` bei jedem Push aus (Python 3.10 und 3.13, je ~3 Min., Abbruch nach 20 Min.).
+  Hängt ein Lauf (z. B. `apt` auf dem GitHub-Rechner): `gh api -X POST repos/…/actions/runs/ID/cancel`, dann neu pushen.
 - Logs der Actions sind von der Arbeitsumgebung aus nicht abrufbar → Fehler lokal mit
   `uv python install 3.10` + eigener venv nachstellen.
 - Tags (`git push --tags`, Releases) sind über den Zugang hier nicht erlaubt – ebenso Repo-Einstellungen

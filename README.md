@@ -341,7 +341,7 @@ tests/                Kern-, Oberflächen-, Online- (aufgezeichnet) und Leistung
 docs/                 Bilder für diese Seite (neu erzeugen: python3 docs/make_images.py)
 ```
 
-Bei jedem Hochladen laufen alle Tests auf GitHub (Python 3.10, 3.11, 3.13) und das AppImage wird gebaut und auf einem
+Bei jedem Hochladen laufen alle Tests auf GitHub (Python 3.10 und 3.13) und das AppImage wird gebaut und auf einem
 echten X-Bildschirm gestartet. Die Online-Tests spielen echte, aufgezeichnete Antworten ab.
 Fahrplan und Entscheidungen: [BuB3TAGMUSIC.md](BuB3TAGMUSIC.md) · Arbeitsnotizen: [CLAUDE.md](CLAUDE.md)
 </details>
