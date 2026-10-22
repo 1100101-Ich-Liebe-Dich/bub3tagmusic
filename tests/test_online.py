@@ -67,6 +67,32 @@ def main():
     got, _ = matching.assign([matching.FileInfo(length=f.length - 1.5) for f in shuffled], full, "length")
     eq([g.track_index for g in got], list(range(25, -1, -1)), "nach Länge (ganzes Album, umgedrehte Reihenfolge)")
     eq(all(g.length_ok for g in got), True, "Längen passen")
+    # Über Titel / Dateinamen (1.1.5): durcheinander, ohne Tracknummer-Tags, mit Zusätzen und Interpret im Namen
+    import random
+    named = []
+    for t in full.tracks:
+        extra = " (feat. Gast)" if t.position == 3 else (" [Live]" if t.position == 5 else "")
+        named.append(matching.FileInfo(name=f"{t.disc}-{t.position:02d} - Pink Floyd - {t.title}{extra}.flac",
+                                       length=t.length))
+    order = list(range(len(named)))
+    random.Random(7).shuffle(order)
+    got, mode = matching.assign([named[i] for i in order], full)
+    eq((mode, [g.track_index for g in got]), ("title", order), "Zuordnung über Dateinamen (gemischt, mit Zusätzen)")
+    eq(all(g.title_score >= matching.TITLE_SURE for g in got), True, "alle Titel sicher erkannt")
+    tagged = [matching.FileInfo(title=t.title.upper() + " - Remastered 2011") for t in full.tracks[:5]]
+    got, mode = matching.assign(list(reversed(tagged)), full)
+    eq((mode, [g.track_index for g in got]), ("title", [4, 3, 2, 1, 0]), "Zuordnung über den Titel-Tag")
+    generic = [matching.FileInfo(track=str(t.position), disc=str(t.disc), title=f"Track {t.position}",
+                                 name=f"Track {t.position}.mp3") for t in full.tracks]
+    got, mode = matching.assign(generic, full)
+    eq((mode, [g.track_index for g in got]), ("number", list(range(26))), "nichtssagende Titel → Tracknummer")
+    eq(matching.title_words("03 - AC_DC - Hells Bells (feat. X) [Live].mp3", filename=True),
+       ["ac", "dc", "hells", "bells"], "Dateiname → Wörter")
+    eq(matching.file_numbers(matching.FileInfo(name="2-05 Titel.mp3")), (5, 2), "Disc + Track aus dem Dateinamen")
+    from bub3tagmusic.online.base import search_text
+    for raw, want in (("Albumname (2020)", "Albumname"), ("Album (EP)", "Album"), ("Album [Deluxe] (2020)", "Album"),
+                      ("(What's the Story)", "(What's the Story)"), ("AC/DC", "AC/DC")):
+        eq(search_text(raw), want, f"Suchbegriff: {raw}")
     tags = matching.tags_for(full, 13, {"title", "artist", "album", "year", "track", "genre"})
     eq((tags["track"], tags["disc"], tags["albumartist"], tags["year"]), ("1/13", "2/2", "Pink Floyd", "1979"),
        "Tags für Disc 2, Track 1")

@@ -82,6 +82,9 @@ nach jeder Sitzung aktuell halten.
   „Alle Quellen“ (`ALL_SOURCES`): je Quelle ein `Job` parallel, `_source_call()` (None = Schlüssel fehlt), Ergebnis
   über `matching.mix_sources`. „Übernehmen & weiter“: `_then_next` → `_finish` → `_advance()` ruft
   `win.save_and_next()` und wartet per Timer, bis `win._loaded_dirs` wechselt → `_continue_here()`.
+  Zuordnung: `matching.assign` – „title“ (`title_similarity`: Wörter ohne Klammern/feat., Dateiname ohne Nummern;
+  gierig beste Paare, Tracknummer/Länge als Bonus, Rest über `_fill_by_number`), „auto“ nimmt „title“ ab 60 % sicher.
+  Suchbegriffe: `base.search_text()` entfernt Klammer-Inhalte (in `guess_search`).
 - Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
   `ImageLoader` (beide in `ui/workers.py`). Album-Daten + Cover gemeinsam: `session.apply_changes(..., cover=CoverData)`.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
