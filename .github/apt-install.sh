@@ -20,21 +20,32 @@ step() {   # step SEKUNDEN befehl… – mit Zeitangabe ins Protokoll
   return $rc
 }
 
-install() {
-  step 150 apt-get "${APT[@]}" update -qq && step 300 apt-get "${APT[@]}" install -y --no-install-recommends -o Dpkg::Progress-Fancy=0 "$@"
+install() {   # $1 = Sekunden fürs Installieren, dann die Pakete
+  local t=$1; shift
+  step 150 apt-get "${APT[@]}" update -qq && step "$t" apt-get "${APT[@]}" install -y --no-install-recommends -o Dpkg::Progress-Fancy=0 "$@"
 }
 
-report() {
-  echo "::error title=apt ($1)::$(grep -v '^$' "$LOG" | tail -n 14 | cut -c1-140 | tr '\n' '|')"
+use_ubuntu_server() {
+  # GitHubs Rechner holen Pakete über /etc/apt/apt-mirrors.txt (zuerst azure.archive.ubuntu.com).
+  # Ist dieser Spiegel lahm, nur noch den offiziellen Ubuntu-Server benutzen.
+  if [ -f /etc/apt/apt-mirrors.txt ]; then
+    echo "http://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+  fi
+  for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+    [ -f "$f" ] && sudo sed -i -E 's#https?://[a-z.]*azure\.archive\.ubuntu\.com#http://archive.ubuntu.com#g' "$f"
+  done
+}
+
+report() {   # report error|warning TEXT
+  echo "::$1 title=apt ($2)::$(grep -v '^$' "$LOG" | tail -n 14 | cut -c1-140 | tr '\n' '|')"
 }
 
 : >"$LOG"
-install "$@" && { echo "Systempakete installiert ($SECONDS s)"; exit 0; }
-report "erster Versuch"
-echo "::warning::Paket-Spiegel von GitHub hängt – zweiter Versuch über archive.ubuntu.com"
-for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
-  [ -f "$f" ] && sudo sed -i -E 's#https?://[a-z.]*azure\.archive\.ubuntu\.com#http://archive.ubuntu.com#g' "$f"
-done
-install "$@" && exit 0
-report "zweiter Versuch"
+# Normal dauert das unter einer Minute – nach 3 Minuten lieber den Server wechseln
+install 180 "$@" && { echo "Systempakete installiert ($SECONDS s)"; exit 0; }
+report warning "erster Versuch"
+echo "::warning::Paket-Spiegel von GitHub ist lahm – zweiter Versuch nur über archive.ubuntu.com"
+use_ubuntu_server
+install 420 "$@" && exit 0
+report error "zweiter Versuch"
 exit 1
