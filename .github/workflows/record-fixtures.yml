@@ -3,8 +3,11 @@ name: Testdaten aufzeichnen
 # Zeichnet echte Antworten von MusicBrainz, Cover Art Archive, iTunes, Deezer,
 # Discogs, TheAudioDB und AcoustID auf und legt sie nach tests/fixtures/online.
 # Auslösen: Datei tests/fixtures/online/RECORD ändern (oder per Hand in GitHub).
+# Nur auf Zweigen – bei Tags (Release veröffentlichen) prüft GitHub den Pfad-Filter nicht,
+# daher lief die Aufnahme bis 1.1.6 bei jedem Release los und scheiterte.
 on:
   push:                      # auf jedem Zweig – die Aufnahme landet im selben Zweig (Pull Request)
+    branches: ["**"]
     paths: ["tests/fixtures/online/RECORD"]
   workflow_dispatch:
 
@@ -13,11 +16,12 @@ permissions:
 
 jobs:
   record:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

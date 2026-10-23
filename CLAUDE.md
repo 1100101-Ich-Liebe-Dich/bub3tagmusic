@@ -210,6 +210,8 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - **Last.fm**: Fehler kommen als HTTP 400/403 mit JSON → `http.ApiError(code)`; Key im GitHub-Secret `LASTFM_KEY`
   (Aufnahmen speichern `api_key=TESTKEY`). Bei einem Eintrag liefert Last.fm ein Objekt statt einer Liste.
 - Testdaten-Aufnahme läuft auf **jedem Zweig** (RECORD ändern) und schreibt in denselben Zweig → danach `git pull`.
+  **Bei Tags prüft GitHub `paths:` nicht** → ohne `branches: ["**"]` startete sie bei jedem Release und scheiterte
+  („not currently on a branch“). Actions: `checkout@v6`/`setup-python@v6`/`upload-artifact@v6` (Node 24).
 - **Aufnahme der Online-Testdaten:** MusicBrainz antwortet zwischendurch mit 503. Der Recorder wiederholt jetzt und
   behält Einträge der letzten Aufnahme, die diesmal fehlen; `acoustid.json` wird nur mit Treffern überschrieben.
   Nach jeder Aufnahme `summary.txt` lesen.

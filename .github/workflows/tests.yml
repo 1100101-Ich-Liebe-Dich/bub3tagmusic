@@ -18,9 +18,9 @@ jobs:
         # 3.13 = neuestes Python + neuestes PySide6. 3.11 brachte nichts Neues dazu.
         python: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -45,7 +45,7 @@ jobs:
 
       - name: Screenshots hochladen
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: screenshots-py${{ matrix.python }}
           path: screenshots/
@@ -57,9 +57,9 @@ jobs:
     timeout-minutes: 25
     needs: tests
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -82,7 +82,7 @@ jobs:
           echo "$out" | grep -q "SELFTEST OK"
 
       - name: AppImage zum Herunterladen bereitstellen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: BuB3TAGMUSIC-AppImage
           path: dist/*.AppImage
