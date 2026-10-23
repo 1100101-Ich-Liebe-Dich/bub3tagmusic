@@ -143,8 +143,8 @@ Beispiel-Aktionen sind schon dabei.
 | Funktion | Was sie macht |
 |---|---|
 | **Album suchen** (Strg+L) | **MusicBrainz**, **Discogs**, **Deezer**, **iTunes** oder **Last.fm** – genau *eine* Suche pro Album. Die Trackliste wird deinen Dateien zugeordnet (nach Titel bzw. Dateiname – auch mit „(feat. …)“ & Co. –, Tracknummer, Reihenfolge oder Länge), du wählst die Felder – auch Label und Original-Jahr, auf Wunsch samt Cover. „Ohne Remaster-Zusätze“ macht aus „Titel (Remastered 2011)“ einfach „Titel“. **Alle Quellen** fragt alle Dienste gleichzeitig; **Übernehmen & weiter** (Strg+→) speichert und sucht gleich im nächsten Ordner – ohne das Fenster zu schließen. |
-| **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px), TheAudioDB und Bandcamp als Bildergitter. Einbetten und/oder `cover.jpg`. |
-| **Künstlerbild suchen** (Strg+J) | Fotos von TheAudioDB, Bandcamp, Discogs (mit Token) und Wikipedia → `folder.jpg` im Künstler-Ordner. |
+| **Cover suchen** (Strg+K) | Cover Art Archive, iTunes (bis 3000 px), TheAudioDB, Bandcamp und Discogs (mit Token) als Bildergitter. Einbetten und/oder `cover.jpg`. **Speichern & weiter** springt zum nächsten Album ohne Cover. |
+| **Künstlerbild suchen** (Strg+J) | Fotos von TheAudioDB, Bandcamp, Discogs (mit Token) und Wikipedia → `folder.jpg` im Künstler-Ordner. **Speichern & weiter** springt zum nächsten Künstler ohne Bild. |
 | **Unbekannte Dateien erkennen** (Strg+Shift+L) | Dateien **ganz ohne Tags** am Klang erkennen (Fingerabdruck + AcoustID) – mit Treffer-Prozent und Vorschau. |
 
 Ohne Anmeldung nutzbar – nur Discogs, Last.fm und AcoustID brauchen einen kostenlosen Schlüssel (*Einstellungen → Online*).
@@ -156,6 +156,10 @@ Ohne Anmeldung nutzbar – nur Discogs, Last.fm und AcoustID brauchen einen kost
 **Ohne Cover · Cover < 500 px · Ohne Jahr · Fehlende Tags · Ungespeichert · Lesefehler** – kombinierbar, mit Anzahl.
 Ein Klick auf **Ganze Sammlung** holt alle passenden Dateien aus der ganzen Sammlung in die Liste –
 z. B. „alle ohne Cover“ und gleich danach *Cover suchen*.
+
+*Extras → Fehlende Tags finden* zeigt alle Dateien ohne Titel, Interpret, Album oder Tracknummer;
+*Extras → Fehlende Bilder finden …* listet alle Album-Ordner ohne `cover.jpg` und Künstler-Ordner ohne `folder.jpg` –
+Doppelklick öffnet die passende Bildsuche.
 
 ### 🧹 Duplikate finden
 

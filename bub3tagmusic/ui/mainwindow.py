@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 from PySide6.QtCore import QByteArray, Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
@@ -34,6 +35,7 @@ from .workers import LoadWorker, RenameWorker, SaveWorker
 FEATURE_HANDLERS: dict[str, str] = {
     "filters": "toggle_filter_bar",
     "export": "export_list",
+    "missing_tags": "find_missing_tags",
 }
 
 
@@ -701,7 +703,7 @@ class MainWindow(QMainWindow):
             return
         self.panel.commit()
         items, scope = self.tool_items()
-        if not items and not (feature_id == "duplicates" and self.tree.root_path):
+        if not items and not (feature_id in ("duplicates", "missing_images") and self.tree.root_path):
             self.toast.show_message("Erst links einen Ordner öffnen")
             return
         EXTRA_DIALOGS[feature_id](self, items, scope).exec()
@@ -902,6 +904,39 @@ class MainWindow(QMainWindow):
             return
         from .export import ExportDialog
         ExportDialog(self).exec()
+
+    # --- Was fehlt noch? (1.1.6) ------------------------------------------------------
+    def find_missing_tags(self):
+        """Alle Dateien der Sammlung ohne Titel, Interpret, Album oder Tracknummer – ein Klick."""
+        if not self.tree.root_path:
+            self.toast.show_message("Erst eine Sammlung öffnen")
+            return
+        if not self.filterbar.isVisible():
+            self.toggle_filter_bar()
+        self.filterbar.clear()
+        self.filter.clear()
+        self.filterbar.chips["missing"].setChecked(True)
+        self.search_collection()
+
+    def open_missing(self, path: str, kind: str, search: bool = True):
+        """Ordner aus „Fehlende Bilder“ öffnen und auf Wunsch gleich die passende Bildsuche starten."""
+        from ..core import missing
+        self.tree.select_paths([path])
+        if not search:
+            return
+        started = time.monotonic()
+
+        def poll():
+            busy = self._save_worker is not None or self._load_worker is not None
+            if not busy and self._loaded_dirs == [path]:
+                if kind == missing.ARTIST:
+                    self.search_artist_image(path)
+                else:
+                    self.open_online("cover_search")
+                return
+            if time.monotonic() - started < 30:
+                QTimer.singleShot(100, poll)
+        QTimer.singleShot(100, poll)
 
     def search_collection(self, search: tuple | None = None):
         """Gewählte Schnellfilter + Suchtext in der ganzen Sammlung (Zwischenspeicher + neue Dateien)."""

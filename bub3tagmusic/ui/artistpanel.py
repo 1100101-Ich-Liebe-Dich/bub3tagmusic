@@ -21,21 +21,14 @@ from PySide6.QtWidgets import (QApplication, QFileDialog, QFrame, QHBoxLayout, Q
 
 from ..core.covers import find_folder_image, image_info, save_image_file
 from ..core.settings import Settings
-from ..core.tools import disc_from_folder
+from ..core.missing import is_artist_node
 from . import icons
 from .coverwidget import CoverView, image_bytes_from_mime
 
 
 def is_artist_folder(node) -> bool:
-    """Keine Musik direkt drin, aber Unterordner mit Musik – und keine reinen CD1/CD2-Unterordner."""
-    if node is None or node.audio_count or not node.children:
-        return False
-    albums = [c for c in node.children if c.audio_count]
-    if not albums:
-        return False
-    if all(disc_from_folder(c.name) is not None for c in node.children):
-        return False                      # mehrteiliges Album (CD1, CD2 …), kein Künstler
-    return True
+    """Keine Musik direkt drin, aber Unterordner mit Musik (Logik in core/missing.py)."""
+    return is_artist_node(node)
 
 
 class ArtistPanel(QWidget):

@@ -271,6 +271,45 @@ def test_settings_theme(tmp):
     os.remove(path)
 
 
+def test_missing_images(tmp):
+    print("Fehlende Bilder (1.1.6)")
+
+    def _check(cond, msg):
+        eq(bool(cond), True, msg)
+    from bub3tagmusic.core import missing
+    from bub3tagmusic.core.scanner import scan_tree
+    root = os.path.join(tmp, "Bilder")
+    layout = {
+        "Ankerplatz/1986 - Reling": ["01.mp3"],                  # Künstler ohne folder.jpg, Album ohne Cover
+        "Ankerplatz/1987 - Hochsee": ["01.mp3", "cover.jpg"],
+        "Brandung/1990 - Bilge/CD1": ["01.mp3"],                 # CD-Ordner: Cover eine Ebene höher reicht
+        "Brandung/1990 - Bilge/CD2": ["01.mp3"],
+        "Brandung/1990 - Bilge": ["Cover.JPG"],                  # Groß/klein egal
+        "Brandung/1991 - Gischt": ["01.flac"],
+        "Brandung": ["folder.jpg"],
+        "Einzelstück": ["01.mp3"],                               # Album direkt in der Sammlung
+    }
+    for folder, files in layout.items():
+        os.makedirs(os.path.join(root, folder), exist_ok=True)
+        for f in files:
+            open(os.path.join(root, folder, f), "wb").close()
+    tree = scan_tree(root)
+    found = [(os.path.relpath(m.path, root), m.kind) for m in missing.missing_images(tree)]
+    _check(found == [("Ankerplatz", "artist"), ("Ankerplatz/1986 - Reling", "album"),
+                    ("Brandung/1991 - Gischt", "album"), ("Einzelstück", "album")], f"fehlende Bilder: {found}")
+    only = missing.missing_images(tree, kinds=(missing.ARTIST,))
+    _check([os.path.basename(m.path) for m in only] == ["Ankerplatz"], "nur Künstler")
+    nxt = missing.next_missing(tree, missing.ALBUM, os.path.join(root, "Ankerplatz/1986 - Reling"))
+    _check(nxt == os.path.join(root, "Brandung/1991 - Gischt"), f"nächstes Album ohne Cover: {nxt}")
+    nxt = missing.next_missing(tree, missing.ALBUM, os.path.join(root, "Einzelstück"))
+    _check(nxt == os.path.join(root, "Ankerplatz/1986 - Reling"), "am Ende von vorn")
+    skip = {os.path.join(root, p) for p in ("Ankerplatz/1986 - Reling", "Brandung/1991 - Gischt")}
+    _check(missing.next_missing(tree, missing.ALBUM, os.path.join(root, "Einzelstück"), skip=skip) == "",
+          "übersprungene zählen nicht – keiner mehr")
+    _check(missing.next_missing(tree, missing.ARTIST, os.path.join(root, "Ankerplatz")) == "",
+          "kein weiterer Künstler ohne folder.jpg")
+
+
 def main():
     tmp = tempfile.mkdtemp()
     try:
@@ -282,6 +321,7 @@ def main():
         test_actions(tmp)
         test_replaygain(tmp)
         test_settings_theme(tmp)
+        test_missing_images(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print()

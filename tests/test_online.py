@@ -227,6 +227,7 @@ def main():
     test_deezer_structure()
     test_new_sources_structure()
     test_artist_sources_structure()
+    test_discogs_covers_structure()
     use_fixtures(misses)
     test_deezer_recorded()
     test_new_sources_recorded()
@@ -490,6 +491,32 @@ def test_artist_sources_structure():
          "Kielwasser (Band aus Kiel) · freies Bild (Wikimedia Commons)")],
        "Wikipedia: MusicBrainz → Wikidata → Commons (nur sichere MB-Treffer)")
     eq(sum(1 for u, _ in calls if "musicbrainz.org/ws/2/artist/mb" in u), 1, "nur der sichere MusicBrainz-Treffer")
+    http.clear_cache()
+
+
+def test_discogs_covers_structure():
+    """Cover-Suche 1.1.6: Discogs (mit Token), Platzhalter fallen weg, ohne Token keine Anfrage."""
+    import json
+    data = {"results": [
+        {"id": 5, "title": "Kielwasser (2) - Hochsee", "year": 2001, "country": "Germany", "format": ["CD", "Album"],
+         "thumb": "https://i.discogs.com/h_t.jpg", "cover_image": "https://i.discogs.com/h.jpg"},
+        {"id": 6, "title": "Kielwasser - Hochsee", "cover_image": "https://st.discogs.com/images/spacer.gif"}]}
+    calls = []
+
+    def fake(url, headers):
+        calls.append((url, headers.get("Authorization", "")))
+        if "discogs.com/database/search" in url:
+            return 200, json.dumps(data).encode()
+        return 404, b""
+    http.clear_cache()
+    http.set_transport(fake)
+    eq(coversearch.search_covers("Kielwasser", "Hochsee", ("Discogs",)), [], "Discogs-Cover ohne Token: übersprungen")
+    eq(calls, [], "ohne Token keine Anfrage an Discogs")
+    c = coversearch.search_covers("Kielwasser", "Hochsee", ("Discogs",), discogs_token="tok")
+    eq([(x.source, x.url, x.thumb_url) for x in c],
+       [("Discogs", "https://i.discogs.com/h.jpg", "https://i.discogs.com/h_t.jpg")], "Discogs-Cover: ohne Platzhalter")
+    eq("Germany" in c[0].description and "2001" in c[0].description, True, f"Beschreibung: {c[0].description}")
+    eq(all(a == "Discogs token=tok" for _, a in calls), True, "Discogs-Cover: Token im Kopf")
     http.clear_cache()
 
 

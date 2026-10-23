@@ -137,6 +137,7 @@ def main():
     test_replaygain(app, win, out)
     test_acoustid(app, win, root, out)
     test_duplicates(app, win, root, files, out)
+    test_missing_and_next(app, win, root, files, out)
 
     win.session.revert()
     win.close()
@@ -342,6 +343,108 @@ def test_choices(app, win, root, out):
     album.choicesRequested.disconnect()
     panel._show_choices = orig
     album.choicesRequested.connect(panel._show_choices)
+
+
+def test_missing_and_next(app, win, root, files, out):
+    print("Fehlende Tags / fehlende Bilder / Speichern & weiter (1.1.6)")
+    from bub3tagmusic.core.tags import read_file
+    from bub3tagmusic.online import http
+    from bub3tagmusic.online.base import CoverCandidate
+    from bub3tagmusic.ui import online as O
+    from bub3tagmusic.ui.extras import MissingImagesDialog
+    win.session.revert()
+    for d, _sub, names in os.walk(root):                       # klarer Anfang: keine Bilder in der Sammlung
+        for n in names:
+            if n.lower() in ("cover.jpg", "folder.jpg"):
+                os.remove(os.path.join(d, n))
+    neb = os.path.join(root, "Nebelbank")
+    leucht = os.path.join(neb, "2010 - Leuchtturm")
+    os.makedirs(leucht, exist_ok=True)
+    shutil.copy(files["zwei"], os.path.join(leucht, "01 - Licht.mp3"))
+    write_file(os.path.join(leucht, "01 - Licht.mp3"), {"artist": "Nebelbank", "album": "Leuchtturm", "track": "1",
+                                                         "title": "Licht"})
+    shutil.copy(files["zwei"], os.path.join(leucht, "02 - Ohne Album.mp3"))     # Album + Tracknummer fehlen
+    write_file(os.path.join(leucht, "02 - Ohne Album.mp3"), {"artist": "Nebelbank", "title": "Ohne Album",
+                                                              "album": "", "track": ""})
+    win.btn_recursive.setChecked(False)
+    win.tree.reload()
+    check(wait(app, lambda: win.tree.node_for(leucht) is not None), "Sammlung neu eingelesen")
+    pump(app, 0.3)
+
+    # Fehlende Tags: ein Klick, ganze Sammlung
+    win.find_missing_tags()
+    check(wait(app, lambda: win._load_worker is None and win._search is not None), "Fehlende Tags gesucht")
+    pump(app, 0.3)
+    names = sorted(it.name for it in win.session.items)
+    check("02 - Ohne Album.mp3" in names and "01 - Licht.mp3" not in names and "01 - Am Kai.flac" not in names,
+          f"Dateien ohne Tags: {names}")
+    win.filterbar.clear()
+
+    # Fehlende Bilder
+    d = MissingImagesDialog(win)
+    d.show()
+    check(wait(app, lambda: d.task is not None and not d.task.isRunning() and d.found), "Ordner geprüft")
+    pump(app, 0.2)
+    got = [(os.path.relpath(m.path, root), m.kind) for m in d.found]
+    check(("Kielwasser", "artist") in got and ("Nebelbank", "artist") in got
+          and ("Kielwasser/2001 - Hochsee", "album") in got and ("Unsortiert", "album") in got, f"fehlend: {got}")
+    check(d.tree.topLevelItemCount() == len(got), "alle in der Liste")
+    d.chk_artist.setChecked(False)
+    check(d.tree.topLevelItemCount() == sum(1 for _p, k in got if k == "album"), "Filter: nur Alben")
+    d.chk_artist.setChecked(True)
+    d.grab().save(os.path.join(out, "x10_fehlende_bilder.png"))
+    d.reject()
+
+    # Künstlerbild: Speichern & weiter (Bilder aus „dem Netz“ = Test-JPEG)
+    jpeg = cover_jpeg(700)
+    http.set_transport(lambda url, headers: (200, jpeg))
+    orig_search, orig_covers = O.artistimages.search_artist_images, O.coversearch.search_covers
+    O.artistimages.search_artist_images = lambda artist, *a, **k: [
+        CoverCandidate("TheAudioDB", f"https://bilder.test/{artist}.jpg", f"https://bilder.test/{artist}-k.jpg",
+                       description=artist, score=1.0)]
+    O.coversearch.search_covers = lambda artist, album, *a, **k: [
+        CoverCandidate("iTunes", f"https://bilder.test/{album}.jpg", f"https://bilder.test/{album}-k.jpg",
+                       description=album, score=1.0)]
+    try:
+        kiel = os.path.join(root, "Kielwasser")
+        win.tree.select_paths([kiel])
+        check(wait(app, lambda: win._load_worker is None and win._loaded_dirs == [kiel]), "Künstler-Ordner offen")
+        d = O.ArtistImageDialog(win, [], "", folder=kiel, artist="Kielwasser")
+        d.show()
+        check(wait(app, lambda: d.next_btn.isEnabled()), "Speichern & weiter bereit")
+        d.grab().save(os.path.join(out, "x11_kuenstler_weiter.png"))
+        d.next_btn.click()
+        check(wait(app, lambda: d.target_dir == neb and d.next_btn.isEnabled(), 30), f"weiter zu Nebelbank ({d.target_dir})")
+        check(os.path.exists(os.path.join(kiel, "folder.jpg")), "folder.jpg bei Kielwasser gespeichert")
+        check(d.artist.text() == "Nebelbank" and win._loaded_dirs == [neb], "Name + Hauptfenster folgen")
+        d.skip_btn.click()
+        check(wait(app, lambda: "geschafft" in d.status.text()), f"keiner mehr: {d.status.text()[:60]}")
+        check(not os.path.exists(os.path.join(neb, "folder.jpg")), "übersprungen = nichts gespeichert")
+        d.reject()
+
+        # Cover: Speichern & weiter (nächstes Album ohne cover.jpg), Discogs ohne Token aus
+        hoch = os.path.join(kiel, "2001 - Hochsee")
+        best = os.path.join(kiel, "2005 - Best Of")
+        win.tree.select_paths([hoch])
+        check(wait(app, lambda: win._load_worker is None and win._loaded_dirs == [hoch] and win.session.items),
+              "Album offen")
+        items, scope = win.tool_items()
+        d = O.CoverSearchDialog(win, items, scope)
+        d.show()
+        check(not d.src_chips["Discogs"].isEnabled(), "Cover: Discogs ohne Token aus")
+        check(wait(app, lambda: d.next_btn.isEnabled()), "Cover: Speichern & weiter bereit")
+        d.next_btn.click()
+        check(wait(app, lambda: d.items and d.items[0].dir == best and win._save_worker is None, 30),
+              f"weiter zu Best Of ({d.items[0].dir if d.items else '-'})")
+        check(os.path.exists(os.path.join(hoch, "cover.jpg")), "cover.jpg bei Hochsee")
+        check(read_file(files["eins"])["cover"] is not None and read_file(files["zwei"])["cover"] is not None,
+              "Cover eingebettet und gespeichert")
+        check(not win.tree.is_done(hoch), "kein grüner Haken fürs Bild")
+        check(d.album.text() == "Best Of", f"Suchbegriff neu: {d.album.text()!r}")
+        d.reject()
+    finally:
+        O.artistimages.search_artist_images, O.coversearch.search_covers = orig_search, orig_covers
+        http.set_transport(None)
 
 
 def test_artist_folder(app, win, root, out):

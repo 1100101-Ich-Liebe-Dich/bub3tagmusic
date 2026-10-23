@@ -27,6 +27,7 @@ from ..online import artistimages, coversearch, deezer, discogs, itunes, lastfm,
 from ..online.base import AlbumMatch, CoverCandidate, search_text
 from ..online.http import get_image
 from . import icons, theme
+from ..core import missing
 from .tools import CHANGED, ERROR, UNCHANGED, WARN, Preview, PreviewModel, PreviewRow
 from .widgets import FlowLayout, chip, hint, section
 from .workers import ImageLoader, Job
@@ -873,7 +874,7 @@ class ImageGridDialog(OnlineDialog):
     def active_sources(self) -> list[str]:
         return [n for n, c in self.src_chips.items() if c.isChecked()]
 
-    def show_candidates(self, cands: list[CoverCandidate]):
+    def _show(self, cands: list[CoverCandidate]):
         self._candidates = cands
         self._thumbs = {}
         self.grid.clear()
@@ -908,11 +909,111 @@ class ImageGridDialog(OnlineDialog):
         i = self.grid.currentRow()
         return self._candidates[i] if 0 <= i < len(self._candidates) else None
 
+    # --- Speichern & weiter: Ordner für Ordner durch alles, was noch kein Bild hat (1.1.6) -------------
+    # Grüne Haken setzt das bewusst NICHT – die gibt es nur fürs Speichern der Tags.
+    missing_kind = ""             # missing.ALBUM | missing.ARTIST
+    skip_text = "Nächster Ordner"
+
+    def add_next_buttons(self, enabled: bool):
+        self._then_next = False
+        self._skipped: set[str] = set()
+        fl = self.foot_layout
+        self.skip_btn = QPushButton(self.skip_text)
+        self.skip_btn.setIcon(icons.icon("skip-forward", "text"))
+        self.skip_btn.setToolTip("Nichts übernehmen – weiter zum nächsten Ordner ohne Bild")
+        self.skip_btn.clicked.connect(lambda: self._go_next(skip=True))
+        fl.insertWidget(fl.indexOf(self.apply_btn), self.skip_btn)
+        self.apply_btn.setProperty("kind", "")
+        self.apply_btn.setMinimumWidth(130)
+        self.next_btn = QPushButton("Speichern && weiter")
+        self.next_btn.setProperty("kind", "primary")
+        self.next_btn.setMinimumWidth(180)
+        self.next_btn.setEnabled(False)
+        self.next_btn.setToolTip("Bild übernehmen und gleich beim nächsten Ordner ohne Bild weitersuchen "
+                                 "(Strg+→ / Strg+Enter)")
+        self.next_btn.clicked.connect(self._apply_next)
+        fl.addWidget(self.next_btn)
+        for keys in ("Ctrl+Right", "Ctrl+Return", "Ctrl+Enter"):
+            QShortcut(QKeySequence(keys), self, self._apply_next)
+        if not enabled:
+            self.skip_btn.hide()
+            self.next_btn.hide()
+            self.apply_btn.setProperty("kind", "primary")
+        self.foot_hint.hide()
+
+    def _apply_next(self):
+        if not getattr(self, "next_btn", None) or not self.next_btn.isVisible() or not self.next_btn.isEnabled():
+            return
+        self._then_next = True
+        self._apply()
+
+    def current_folder(self) -> str:
+        raise NotImplementedError
+
+    def next_folder(self) -> str:
+        s = self.settings
+        return missing.next_missing(self.win.tree.root_node, self.missing_kind, self.current_folder(),
+                                    s.album_cover_name, s.artist_image_name, skip=self._skipped)
+
+    def after_save(self, message: str):
+        """Nach dem Übernehmen: Fenster zu – oder bei „Speichern & weiter“ zum nächsten Ordner."""
+        if self._then_next:
+            self._then_next = False
+            self._go_next(done_text=message)
+            return
+        self.win.toast.show_message(message)
+        self.accept()
+
+    def _go_next(self, skip: bool = False, done_text: str = ""):
+        if skip:
+            self._skipped.add(self.current_folder())
+        nxt = self.next_folder()
+        if not nxt:
+            self.set_status((done_text + " · " if done_text else "") + "Kein Ordner ohne Bild mehr – geschafft! 🎉",
+                            "done")
+            self.next_btn.setEnabled(False)
+            self.skip_btn.setEnabled(False)
+            return
+        for b in (self.apply_btn, self.next_btn, self.skip_btn, self.search_btn):
+            b.setEnabled(False)
+        self.set_status((done_text + " · " if done_text else "") + f"Weiter mit „{os.path.basename(nxt)}“ …")
+        win = self.win
+        started = time.monotonic()
+
+        def poll():
+            if not self.isVisible():
+                return
+            busy = win._save_worker is not None or win._load_worker is not None
+            if not busy and win._loaded_dirs == [nxt]:
+                self.skip_btn.setEnabled(True)
+                self.search_btn.setEnabled(True)
+                self.move_to(nxt)
+                return
+            if time.monotonic() - started > 60:
+                self.skip_btn.setEnabled(True)
+                self.search_btn.setEnabled(True)
+                self.set_status("Der nächste Ordner ließ sich nicht öffnen – bitte im Hauptfenster nachsehen", "danger")
+                return
+            QTimer.singleShot(100, poll)
+        # Erst Ungespeichertes sichern (z. B. eingebettete Cover), dann den nächsten Ordner öffnen
+        win.save(then=lambda: win.tree.select_paths([nxt]), quiet=True)
+        QTimer.singleShot(100, poll)
+
+    def move_to(self, folder: str):
+        raise NotImplementedError
+
+    def show_candidates(self, cands: list[CoverCandidate]):
+        self._show(cands)
+        if getattr(self, "next_btn", None) is not None:
+            self.next_btn.setEnabled(bool(cands) and self.apply_btn.isEnabled())
+
 
 class CoverSearchDialog(ImageGridDialog):
     feature_id = "cover_search"
     sources = coversearch.SOURCES
-    sources_version = 2          # 1.1.2: TheAudioDB + Bandcamp statt Deezer
+    sources_version = 3          # 1.1.2: TheAudioDB + Bandcamp statt Deezer · 1.1.6: Discogs
+    missing_kind = missing.ALBUM
+    skip_text = "Nächstes Album"
 
     def __init__(self, win, items, scope):
         super().__init__(win, items, scope)
@@ -921,6 +1022,11 @@ class CoverSearchDialog(ImageGridDialog):
         self.album = self.search_field("Album", album)
         self.build_grid("Auswahl")
         s = self.settings
+        dc = self.src_chips.get("Discogs")
+        if dc is not None and not s.discogs_token:                   # ohne Token: Quelle aus, mit Hinweis
+            dc.setChecked(False)
+            dc.setEnabled(False)
+            dc.setToolTip("Discogs braucht einen kostenlosen Token – Einstellungen → Online")
         self.chk_embed = chip("In die Dateien einbetten", checkable=True)
         self.chk_embed.setChecked(self.opts.get("embed", True))
         self.chk_file = chip(f"Als {s.album_cover_name} speichern", checkable=True)
@@ -937,20 +1043,44 @@ class CoverSearchDialog(ImageGridDialog):
         size_note = (f"Eingebettet wird auf {s.embed_max_size} px verkleinert, die Datei bleibt in voller Größe."
                      if s.embed_resize else "Eingebettet und gespeichert in voller Größe.")
         self.side.addWidget(hint(size_note))
-        dirs = sorted({it.dir for it in items})
-        existing = [d for d in dirs if find_folder_image(d, [s.album_cover_name])]
-        if existing:
-            self.side.addWidget(hint(f"{len(existing)} von {len(dirs)} Ordnern haben schon eine {s.album_cover_name} – "
-                                     "sie wird ersetzt.", "muted"))
+        self.exist_label = hint("", "muted")
+        self.side.addWidget(self.exist_label)
+        self._update_exist()
         self.side.addStretch(1)
         self.foot_hint.setText("Doppelklick übernimmt sofort")
         self.apply_btn.setText("Cover übernehmen")
+        one_album = len({it.dir for it in items}) == 1
+        self.add_next_buttons(one_album and win.tree.root_node is not None and not win.is_result_list)
         if self.album.text().strip() or self.artist.text().strip():
             QTimer.singleShot(0, self.search)
+
+    def _update_exist(self):
+        name = self.settings.album_cover_name
+        dirs = sorted({it.dir for it in self.items})
+        existing = [d for d in dirs if find_folder_image(d, [name])]
+        self.exist_label.setText(f"{len(existing)} von {len(dirs)} Ordnern haben schon eine {name} – sie wird ersetzt."
+                                 if existing else "")
+        self.exist_label.setVisible(bool(existing))
+
+    def current_folder(self) -> str:
+        return self.items[0].dir if self.items else ""
+
+    def move_to(self, folder: str):
+        """Nächstes Album ist im Hauptfenster geladen: Dateien übernehmen, neu suchen."""
+        items, scope = self.win.tool_items()
+        self.items = items
+        self.scope_label.setText(scope)
+        artist, album = guess_search(items)
+        self.artist.setText(artist)
+        self.album.setText(album)
+        self._update_exist()
+        self.setWindowTitle(f"Cover suchen – {os.path.basename(folder)}")
+        self.search()
 
     def _targets_changed(self):
         self.opts["embed"], self.opts["file"] = self.chk_embed.isChecked(), self.chk_file.isChecked()
         self.apply_btn.setEnabled(bool(self._candidates) and (self.opts["embed"] or self.opts["file"]))
+        self.next_btn.setEnabled(self.apply_btn.isEnabled())
 
     def search(self):
         artist, album = self.artist.text().strip(), self.album.text().strip()
@@ -965,8 +1095,11 @@ class CoverSearchDialog(ImageGridDialog):
         self.grid.clear()
         self._errors = []
 
+        token = self.settings.discogs_token
+
         def run_search():
             return coversearch.search_covers(artist, album, sources, contact=self.settings.musicbrainz_contact,
+                                             discogs_token=token,
                                              progress=lambda s, f, e: e and self._errors.append(f"{s}: {e}"))
         self.run(run_search, done=self._found)
 
@@ -979,9 +1112,11 @@ class CoverSearchDialog(ImageGridDialog):
         if c is None or not (self.chk_embed.isChecked() or self.chk_file.isChecked()):
             return
         self.apply_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
         self.set_status(f"Lade Cover von {c.source} …")
         self.run(coversearch.download, c, done=self._finish,
-                 failed=lambda msg: (self.show_error(msg), self.apply_btn.setEnabled(True)))
+                 failed=lambda msg: (self.show_error(msg), self.apply_btn.setEnabled(True),
+                                     self.next_btn.setEnabled(True), setattr(self, "_then_next", False)))
 
     def _finish(self, data: bytes):
         s = self.settings
@@ -1000,14 +1135,15 @@ class CoverSearchDialog(ImageGridDialog):
             saved = save_cover_files(self.items, cover, s.album_cover_name, overwrite=True)
             parts.append(f"{s.album_cover_name} in {saved} Ordner gespeichert")
         self.win.panel.refresh()
-        self.win.toast.show_message(f"Cover {info['w']}×{info['h']}: " + ", ".join(parts))
-        self.accept()
+        self.after_save(f"Cover {info['w']}×{info['h']}: " + ", ".join(parts))
 
 
 class ArtistImageDialog(ImageGridDialog):
     feature_id = "artist_image"
     sources = artistimages.SOURCES
     sources_version = 2          # 1.1.3: Bandcamp, Discogs, Wikipedia statt Deezer
+    missing_kind = missing.ARTIST
+    skip_text = "Nächster Künstler"
 
     def __init__(self, win, items, scope, folder: str = "", artist: str = ""):
         """folder/artist: direkt für einen Künstler-Ordner (ohne geladene Dateien) – der Ordnername
@@ -1032,19 +1168,36 @@ class ArtistImageDialog(ImageGridDialog):
             if name in self.src_chips:
                 self.src_chips[name].setToolTip(tip)
         name = self.settings.artist_image_name
-        if self.target_dir:
-            where = f"Wird gespeichert als {name} in „{os.path.basename(self.target_dir)}“."
-            if os.path.exists(os.path.join(self.target_dir, name)):
-                where += f" Die vorhandene {name} wird ersetzt."
-        else:
-            where = "Die Auswahl liegt in mehreren Künstler-Ordnern – bitte Dateien von nur einem Künstler wählen."
         self.side.addSpacing(6)
-        self.side.addWidget(hint(where, "muted"))
+        self.where_label = hint("", "muted")
+        self.side.addWidget(self.where_label)
+        self._update_where()
         self.side.addStretch(1)
         self.apply_btn.setText(f"Als {name} speichern")
         self.foot_hint.setText("Doppelklick speichert sofort")
+        self.add_next_buttons(bool(self.target_dir) and win.tree.root_node is not None)
         if self.target_dir and artist:
             QTimer.singleShot(0, self.search)
+
+    def _update_where(self):
+        name = self.settings.artist_image_name
+        if self.target_dir:
+            where = f"Wird gespeichert als {name} in „{os.path.basename(self.target_dir)}“."
+            if find_folder_image(self.target_dir, [name]):
+                where += f" Die vorhandene {name} wird ersetzt."
+        else:
+            where = "Die Auswahl liegt in mehreren Künstler-Ordnern – bitte Dateien von nur einem Künstler wählen."
+        self.where_label.setText(where)
+
+    def current_folder(self) -> str:
+        return self.target_dir
+
+    def move_to(self, folder: str):
+        self.target_dir = folder
+        self.artist.setText(os.path.basename(folder))
+        self._update_where()
+        self.setWindowTitle(f"Künstlerbild suchen – {os.path.basename(folder)}")
+        self.search()
 
     def search(self):
         artist = self.artist.text().strip()
@@ -1066,6 +1219,7 @@ class ArtistImageDialog(ImageGridDialog):
     def _found(self, cands):
         self.show_candidates(cands)
         self.apply_btn.setEnabled(bool(cands) and bool(self.target_dir))
+        self.next_btn.setEnabled(self.apply_btn.isEnabled())
         self.set_status(*found_message(cands, self._errors, "Bilder"))
 
     def apply(self):
@@ -1073,9 +1227,11 @@ class ArtistImageDialog(ImageGridDialog):
         if c is None or not self.target_dir:
             return
         self.apply_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
         self.set_status(f"Lade Bild von {c.source} …")
         self.run(get_image, c.url, done=self._finish,
-                 failed=lambda msg: (self.show_error(msg), self.apply_btn.setEnabled(True)))
+                 failed=lambda msg: (self.show_error(msg), self.apply_btn.setEnabled(True),
+                                     self.next_btn.setEnabled(True), setattr(self, "_then_next", False)))
 
     def _finish(self, data: bytes):
         name = self.settings.artist_image_name
@@ -1085,8 +1241,9 @@ class ArtistImageDialog(ImageGridDialog):
         except OSError as exc:
             QMessageBox.warning(self, "Nicht gespeichert", f"{target}\n{exc.strerror or exc}")
             return
-        self.win.toast.show_message(f"Künstlerbild gespeichert: {os.path.basename(self.target_dir)}/{name}")
-        self.accept()
+        if self.win.right.currentWidget() is self.win.artist_panel:
+            self.win.artist_panel.refresh()
+        self.after_save(f"Künstlerbild gespeichert: {os.path.basename(self.target_dir)}/{name}")
 
 
 def found_message(cands: list, errors: list[str], what: str) -> tuple[str, str]:
