@@ -45,7 +45,7 @@ jobs:
 
       - name: Screenshots hochladen
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: screenshots-py${{ matrix.python }}
           path: screenshots/
@@ -82,7 +82,7 @@ jobs:
           echo "$out" | grep -q "SELFTEST OK"
 
       - name: AppImage zum Herunterladen bereitstellen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: BuB3TAGMUSIC-AppImage
           path: dist/*.AppImage
