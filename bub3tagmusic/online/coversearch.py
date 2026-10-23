@@ -1,4 +1,4 @@
-"""Cover-Suche über Cover Art Archive, iTunes, TheAudioDB und Bandcamp.
+"""Cover-Suche über Cover Art Archive, iTunes, TheAudioDB, Bandcamp und Discogs (mit Token).
 
 Deezer liefert bewusst keine Cover mehr (nur noch Album-Daten) – deren Bilder sind nicht zum
 Weiterverwenden gedacht.
@@ -15,7 +15,7 @@ from .artistimages import AUDIODB_LIMITER
 from .base import CoverCandidate, OnlineError, RateLimiter, match_score
 from .http import get_image, get_json
 
-SOURCES = ("Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp")
+SOURCES = ("Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp", "Discogs")
 
 CAA = "https://coverartarchive.org/"
 ITUNES = itunes.SEARCH
@@ -115,16 +115,35 @@ def from_bandcamp(artist: str, album: str) -> list[CoverCandidate]:
     return parse_bandcamp(bandcamp.search(f"{artist} {album}".strip(), bandcamp.ALBUMS), artist, album)
 
 
+def from_discogs(artist: str, album: str, token: str) -> list[CoverCandidate]:
+    """Discogs-Cover (braucht den Token). Platzhalterbilder (spacer.gif) fallen weg."""
+    from . import discogs
+    if not token:
+        return []
+    out = []
+    for m in discogs.search_albums(artist, album, token, limit=12):
+        if not m.cover_full_url or "spacer.gif" in m.cover_full_url:
+            continue
+        info = " · ".join(p for p in (m.year, m.country, m.formats) if p)
+        out.append(CoverCandidate("Discogs", m.cover_full_url, m.cover_url or m.cover_full_url,
+                                  description=f"{m.album} – {m.albumartist}" + (f" ({info})" if info else ""),
+                                  score=match_score(artist, album, m.albumartist, m.album), size_hint="Original"))
+    return out
+
+
 def search_covers(artist: str, album: str, sources=SOURCES, *, contact: str = "", country: str = "DE",
-                  progress=lambda source, found, error: None) -> list[CoverCandidate]:
+                  discogs_token: str = "", progress=lambda source, found, error: None) -> list[CoverCandidate]:
     """Alle Quellen nacheinander; Fehler einer Quelle werden gemeldet, aber nicht geworfen."""
     funcs = {"Cover Art Archive": lambda: from_caa(artist, album, contact),
              "iTunes": lambda: from_itunes(artist, album, country),
              "TheAudioDB": lambda: from_audiodb(artist, album),
-             "Bandcamp": lambda: from_bandcamp(artist, album)}
+             "Bandcamp": lambda: from_bandcamp(artist, album),
+             "Discogs": lambda: from_discogs(artist, album, discogs_token)}
     out: list[CoverCandidate] = []
     for src in sources:
         if src not in funcs:                        # z. B. „Deezer“ aus alten Einstellungen
+            continue
+        if src == "Discogs" and not discogs_token:  # ohne Token einfach überspringen
             continue
         try:
             found = funcs[src]()

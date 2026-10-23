@@ -2,6 +2,20 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.6] – 2026-10-23 – Bilder Ordner für Ordner, fehlende Tags und Bilder finden
+
+### Neu
+- **Speichern & weiter bei Künstlerbildern und Covern** (Strg+→ oder Strg+Enter): speichert das gewählte Bild als
+  folder.jpg bzw. cover.jpg und springt gleich zum nächsten Künstler bzw. Album **ohne** Bild – dort wird sofort
+  gesucht, das Fenster bleibt offen. **Nächster Künstler** / **Nächstes Album** überspringt ohne zu speichern.
+  Sind alle durch, sagt das Fenster Bescheid. Grüne Haken gibt es dafür weiterhin nicht – die bleiben fürs
+  Speichern der Tags.
+- **Fehlende Tags finden** (*Extras*): zeigt alle Dateien der Sammlung, denen Titel, Interpret, Album oder
+  Tracknummer fehlt – in Sekunden aus dem Zwischenspeicher.
+- **Fehlende Bilder finden …** (*Extras*): Liste aller Album-Ordner ohne cover.jpg und Künstler-Ordner ohne
+  folder.jpg. Bei CD1/CD2-Ordnern reicht ein Cover eine Ebene höher. Doppelklick öffnet die passende Bildsuche.
+- **Discogs in der Cover-Suche** (braucht den Discogs-Token aus *Einstellungen → Online*).
+
 ## [1.1.5] – 2026-10-22 – Bessere Suche und Zuordnung
 
 ### Neu

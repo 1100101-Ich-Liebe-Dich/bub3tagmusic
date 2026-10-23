@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QComb
 
 from .. import features
 from ..core import duplicates as dup
+from ..core import missing
 from ..core import replaygain as rg
 from ..core.tools_external import find_tool, install_hint
 from . import icons, theme
@@ -751,9 +752,136 @@ def _acoustid_dialog(win, items, scope):
     return AcoustIDDialog(win, items, scope)
 
 
+# ======================================================================
+# Fehlende Bilder finden (1.1.6)
+# ======================================================================
+class MissingImagesDialog(ExtraDialog):
+    """Alle Album-Ordner ohne cover.jpg und Künstler-Ordner ohne folder.jpg – von hier gleich in die Bildsuche
+    (die dann mit „Speichern & weiter“ Ordner für Ordner durchgeht)."""
+
+    feature_id = "missing_images"
+
+    def __init__(self, win, items=None, scope=""):
+        s = win.settings
+        super().__init__(win, f"Album-Ordner ohne {s.album_cover_name} und Künstler-Ordner ohne {s.artist_image_name}")
+        self.found: list[missing.Missing] = []
+        f = self.form
+        f.addWidget(section("Was suchen?"))
+        self.chk_album = self.add_check(f"Alben ohne {s.album_cover_name}", "albums", True,
+                                        "Ordner mit Musik darin. Bei CD1/CD2-Ordnern reicht ein Cover eine Ebene höher.")
+        self.chk_artist = self.add_check(f"Künstler ohne {s.artist_image_name}", "artists", True,
+                                         "Ordner ohne eigene Musik, in denen die Alben liegen.")
+        self.chk_album.toggled.connect(lambda _on: self._fill())
+        self.chk_artist.toggled.connect(lambda _on: self._fill())
+        f.addSpacing(6)
+        again = QPushButton("Neu prüfen")
+        again.setIcon(icons.icon("arrows-clockwise", "text"))
+        again.clicked.connect(self.scan)
+        f.addWidget(again)
+        f.addSpacing(10)
+        f.addWidget(hint("Doppelklick öffnet die passende Bildsuche. Dort geht es mit „Speichern & weiter“ "
+                         "von selbst zum nächsten Ordner ohne Bild. Grüne Haken setzt das nicht – die gibt es "
+                         "nur fürs Speichern der Tags."))
+        f.addStretch(1)
+
+        self.tree = QTreeWidget()
+        self.tree.setObjectName("DupTree")
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Ordner", "Es fehlt", "Musikdateien"])
+        self.tree.setRootIsDecorated(False)
+        self.tree.setUniformRowHeights(True)
+        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tree.header().setStretchLastSection(False)
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree.setColumnWidth(1, 150)
+        self.tree.setColumnWidth(2, 110)
+        self.tree.itemDoubleClicked.connect(lambda *_: self._search())
+        self.tree.currentItemChanged.connect(lambda *_: self._update_buttons())
+        self.content.addWidget(self.tree, 1)
+
+        self.btn_open = QPushButton("Im Hauptfenster öffnen")
+        self.btn_open.clicked.connect(self._open)
+        self.btn_search = QPushButton("Bild suchen")
+        self.btn_search.setProperty("kind", "primary")
+        self.btn_search.setIcon(icons.icon("image-square", "text"))
+        self.btn_search.clicked.connect(self._search)
+        close = QPushButton("Schließen")
+        close.clicked.connect(self.reject)
+        for b in (close, self.btn_open, self.btn_search):
+            self.foot.addWidget(b)
+        self._update_buttons()
+        if win.tree.root_node is None:
+            self.summary.setText("Erst eine Sammlung öffnen")
+        else:
+            self.scan()
+
+    def scan(self):
+        s = self.settings
+        root = self.win.tree.root_node
+        if root is None:
+            return
+        self.tree.clear()
+        self.start_task(lambda progress, cancelled: missing.missing_images(
+            root, s.album_cover_name, s.artist_image_name,
+            progress=lambda d, t: progress(d, t, "Prüfe Ordner"), cancelled=cancelled),
+            done=self._scanned, label="Prüfe Ordner …")
+
+    def _scanned(self, found):
+        self.found = found
+        self._fill()
+
+    def _fill(self):
+        s = self.settings
+        root = self.win.tree.root_path or ""
+        kinds = {k for k, c in ((missing.ALBUM, self.chk_album), (missing.ARTIST, self.chk_artist)) if c.isChecked()}
+        shown = [m for m in self.found if m.kind in kinds]
+        self.tree.clear()
+        for m in shown:
+            rel = os.path.relpath(m.path, root) if root and m.path.startswith(root) else m.path
+            what = s.artist_image_name + " (Künstler)" if m.kind == missing.ARTIST else s.album_cover_name
+            it = QTreeWidgetItem([rel, what, f"{m.files:,}".replace(",", ".")])
+            it.setData(0, Qt.ItemDataRole.UserRole, (m.path, m.kind))
+            it.setToolTip(0, m.path)
+            it.setIcon(0, icons.icon("user-circle" if m.kind == missing.ARTIST else "disc", "muted"))
+            it.setTextAlignment(2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.tree.addTopLevelItem(it)
+        albums = sum(1 for m in self.found if m.kind == missing.ALBUM)
+        artists = len(self.found) - albums
+        if not self.found:
+            self.summary.setText("Alle Ordner haben ihr Bild – nichts zu tun 🎉")
+        else:
+            self.summary.setText(f"{albums:,} Alben ohne {s.album_cover_name} · {artists:,} Künstler ohne "
+                                 f"{s.artist_image_name}".replace(",", "."))
+        if self.tree.topLevelItemCount():
+            self.tree.setCurrentItem(self.tree.topLevelItem(0))
+        self._update_buttons()
+
+    def _update_buttons(self):
+        ok = self.tree.currentItem() is not None
+        self.btn_open.setEnabled(ok)
+        self.btn_search.setEnabled(ok)
+
+    def _target(self):
+        it = self.tree.currentItem()
+        return it.data(0, Qt.ItemDataRole.UserRole) if it else None
+
+    def _open(self):
+        t = self._target()
+        if t:
+            self.accept()
+            self.win.open_missing(t[0], t[1], search=False)
+
+    def _search(self):
+        t = self._target()
+        if t:
+            self.accept()
+            self.win.open_missing(t[0], t[1], search=True)
+
+
 EXTRA_DIALOGS = {
     "duplicates": DuplicatesDialog,
     "actions": _actions_dialog,
     "replaygain": ReplayGainDialog,
     "acoustid": _acoustid_dialog,
+    "missing_images": MissingImagesDialog,
 }

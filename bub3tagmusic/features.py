@@ -93,6 +93,12 @@ FEATURES: tuple[Feature, ...] = (
     Feature("duplicates", "Duplikate finden", 4, "extras", "copy",
             "Findet doppelte Titel in der Liste oder der ganzen Sammlung – nach Interpret + Titel oder nach "
             "Klang (Fingerabdruck). Nichts wird automatisch gelöscht.", ready=True),
+    Feature("missing_tags", "Fehlende Tags finden", 4, "extras", "warning-circle",
+            "Zeigt alle Dateien der Sammlung, denen Titel, Interpret, Album oder Tracknummer fehlt – "
+            "aus dem Zwischenspeicher, in Sekunden.", ready=True),
+    Feature("missing_images", "Fehlende Bilder finden …", 4, "extras", "image",
+            "Alle Album-Ordner ohne cover.jpg und Künstler-Ordner ohne folder.jpg. Von dort geht es mit "
+            "„Speichern & weiter“ Ordner für Ordner durch.", ready=True),
     Feature("export", "Liste exportieren …", 4, "extras", "download-simple",
             "Exportiert die aktuelle Liste als CSV (Tabellenkalkulation) oder HTML-Seite – "
             "mit den sichtbaren Spalten in ihrer Reihenfolge.", "Ctrl+Shift+E", ready=True),

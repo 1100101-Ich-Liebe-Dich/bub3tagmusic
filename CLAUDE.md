@@ -68,7 +68,13 @@ nach jeder Sitzung aktuell halten.
 - Künstler-Ordner (keine Musik direkt, Alben darunter): `artistpanel.is_artist_folder(node)`; rechts ein
   `QStackedWidget` (`win.right`) mit `win.panel` (Tags) und `win.artist_panel` (folder.jpg). Umschalten in
   `mainwindow._update_right_panel()` nach jedem Laden. Online-Suche: `win.search_artist_image(ordner)` →
-  `ArtistImageDialog(win, [], "", folder=…, artist=…)`.
+  `ArtistImageDialog(win, [], "", folder=…, artist=…)`. Die Erkennung selbst steht in `core/missing.is_artist_node`.
+- Fehlende Bilder (1.1.6): `core/missing.py` (`missing_images`, `next_missing` – Wurzel zählt nie, CD1/CD2 nehmen das
+  Cover eine Ebene höher). „Speichern & weiter“ im Bildergitter: `ImageGridDialog.add_next_buttons()` →
+  `after_save()` → `_go_next()` (speichert, wählt Ordner im Baum, wartet auf `win._loaded_dirs`) → `move_to()`
+  der Unterklasse; `missing_kind`/`skip_text` je Dialog. Liste: `extras.MissingImagesDialog` →
+  `win.open_missing(pfad, art)`. Fehlende Tags: `win.find_missing_tags()` (Chip „missing“ + ganze Sammlung).
+  Grüne Haken setzt das alles nie – die kommen nur vom Speichern der Tags.
 - Ergebnislisten statt Ordner: `win.show_files(pfade, "Bezeichnung")` bzw. `win.search_collection()`;
   `win.is_result_list` → kein „nächster Ordner“.
 - Neue Felder im Datensatz (`read_file`) → `tags.RECORD_VERSION` erhöhen, dann liest der Cache alte Einträge neu.
@@ -195,7 +201,7 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
   `ID3(pfad, translate=False)`.
 - **Deezer meldet Fehler mit Status 200** und `{"error": {...}}` im Inhalt → `deezer._check()`.
 - **Keine Bilder von Deezer** (Wunsch des Auftraggebers): weder Cover, Vorschaubilder noch Künstlerbilder – nur Tags.
-  Cover: CAA, iTunes, TheAudioDB, Bandcamp. Künstlerbilder: TheAudioDB, Bandcamp, Discogs (Token), Wikipedia.
+  Cover: CAA, iTunes, TheAudioDB, Bandcamp, Discogs (Token). Künstlerbilder: TheAudioDB, Bandcamp, Discogs (Token), Wikipedia.
 - Neue Quelle im Bildergitter → `sources_version` der Dialog-Klasse erhöhen, sonst bleibt sie bei alten
   Einstellungen abgewählt. Bandcamp-Suche liegt in `online/bandcamp.py` (Alben + Bands).
 - GitHub-Secrets für die Aufnahme (optional): `ACOUSTID_KEY`, `LASTFM_KEY`, `DISCOGS_TOKEN`.

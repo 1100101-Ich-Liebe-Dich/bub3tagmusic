@@ -229,7 +229,7 @@ def main():
     check(wait(app, lambda: len(d._thumbs) >= 3, 10), f"Vorschaubilder geladen: {len(d._thumbs)}")
     srcs = {c.source for c in d._candidates}
     check({"Cover Art Archive", "iTunes"} <= srcs and "Deezer" not in srcs, f"Quellen ohne Deezer: {sorted(srcs)}")
-    check(list(d.src_chips) == ["Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp"], f"Chips: {list(d.src_chips)}")
+    check(list(d.src_chips) == ["Cover Art Archive", "iTunes", "TheAudioDB", "Bandcamp", "Discogs"], f"Chips: {list(d.src_chips)}")
     pump(app, 0.4)
     d.grab().save(os.path.join(out, "o2_cover.png"))
     d._apply()
