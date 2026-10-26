@@ -91,6 +91,9 @@ nach jeder Sitzung aktuell halten.
   Zuordnung: `matching.assign` – „title“ (`title_similarity`: Wörter ohne Klammern/feat., Dateiname ohne Nummern;
   gierig beste Paare, Tracknummer/Länge als Bonus, Rest über `_fill_by_number`), „auto“ nimmt „title“ ab 60 % sicher.
   Suchbegriffe: `base.search_text()` entfernt Klammer-Inhalte (in `guess_search`).
+  Von Hand (1.1.7): Klick auf eine Vorschauzeile → `_choose_track` (QMenu über `_popup`, im Test ersetzbar) →
+  `_set_manual` → `matching.reassign` (tauschen) in `self._manual`; `refresh_preview` legt es per
+  `matching.with_manual` über `assign` (`Assignment.manual`). Neuer Treffer/Ordner/Modus verwirft die Wahl.
 - Online-Dialoge: `ui/online.py` → `ONLINE_DIALOGS` (wie `TOOL_DIALOGS`). Abfragen per `Job`, Vorschaubilder per
   `ImageLoader` (beide in `ui/workers.py`). Album-Daten + Cover gemeinsam: `session.apply_changes(..., cover=CoverData)`.
 - Nur geänderte Felder schreiben, Audiodaten nie anfassen, ein Dateifehler stoppt nie den Rest.
@@ -179,7 +182,9 @@ make && dist/*.AppImage --selftest ORDNER   # AppImage bauen + Starttest
 - **`selectedRows()` ist bei 50.000 Zeilen extrem langsam** (4 s) → Auswahl über `selection()`-Bereiche lesen.
 - Pro Feld nicht `any(item.methode())` über 50.000 Einträge – geänderte Einträge einmal vorfiltern.
 - **Prozess-Pool (spawn)** startet das Hauptskript neu → jedes ausführbare Skript braucht `if __name__ == "__main__":`.
-- `&` in Button-Texten ist ein Tastenkürzel-Zeichen → `&&` schreiben.
+- `&` in Button-Texten ist ein Tastenkürzel-Zeichen → `&&` schreiben (auch in Menüeinträgen, z. B. Tracktitel).
+- **PySide-Methoden lassen sich nicht an der Klasse ersetzen** (`QMenu.exec = …` wirkt nicht → Test hängt im
+  echten Menü). Stattdessen eine eigene Methode (`_popup`) bauen und im Test am Objekt ersetzen.
 - Gestrichelte Fokus-Rahmen kommen von Fusion → werden in `app.prepare_app()` per ProxyStyle unterdrückt.
 - Combobox mit eigener QLineEdit: QSS `QComboBox QLineEdit` ohne Rahmen/Padding, sonst wird Text abgeschnitten.
 - Beim Start gemerkte Ordner mit `emit=True` auswählen, sonst wird nichts geladen.

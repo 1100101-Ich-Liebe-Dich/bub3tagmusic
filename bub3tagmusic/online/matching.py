@@ -7,6 +7,9 @@ Modi:
   * "order":  in der Reihenfolge der Liste (z. B. nach Dateiname sortiert)
   * "length": über die Spiellänge (nächstliegende zuerst)
   * "auto":   Titel, wenn die meisten Dateien sicher erkannt werden – sonst Tracknummern, Reihenfolge, Länge
+
+Von Hand (1.1.7): `reassign()` gibt einer Datei einen anderen Track – hatte den schon eine andere Datei,
+tauschen die beiden. `with_manual()` legt diese Wahl über das automatische Ergebnis.
 """
 
 from __future__ import annotations
@@ -44,6 +47,7 @@ class Assignment:
     track_index: int | None          # Index in album.tracks, None = kein Treffer
     length_diff: float | None = None  # Sekunden Unterschied (wenn beide Längen bekannt)
     title_score: float | None = None  # 0–1 bei Zuordnung über den Titel
+    manual: bool = False              # von Hand gewählt (1.1.7) – dann keine Warnungen mehr
 
     @property
     def length_ok(self) -> bool:
@@ -227,13 +231,49 @@ def assign(files: list[FileInfo], album: AlbumMatch, mode: str = "auto") -> tupl
                 idx, used_mode = _by_order(files, album), "order"
             else:
                 idx, used_mode = _by_length(files, album), "length"
-    out = []
-    for f, i, s in zip(files, idx, scores):
-        diff = None
-        if i is not None and f.length and album.tracks[i].length:
-            diff = abs(f.length - album.tracks[i].length)
-        out.append(Assignment(i, diff, s if i is not None else None))
+    out = [Assignment(i, _length_diff(f, album, i), s if i is not None else None)
+           for f, i, s in zip(files, idx, scores)]
     return out, used_mode
+
+
+def _length_diff(f: FileInfo, album: AlbumMatch, i: int | None) -> float | None:
+    if i is None or not f.length or not album.tracks[i].length:
+        return None
+    return abs(f.length - album.tracks[i].length)
+
+
+def reassign(current: list[int | None], file_index: int, track_index: int | None) -> dict[int, int | None]:
+    """Datei file_index bekommt track_index (None = keinen). Hatte eine andere Datei diesen Track, bekommt sie
+    den bisherigen Track von file_index – die beiden tauschen. Ergebnis: neue Wahl je Datei (nur geänderte)."""
+    out = {file_index: track_index}
+    if track_index is not None:
+        for k, t in enumerate(current):
+            if k != file_index and t == track_index:
+                out[k] = current[file_index]
+    return out
+
+
+def with_manual(assigned: list[Assignment], manual: dict[int, int | None], files: list[FileInfo],
+                album: AlbumMatch) -> list[Assignment]:
+    """Automatisches Ergebnis + Wahl von Hand. Ein Track gehört immer nur einer Datei: hat eine automatisch
+    zugeordnete Datei einen Track, den eine Datei von Hand bekommen hat, geht sie leer aus."""
+    out = list(assigned)
+    for i, t in manual.items():
+        if 0 <= i < len(out) and (t is None or 0 <= t < len(album.tracks)):
+            out[i] = Assignment(t, _length_diff(files[i], album, t), None, manual=True)
+    taken = {a.track_index for a in out if a.manual and a.track_index is not None}
+    for i, a in enumerate(out):
+        if not a.manual and a.track_index in taken:
+            out[i] = Assignment(None)
+    return out
+
+
+def track_label(album: AlbumMatch, i: int) -> str:
+    """„3. Titel (3:45)“ bzw. „CD2 · 3. Titel (3:45)“ – für das Auswahl-Menü."""
+    t = album.tracks[i]
+    pre = f"CD{t.disc} · " if album.disc_total > 1 else ""
+    length = f"  ({int(t.length) // 60}:{int(t.length) % 60:02d})" if t.length else ""
+    return f"{pre}{t.position}. {t.title}{length}"
 
 
 def tags_for(album: AlbumMatch, track_index: int, fields: set[str], *, disc_only_if_multi: bool = True,

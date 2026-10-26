@@ -86,6 +86,21 @@ def main():
                                  name=f"Track {t.position}.mp3") for t in full.tracks]
     got, mode = matching.assign(generic, full)
     eq((mode, [g.track_index for g in got]), ("number", list(range(26))), "nichtssagende Titel → Tracknummer")
+    # Von Hand (1.1.7): tauschen, leer lassen, Konflikte mit dem automatischen Ergebnis
+    eq(matching.reassign([0, 1, 2, None], 0, 2), {0: 2, 2: 0}, "von Hand: belegter Track → die beiden tauschen")
+    eq(matching.reassign([0, 1, 2, None], 3, 1), {3: 1, 1: None}, "von Hand: Datei ohne Track nimmt einen → andere leer")
+    eq(matching.reassign([0, 1, 2], 1, None), {1: None}, "von Hand: keinen Track")
+    eq(matching.reassign([0, 1, None], 0, 5), {0: 5}, "von Hand: freier Track")
+    files4 = [matching.FileInfo(length=t.length) for t in full.tracks[:4]]
+    auto, _ = matching.assign(files4, full, "order")
+    got = matching.with_manual(auto, {0: 2, 2: 0, 3: None}, files4, full)
+    eq([(g.track_index, g.manual) for g in got], [(2, True), (1, False), (0, True), (None, True)],
+       "von Hand über das automatische Ergebnis")
+    eq(got[0].length_ok, abs(full.tracks[0].length - full.tracks[2].length) <= matching.LENGTH_TOLERANCE,
+       "von Hand: Länge neu verglichen")
+    got = matching.with_manual(auto, {0: 1}, files4, full)
+    eq([g.track_index for g in got], [1, None, 2, 3], "Track von Hand vergeben → automatische Datei geht leer aus")
+    eq(matching.track_label(full, 13).startswith("CD2 · 1. "), True, f"Menütext: {matching.track_label(full, 13)}")
     eq(matching.title_words("03 - AC_DC - Hells Bells (feat. X) [Live].mp3", filename=True),
        ["ac", "dc", "hells", "bells"], "Dateiname → Wörter")
     eq(matching.file_numbers(matching.FileInfo(name="2-05 Titel.mp3")), (5, 2), "Disc + Track aus dem Dateinamen")
