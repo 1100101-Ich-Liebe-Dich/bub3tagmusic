@@ -2,6 +2,14 @@
 
 Alle wichtigen Änderungen an BuB3TAGMUSIC – präsentiert von www.BAUENUNDBOOTEN.de
 
+## [1.1.7] – 2026-10-26 – Tracks von Hand zuordnen
+
+### Neu
+- **Album suchen: Zuordnung von Hand.** Hat die automatische Zuordnung ein, zwei Tracks falsch erwischt, einfach
+  die Zeile in der Vorschau anklicken und den richtigen Track aus der Liste wählen. Gehört der Track schon zu einer
+  anderen Datei, tauschen die beiden. „Keinen Track“ lässt eine Datei, wie sie ist. **Zurücksetzen** ordnet wieder
+  automatisch zu. Was du von Hand wählst, zeigt die Vorschau als „von Hand“ – ohne Längen- oder Titel-Warnung.
+
 ## [1.1.6] – 2026-10-23 – Bilder Ordner für Ordner, fehlende Tags und Bilder finden
 
 ### Neu

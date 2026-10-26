@@ -146,6 +146,47 @@ def main():
     check(titles[0] == "Hells Bells", f"Track 1 → {titles[0]}")
     check(d.model.preview.apply_count == 10, f"10 Dateien bekommen Daten ({d.status.text()})")
     check("Länge weicht ab" in d.model.rows[0].status, "Längen-Abweichung wird gezeigt (Testdateien sind 1 s lang)")
+
+    # Von Hand zuordnen (1.1.7): Zeile anklicken → Menü mit den Tracks; belegter Track = die beiden tauschen
+    menus = []
+
+    def fake_exec(menu, *_a, pick=""):
+        acts = [a for a in menu.actions() if a.text()]
+        menus.append([a.text() for a in acts])
+        if len(menus) == 1:                          # Bild vom echten Menü
+            menu.popup(d.mapToGlobal(d.rect().center()))
+            pump(app, 0.3)
+            menu.grab().save(os.path.join(out, "o1_album_menue.png"))
+            menu.close()
+        next(a for a in acts if a.text().startswith(pick)).trigger()
+
+    try:
+        d._popup = lambda m: fake_exec(m, pick="2. ")
+        d._choose_track(d.model.index(0, 0))
+        titles = [r.cells[col][0] for r in d.model.rows]
+        check(menus[-1][0].startswith("Track für") and any("⇄" in t for t in menus[-1]),
+              f"Menü: Tracks, belegte mit ⇄ ({menus[-1][:3]})")
+        check(titles[:2] == ["Shoot to Thrill", "Hells Bells"], f"getauscht: {titles[:2]}")
+        check(d.model.rows[0].status.startswith("von Hand") and d.model.rows[1].status.startswith("von Hand"),
+              f"als „von Hand“ markiert, ohne Warnung: {d.model.rows[0].status}")
+        check(d.reset_btn.isVisible() and "2 von Hand" in d.status.text(), f"Zurücksetzen da: {d.status.text()}")
+        d._popup = lambda m: fake_exec(m, pick="Keinen Track")
+        d._choose_track(d.model.index(2, 0))
+        check(d.model.rows[2].kind == O.UNCHANGED and d.model.preview.apply_count == 9,
+              f"„Keinen Track“: Datei bleibt, 9 bekommen Daten ({d.model.rows[2].status})")
+    finally:
+        del d._popup
+    pump(app, 0.3)
+    d.grab().save(os.path.join(out, "o1_album_von_hand.png"))
+    d.mode.setCurrentIndex(d.mode.findData("order"))
+    pump(app)
+    check(not d._manual and not d.reset_btn.isVisible(), "anderer Zuordnungs-Modus: Wahl von Hand verworfen")
+    d.mode.setCurrentIndex(d.mode.findData("auto"))
+    d._set_manual(0, 1)
+    d._reset_manual()
+    titles = [r.cells[col][0] for r in d.model.rows]
+    check(titles[0] == "Hells Bells" and d.model.preview.apply_count == 10 and not d.reset_btn.isVisible(),
+          "Zurücksetzen: wieder automatisch")
     d.grab().save(os.path.join(out, "o1_album.png"))
     d._apply()
     check(wait(app, lambda: not d.isVisible()), "übernommen")

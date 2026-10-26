@@ -13,9 +13,9 @@ import re
 import time
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QFont, QIcon, QKeySequence, QPainter, QPainterPath, QPixmap, QShortcut
+from PySide6.QtGui import QActionGroup, QCursor, QFont, QIcon, QKeySequence, QPainter, QPainterPath, QPixmap, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QFrame, QHBoxLayout, QHeaderView, QLabel,
-                               QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea,
+                               QLineEdit, QListWidget, QListWidgetItem, QMenu, QMessageBox, QPushButton, QScrollArea,
                                QSplitter,
                                QStyle, QStyledItemDelegate, QTableView, QVBoxLayout, QWidget)
 
@@ -293,6 +293,9 @@ class AlbumSearchDialog(OnlineDialog):
         self._changes: list = []
         self._cover_all: list = []
         self._cover_bytes: bytes | None = None
+        self._manual: dict[int, int | None] = {}     # von Hand: Datei-Nr. → Track-Nr. (1.1.7)
+        self._manual_key = None
+        self._assigned: list = []
         super().__init__(win, items, scope)
         artist, album = guess_search(items)
         self.opts["source"] = self.source
@@ -359,7 +362,14 @@ class AlbumSearchDialog(OnlineDialog):
         self.mode.currentIndexChanged.connect(lambda _i: (self.opts.__setitem__("mode", self.mode.currentData()),
                                                           self.refresh_preview()))
         opts.addWidget(self.mode)
-        opts.addStretch(1)
+        self.reset_btn = QPushButton("Zurücksetzen")
+        self.reset_btn.setIcon(icons.icon("arrow-counter-clockwise", "text"))
+        self.reset_btn.setToolTip("Alles, was du von Hand zugeordnet hast, wieder automatisch zuordnen")
+        self.reset_btn.clicked.connect(self._reset_manual)
+        self.reset_btn.hide()
+        opts.addWidget(self.reset_btn)
+        self.hand_hint = hint("Falsch zugeordnet? Zeile anklicken und den richtigen Track wählen.")
+        opts.addWidget(self.hand_hint, 1)
         rl.addLayout(opts)
 
         fields_box = QWidget()
@@ -399,6 +409,8 @@ class AlbumSearchDialog(OnlineDialog):
         self.view.horizontalHeader().setStretchLastSection(True)
         self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.view.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+        self.view.clicked.connect(self._choose_track)
         rl.addWidget(self.view, 1)
         split.addWidget(right)
         split.setSizes([360, 740])
@@ -626,6 +638,12 @@ class AlbumSearchDialog(OnlineDialog):
                                    it.tags.get("title", ""), it.name)
                  for it in self.items]
         assigned, used = matching.assign(files, m, self.mode.currentData())
+        key = (m.source, m.source_id, tuple(it.path for it in self.items), self.mode.currentData())
+        if key != self._manual_key:                 # anderer Treffer, Ordner oder Modus: Wahl von Hand verwerfen
+            self._manual, self._manual_key = {}, key
+        assigned = matching.with_manual(assigned, self._manual, files, m)
+        self._assigned = assigned
+        self.reset_btn.setVisible(bool(self._manual))
         # Felder, die diese Quelle für dieses Album nicht kennt, gar nicht erst als Spalte zeigen
         provided = {"year": m.year, "genre": m.genre, "label": m.label, "originalyear": m.original_year}
         columns = [k for k in ("track", "disc", "title", "artist", "album", "year", "genre", "label",
@@ -633,11 +651,15 @@ class AlbumSearchDialog(OnlineDialog):
                    (k in fields or (k == "disc" and "track" in fields and m.disc_total > 1)
                     or (k == "album" and "album" in fields)) and provided.get(k, True)]
         rows, changes, problems = [], [], 0
+        click = "\nKlicken, um den Track von Hand zu wählen"
         for it, a in zip(self.items, assigned):
             if a.track_index is None:
-                problems += 1
-                rows.append(PreviewRow(it.name, [(it.tags.get(k, ""), None) for k in columns],
-                                       "kein passender Track", ERROR, it.path))
+                cells = [(it.tags.get(k, ""), None) for k in columns]
+                if a.manual:
+                    rows.append(PreviewRow(it.name, cells, "von Hand: bleibt, wie sie ist", UNCHANGED, it.path + click))
+                else:
+                    problems += 1
+                    rows.append(PreviewRow(it.name, cells, "kein passender Track – anklicken", ERROR, it.path + click))
                 continue
             new = matching.tags_for(m, a.track_index, fields, clean=self.clean_chip.isChecked())
             diff = {k: v for k, v in new.items() if it.tags.get(k, "") != v}
@@ -645,13 +667,15 @@ class AlbumSearchDialog(OnlineDialog):
                      for k in columns]
             status, kind = (f"{len(diff)} Feld{'er' if len(diff) != 1 else ''}", CHANGED) if diff else \
                 ("unverändert", UNCHANGED)
-            if not a.length_ok:
+            if a.manual:                            # selbst gewählt: keine Warnungen mehr
+                status = f"von Hand · {status}"
+            elif not a.length_ok:
                 status, kind = f"Länge weicht ab ({a.length_diff:+.0f} s)".replace("+", "±"), WARN
                 problems += 1
             elif a.title_score is not None and a.title_score < matching.TITLE_SURE:
                 status, kind = f"Titel nur ähnlich ({a.title_score:.0%})", WARN
                 problems += 1
-            rows.append(PreviewRow(it.name, cells, status, kind, it.path))
+            rows.append(PreviewRow(it.name, cells, status, kind, it.path + click))
             changes.append((it, diff))
         self._changes = [(it, d) for it, d in changes if d]
         cover = self.cover_chip.isChecked() and bool(m.cover_full_url)
@@ -662,6 +686,8 @@ class AlbumSearchDialog(OnlineDialog):
         extra = []
         if len(self.items) != len(m.tracks):
             extra.append(f"{len(self.items)} Dateien, Album hat {len(m.tracks)} Tracks")
+        if self._manual:
+            extra.append(f"{len(self._manual)} von Hand")
         if problems:
             extra.append(f"{problems} mit Hinweis")
         if self.cover_chip.isChecked() and not m.cover_full_url:
@@ -672,6 +698,51 @@ class AlbumSearchDialog(OnlineDialog):
         self.apply_btn.setEnabled(n > 0)
         self.apply_btn.setText(f"Übernehmen ({n})" if n else "Übernehmen")
         self.next_btn.setEnabled(n > 0)
+
+    # --- Zuordnung von Hand (1.1.7) ---------------------------------------------------
+    def _choose_track(self, index):
+        """Klick auf eine Zeile: Menü mit allen Tracks des Albums. Hat eine andere Datei den Track schon,
+        tauschen die beiden."""
+        m = self._current
+        row = index.row()
+        if m is None or not m.tracks or not (0 <= row < len(self._assigned)):
+            return
+        current = [a.track_index for a in self._assigned]
+        owner = {t: k for k, t in enumerate(current) if t is not None}
+        menu = QMenu(self)
+        menu.setToolTipsVisible(True)
+        head = menu.addAction(f"Track für „{self.items[row].name}“")
+        head.setEnabled(False)
+        menu.addSeparator()
+        group = QActionGroup(menu)
+        for i in range(len(m.tracks)):
+            text = matching.track_label(m, i)
+            k = owner.get(i)
+            if k is not None and k != row:
+                text += f"   ⇄ {self.items[k].name}"
+            act = menu.addAction(text.replace("&", "&&"))
+            act.setCheckable(True)
+            act.setChecked(current[row] == i)
+            act.setActionGroup(group)
+            if k is not None and k != row:
+                act.setToolTip("Gehört gerade zu einer anderen Datei – die beiden tauschen")
+            act.triggered.connect(lambda _=False, t=i: self._set_manual(row, t))
+        menu.addSeparator()
+        none = menu.addAction("Keinen Track – Datei bleibt, wie sie ist")
+        none.triggered.connect(lambda: self._set_manual(row, None))
+        self._popup(menu)
+
+    def _popup(self, menu: QMenu):                  # eigene Methode – der Test ersetzt sie
+        menu.exec(QCursor.pos())
+
+    def _set_manual(self, row: int, track: int | None):
+        current = [a.track_index for a in self._assigned]
+        self._manual.update(matching.reassign(current, row, track))
+        self.refresh_preview()
+
+    def _reset_manual(self):
+        self._manual = {}
+        self.refresh_preview()
 
     WIDTHS = {"Datei": 190, "Track": 58, "Disc": 50, "Titel": 190, "Interpret": 130, "Album": 140,
               "Albuminterpret": 130, "Jahr": 54, "Genre": 110, "Label": 120, "Original-Jahr": 92}
